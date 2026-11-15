@@ -228,7 +228,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 
 ## 12. Brand and UI direction
 - Match Income's look: warm orange as the primary colour, deep blue as secondary, generous white space, real-people warmth. Income's 2026 brand platform "For every story" uses three orange dots (an ellipsis) as its device: use the three dots as the loader and as the "story continues" accent. Income's earlier identity used the Ubuntu typeface: use Ubuntu for headings (verify against income.com.sg and switch if the site uses another face) and Inter for body.
-- Sample exact colour hex values from income.com.sg with a colour picker and put them in `web/src/styles/tokens.css`. Until then use placeholders `--income-orange: #F26722` and `--income-blue: #1B3A6B` (unverified).
+- Colours sampled 2026-11-15 from income.com.sg `main.css` and stored in `web/src/styles/tokens.css`: `--income-orange: #F57100` (Income orange-500), `--income-orange-600: #E46A00` (buttons), `--income-orange-700: #B35300` (orange text on white), `--income-blue: #00467A` (Income blue-800), ink `#262727`. Ubuntu confirmed as Income's web font. Re-check with a colour picker before the final demo.
 - Polished, calm, product-grade. Motion only where it explains (payout counting up, hours filling a meter). No neon, no heavy gradients.
 
 ## 13. Status
@@ -241,6 +241,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [ ] Pricing and reinsurance
 - [ ] Liquidity forecasting
 - [ ] Site Match AI
+- [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
 - [ ] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
 - [ ] Demo script rehearsed
 
@@ -270,3 +271,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: station ID to name map in ai_usecases.py unverified until P2 pulls metadata.
 - Tests: `make test` 1 passed. `make web` 200 on /, `make engine` /health ok.
 - Next: P1 design system.
+
+### 2026-11-15 15:05, P1 design system that matches Income
+- Done: Sampled Income's CSS variables from income.com.sg/assets/css/main.css (orange, blue, neutral scales; Ubuntu font-family). Wrote `web/src/styles/tokens.css`, mapped tokens into Tailwind theme and shadcn variables in `globals.css`. Loaded Ubuntu (500, 700) and Inter (400, 600) via next/font. Built `Ellipsis`, `AssumptionTag`, `StateBadge`, `Money`, `SourceNote`, `PrototypeFooter`, `PageHeader`, `AppShell` (text wordmark "Income Business (concept)", nav to every PLAN.md route, mobile menu below 1280px). Added shadcn tooltip, button, card, badge, tabs, slider, table, input, label, radio-group, checkbox, select, separator, switch, progress, dialog. `/styleguide` page.
+- Files changed: web/src/styles/tokens.css, web/src/app/globals.css, web/src/app/layout.tsx, web/src/app/styleguide/page.tsx, web/src/components/brand/*, web/src/components/ui/*, CONTEXT.md section 12.
+- Numbers produced (with source): brand hex values from income.com.sg main.css (see section 12).
+- Decisions: Placeholder colours replaced with sampled ones. Orange text uses orange-700 for contrast; white text sits on orange-600 buttons. Light mode only. State colours: triggered orange, not triggered slate, pending amber with dashed border, plus approved green and review red for Site Match; every badge has a label and icon.
+- Broken or unverified: Colours sampled from CSS, not a colour picker on rendered pages. Aceternity and 21st.dev components are not installed yet; they come in P10 to P12.
+- Tests: `make test` 1 passed. tsc and eslint clean. /styleguide renders with footer.
+- Next: P2 data ingest.

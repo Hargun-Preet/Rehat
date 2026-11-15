@@ -1,0 +1,54 @@
+/*
+  Rehat design tokens.
+  Colours and the Ubuntu heading face were sampled on 2026-11-15 from
+  https://www.income.com.sg/assets/css/main.css (--color-orange-*, --color-blue-*, --color-neutral-*).
+  Team: re-check with a colour picker on income.com.sg before the final demo.
+  The kit placeholders were #F26722 (orange) and #1B3A6B (blue); they are replaced below.
+*/
+:root {
+  /* Brand */
+  --income-orange: #f57100;      /* Income --color-orange-500 */
+  --income-orange-600: #e46a00;  /* Income --color-orange-600, buttons */
+  --income-orange-700: #b35300;  /* Income --color-orange-700, orange text on white (AA) */
+  --income-orange-100: #fff2e8;  /* Income --color-orange-100, tints */
+  --income-orange-200: #ffe3cb;
+  --income-blue: #00467a;        /* Income --color-blue-800, deep blue */
+  --income-blue-600: #0072c1;    /* Income --color-blue-600, links */
+  --income-blue-100: #e5f1fa;
+
+  /* Neutrals */
+  --paper: #faf7f2;
+  --surface: #ffffff;
+  --ink: #262727;                /* Income --color-neutral-900 */
+  --muted: #5b5d5e;              /* Income --color-neutral-600 */
+  --line: #e0e0e0;               /* Income --color-neutral-200 */
+  --line-soft: #efebe4;
+
+  /* Hour and day states. Never use colour alone: always pair with a label and icon. */
+  --state-triggered: #e46a00;
+  --state-triggered-bg: #fff2e8;
+  --state-not: #5b6b7a;
+  --state-not-bg: #eef1f4;
+  --state-pending: #a16207;
+  --state-pending-bg: #fef6e0;
+  --state-ok: #1f7a4d;
+  --state-ok-bg: #effaf5;
+  --state-review: #9f1d14;
+  --state-review-bg: #ffe9e7;
+
+  /* Shape */
+  --radius-card: 16px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 2px rgba(38, 39, 39, 0.04), 0 4px 16px rgba(38, 39, 39, 0.05);
+  --shadow-raised: 0 8px 30px rgba(38, 39, 39, 0.08);
+
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
