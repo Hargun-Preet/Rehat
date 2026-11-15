@@ -91,7 +91,7 @@ export default function Worker({ data }: { data: WorkerData }) {
                     role="tab"
                     aria-selected={lang === k}
                     onClick={() => setLang(k)}
-                    className={cn("rounded-full px-4 py-2 text-sm", lang === k ? "bg-income-orange text-white" : "bg-surface hover:bg-income-orange-100")}
+                    className={cn("rounded-full px-4 py-2 text-sm", lang === k ? "bg-income-orange-700 text-white" : "bg-surface hover:bg-income-orange-100")}
                   >
                     {data.langs[k]}
                   </button>

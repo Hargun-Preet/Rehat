@@ -25,7 +25,7 @@
   --line-soft: #efebe4;
 
   /* Hour and day states. Never use colour alone: always pair with a label and icon. */
-  --state-triggered: #e46a00;
+  --state-triggered: #b35300;  /* text and borders; AA on its tint (5.1:1). Fills use --income-orange */
   --state-triggered-bg: #fff2e8;
   --state-not: #5b6b7a;
   --state-not-bg: #eef1f4;

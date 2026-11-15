@@ -36,7 +36,7 @@ export type ReplayData = {
 };
 
 const rest = (v: number) => (v >= 33 ? 15 : v >= 32 ? 10 : v >= 31.5 ? 5 : 0);
-const tone = (v: number) => (v >= 33 ? "bg-[#b35300] text-white" : v >= 32 ? "bg-income-orange text-white" : v >= 31.5 ? "bg-income-orange-200 text-ink" : "bg-paper text-ink");
+const tone = (v: number) => (v >= 33 ? "bg-[#b35300] text-white" : v >= 32 ? "bg-income-orange-700 text-white" : v >= 31.5 ? "bg-income-orange-200 text-ink" : "bg-paper text-ink");
 
 /** Rest owed so far: completed clock hours (hourly mean of four readings), meal hour excluded. */
 function restSoFar(vals: number[], times: string[], idx: number, meal: number) {
@@ -72,6 +72,9 @@ export default function Replay({ d }: { d: ReplayData }) {
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const last = d.times.length - 1;
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("autoplay")) setPlaying(true);
+  }, []);
   useEffect(() => {
     if (!playing) return;
     timer.current = setInterval(() => setIdx((i) => (i >= last ? i : i + 1)), 450);

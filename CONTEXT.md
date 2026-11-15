@@ -440,3 +440,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Recharts animates on mount; screenshots taken too early look empty (charts verified in the DOM).
 - Tests: `make test` passed. All pages 200.
 - Next: P13 polish, offline hardening, pitch mode.
+
+### 2026-11-15 17:00, P13 polish, offline hardening, pitch mode
+- Done: `make export` now runs the whole chain from cached data (normalise, WBGT rebuild, back-test, Site Match, pricing, liquidity, gap-fill, anomalies, export) with no network; `make export-fast` rewrites web JSON only; `make demo` builds and serves the production app. App-wide `loading.tsx` (three-dot Ellipsis), `error.tsx` (explains when data was not exported), `not-found.tsx`. Contrast: white text on orange moved to orange-700 (#B35300, 5.1:1; orange-600 was 3.3:1, orange-500 2.9:1); triggered-state text to #B35300. `/pitch`: full-screen guided mode over PLAN.md section 8 (8 steps, arrow keys, F for full screen, Esc to leave), each step loads the live page in a frame with a deep link (`/replay?autoplay=1`, `/employer/site-match?log=...` honest and faked), talking points and one key number from the engine JSON; prototype footer inside the overlay. `next.config.ts` pins file tracing to /web.
+- Files changed: Makefile, web/src/app/{loading,error,not-found}.tsx, web/src/app/pitch/*, web/src/app/replay/Replay.tsx, web/src/app/employer/site-match/SiteMatch.tsx, web/src/styles/tokens.css, web/src/app/globals.css, web/next.config.ts.
+- Numbers produced (with source): production build: 17 routes, all prerendered static; first load JS 102 to 272 kB; local TTFB 43 ms, DOM ready 71 ms on /. No requests leave localhost on any page except map tiles (OpenStreetMap), which degrade to markers on a plain background offline.
+- Decisions: Pages are static at build time, so after `make export` run `make demo` (or the dev server) to pick up new numbers. Every number on screen is read from the same engine JSON that writes the CONTEXT.md section 5 block, so screen and CONTEXT cannot drift; the landing page's S$510 is the CONTEXT worked month.
+- Broken or unverified: Not tested with Wi-Fi physically off (verified by request inspection only). ESLint warnings remain inside two vendored Aceternity files (unused import, expression statement).
+- Tests: `make test` passed; `npm run build` passed.
+- Next: P14 judge pack; then re-run `make export` when the WBGT and rain pulls finish.

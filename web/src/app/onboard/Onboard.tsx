@@ -117,7 +117,7 @@ export default function Onboard({ data, stations }: { data: OnboardData; station
                 aria-current={i === step ? "step" : undefined}
                 className={cn(
                   "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs",
-                  i < step ? "bg-state-ok-bg text-state-ok" : i === step ? "bg-income-orange text-white" : "bg-surface text-muted-foreground",
+                  i < step ? "bg-state-ok-bg text-state-ok" : i === step ? "bg-income-orange-700 text-white" : "bg-surface text-muted-foreground",
                 )}
               >
                 {i < step ? <Check className="h-3 w-3" /> : <span className="num">{i + 1}</span>} {s}

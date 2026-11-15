@@ -97,7 +97,7 @@ export default function Live({ snapshot }: { snapshot: LiveData }) {
                 type="button"
                 onClick={() => setHour(h.hour)}
                 aria-pressed={hour === h.hour}
-                className={cn("num rounded-full px-3 py-1 text-sm", hour === h.hour ? "bg-income-orange text-white" : "bg-surface hover:bg-income-orange-100", h.hour === 12 && "italic")}
+                className={cn("num rounded-full px-3 py-1 text-sm", hour === h.hour ? "bg-income-orange-700 text-white" : "bg-surface hover:bg-income-orange-100", h.hour === 12 && "italic")}
               >
                 {String(h.hour).padStart(2, "0")}:00
               </button>

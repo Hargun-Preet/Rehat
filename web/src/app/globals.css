@@ -70,7 +70,7 @@
   --card-foreground: var(--ink);
   --popover: var(--surface);
   --popover-foreground: var(--ink);
-  --primary: var(--income-orange-600);
+  --primary: var(--income-orange-700); /* white text needs 4.5:1; orange-600 is 3.3:1, orange-700 is 5.1:1 */
   --primary-foreground: #ffffff;
   --secondary: var(--income-blue);
   --secondary-foreground: #ffffff;

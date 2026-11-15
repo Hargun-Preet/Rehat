@@ -159,7 +159,7 @@ function ReceiptBody({ r }: { r: Receipt }) {
           </p>
           <div className="mt-3 flex flex-wrap gap-1">
             {LANGS.map(([k, n]) => (
-              <button key={k} type="button" onClick={() => setLang(k)} aria-pressed={lang === k} className={cn("rounded-full px-2.5 py-1 text-xs", lang === k ? "bg-income-orange text-white" : "bg-paper hover:bg-income-orange-100")}>
+              <button key={k} type="button" onClick={() => setLang(k)} aria-pressed={lang === k} className={cn("rounded-full px-2.5 py-1 text-xs", lang === k ? "bg-income-orange-700 text-white" : "bg-paper hover:bg-income-orange-100")}>
                 {n}
               </button>
             ))}

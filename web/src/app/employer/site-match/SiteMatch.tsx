@@ -92,6 +92,11 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
   };
 
   useEffect(() => {
+    const log = new URLSearchParams(window.location.search).get("log");
+    if (log && data.samples.some((s) => s.file === log)) void pick(log);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
     if (!claim) return;
     const t = setInterval(() => setRevealed((n) => (n >= claim.checks.length ? n : n + 1)), 450);
     return () => clearInterval(t);
