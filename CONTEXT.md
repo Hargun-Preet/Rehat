@@ -137,6 +137,27 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 - Expected recovery as % of premium (36 proxy years): attach 110% = 6.2% (hit 5/36); 125% = 4.2% (4/36); 150% = 2.2% (2/36). With an assumed 1.75x reinsurer load, 150% costs about 3.9%, inside the 5% budget.
 - No quota share (gives away margin), no per-event cover (losses accrue over months). Capital under MAS RBC 2 set by Income's actuary; caps bound the maximum.
 
+<!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
+
+Generated 2026-11-15T14:55 from engine outputs. Source files: data/processed/*.json.
+
+**Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
+
+| Item | Value | Basis |
+|---|---|---|
+| Expected insured hours | 8.83 a worker a year | rules.py on NEA WBGT (observed) + corrected ERA5 rebuild, MSS daily rain, NEA PSI where pulled |
+| Expected payout | S$70.7 a worker a year | insured hours x S$8 |
+| Mean loss ratio at S$128.70 | 55% | |
+| 1-in-10 loss ratio at S$128.70 | 106% (payout S$136.8) | 90th percentile of 26 book years |
+| Worst year | 2013: S$163.1 | |
+| Zero-payout years | 0 of 26 (book); 0.58 for the average firm | |
+| Months paying something | 49.3% | |
+| Basis risk | 3.51% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |
+| Rain hours in window share | 0.55 | assumption: 55% of heavy-rain hours fall in 08:00 to 18:00 (no 5-minute overlap yet) |
+| Changi rain days 10 mm+ | 61.4 a year (1983 to 2018) | MSS daily, matches proxy 61.4 |
+
+<!-- END GENERATED NUMBERS -->
+
 ## 6. Evidence and data
 
 ### Data already pulled (in /data/seed)
@@ -237,7 +258,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Data ingest and cache (P2, 2026-11-15; full Feb 2025 to Nov 2026 pull of WBGT, PSI and rain still running in background)
 - [ ] WBGT rebuild and validation (P4 pipeline done 2026-11-15; final numbers need the full WBGT pull)
 - [x] Trigger engine and receipts (P3, 2026-11-15)
-- [ ] Back-test and robustness
+- [x] Back-test and robustness (P5, 2026-11-15; re-run when full WBGT and rain pulls finish)
 - [ ] Pricing and reinsurance
 - [ ] Liquidity forecasting
 - [ ] Site Match AI
@@ -307,3 +328,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Final validation numbers pending full data. Raw rebuild runs about 2 C warm before noon.
 - Tests: `make test` 62 passed.
 - Next: P5 back-test.
+
+### 2026-11-15 14:57, P5 product back-test and robustness
+- Done: `rehat/backtest.py`: exact rules on 2000 to 2025 per station and per demo-book station group (300 firms, nearest/second/median-of-three stations); heat from `wbgt_hourly_rebuilt.parquet` (observed where NEA has it); rain from MSS daily via an hours estimator; haze from NEA PSI where pulled; normals per station x calendar month (2000 to 2024) written to `data/processed/normals.json` (the ledger now uses them instead of interim assumptions); tornado (near-miss, thresholds +0.5, allowance 1.0/1.5, station rule, +/-0.5 C error, haze day 2); basis risk on observed NEA hours; MSS Changi 1983 to 2018 long view; slider grid (810 cells) in `web/public/data/backtest_grid.json`; `docs/backtest.md`. `rehat/numbers.py` writes the generated numbers block in section 5 and `web/public/data/numbers.json`. WBGT rebuild now falls back to the ERA5 cell's correction for stations with no training data.
+- Files changed: engine/rehat/{backtest,numbers,wbgt_rebuild}.py, engine/tests/test_backtest.py, docs/backtest.md, CONTEXT.md section 5 (generated block).
+- Numbers produced (with source): see the generated block in section 5. Base: 8.83 insured h a worker a year, S$70.7 expected payout, mean LR 55% and 1-in-10 LR 106% at S$128.70, worst year 2013 (S$163.1), 0 of 26 zero-payout book years (0.58 for the average firm), 49.3% of months pay, basis risk 3.51%. Changi rain days 10 mm+ 61.4 a year 1983 to 2018 (matches the proxy exactly). Biggest sensitivities: allowance multiple (x1.0: S$119.8, x1.5: S$41.0) and +/-0.5 C reading error (S$79.6 / S$63.9).
+- Decisions: (1) Rain hours from MSS daily: wettest hour by tier + 0.5 h per further 5 mm (max 3), times a window share (0.55 assumption until 5-minute gauges are calibrated). (2) MSS publishes highest 60-min rain only from 2020: earlier days impute it as total x median ratio by size of day (0.86 small days down to 0.45 above 80 mm). (3) Haze only where PSI was pulled; pre-2025 haze years are missing, so the back-test understates haze. (4) Book weights = demo-book outdoor workers. (5) Section 5 proxy unit economics are rewritten in P6 from these outputs.
+- Broken or unverified: Provisional until the full WBGT pull (bias correction now fitted on about 3 months) and the rain pull (window-share calibration) finish; then re-run `python -m rehat.wbgt_rebuild`, `python -m rehat.backtest`, `python -m rehat.numbers`.
+- Tests: `make test` 74 passed.
+- Next: P6 pricing.

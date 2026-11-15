@@ -68,24 +68,39 @@ class Correction:
     month: pd.DataFrame  # station_id, month, bias
     hod: pd.DataFrame  # station_id, hod, bias_hod
     overall: pd.Series  # station_id -> bias
+    cell_month: pd.DataFrame  # cell, month, bias_cell (fallback for stations without training data)
+    cell_hod: pd.DataFrame  # cell, hod, bias_cell_hod
 
     def apply(self, df: pd.DataFrame) -> pd.Series:
         d = df[["station_id", "hour", "wbgt_raw"]].copy()
         d["month"] = d.hour.dt.month
         d["hod"] = d.hour.dt.hour
+        d["cell"] = d.station_id.map(_station_cell())
         d = d.merge(self.month, on=["station_id", "month"], how="left").merge(self.hod, on=["station_id", "hod"], how="left")
-        d["bias"] = d["bias"].fillna(d.station_id.map(self.overall)).fillna(0)
+        d = d.merge(self.cell_month, on=["cell", "month"], how="left").merge(self.cell_hod, on=["cell", "hod"], how="left")
+        no_station = d.station_id.map(self.overall).isna()
+        d["bias"] = d["bias"].fillna(d.station_id.map(self.overall))
+        d.loc[no_station, "bias"] = d.loc[no_station, "bias_cell"]
+        d.loc[no_station, "bias_hod"] = d.loc[no_station, "bias_cell_hod"]
+        d["bias"] = d["bias"].fillna(d["bias_cell"]).fillna(0)
         d["bias_hod"] = d["bias_hod"].fillna(0)
         return pd.Series((d.wbgt_raw + d.bias + d.bias_hod).values, index=df.index)
 
 
+def _station_cell() -> dict[str, str]:
+    return {s.station_id: cell_id(s.lat, s.lon) for s in wbgt_stations()}
+
+
 def fit_correction(train: pd.DataFrame) -> Correction:
     t = train.assign(err=train.wbgt_obs - train.wbgt_raw, month=train.hour.dt.month, hod=train.hour.dt.hour)
+    t["cell"] = t.station_id.map(_station_cell())
     overall = t.groupby("station_id").err.mean()
     month = t.groupby(["station_id", "month"]).err.mean().rename("bias").reset_index()
-    t = t.merge(month, on=["station_id", "month"])
+    cell_month = t.groupby(["cell", "month"]).err.mean().rename("bias_cell").reset_index()
+    t = t.merge(month, on=["station_id", "month"]).merge(cell_month, on=["cell", "month"])
     hod = (t.err - t.bias).groupby([t.station_id, t.hod]).mean().rename("bias_hod").reset_index()
-    return Correction(month, hod, overall)
+    cell_hod = (t.err - t.bias_cell).groupby([t.cell, t.hod]).mean().rename("bias_cell_hod").reset_index()
+    return Correction(month, hod, overall, cell_month, cell_hod)
 
 
 def metrics(obs: np.ndarray, pred: np.ndarray) -> dict:
