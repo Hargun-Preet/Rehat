@@ -136,49 +136,49 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T15:50 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-15T15:57 from engine outputs. Source files: data/processed/*.json.
 
 **Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
 
 | Item | Value | Basis |
 |---|---|---|
-| Expected insured hours | 8.04 a worker a year | rules.py on NEA WBGT (observed) + corrected ERA5 rebuild, MSS daily rain, NEA PSI where pulled |
-| Expected payout | S$64.3 a worker a year | insured hours x S$8 |
-| 1-in-10 payout | S$118.8 a worker | 90th percentile of 26 book years; loss ratios at the current premium are under Pricing |
-| Worst year | 2013: S$141.8 | |
-| Zero-payout years | 0 of 26 (book); 1.1 for the average firm | |
+| Expected insured hours | 8.78 a worker a year | rules.py on NEA WBGT (observed) + corrected ERA5 rebuild, MSS daily rain, NEA PSI where pulled |
+| Expected payout | S$70.3 a worker a year | insured hours x S$8 |
+| 1-in-10 payout | S$128.8 a worker | 90th percentile of 26 book years; loss ratios at the current premium are under Pricing |
+| Worst year | 2013: S$153.7 | |
+| Zero-payout years | 0 of 26 (book); 1.15 for the average firm | |
 | Months paying something | 46.1% | |
 | Basis risk | 3.6% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |
-| Rain hours in window share | 0.55 | assumption: 55% (only 228 overlapping station-days) |
+| Rain hours in window share | 0.616 | calibrated on 484 station-days where NEA 5-minute gauges and MSS daily records overlap |
 | Changi rain days 10 mm+ | 61.4 a year (1983 to 2018) | MSS daily, matches proxy 61.4 |
 
 **Pricing**
 
 | Item | Value |
 |---|---|
-| Expected insured hours (pricing) | 9.04 a worker a year (back-test 8.04 h + haze load 1.0 h (assumption)) |
-| Standard premium | S$111.26 a year, S$2.14 a week, before GST (S$121.28 with GST) |
-| Lite premium | S$69.54 a year, S$1.34 a week, before GST |
+| Expected insured hours (pricing) | 9.78 a worker a year (back-test 8.78 h + haze load 1.0 h (assumption)) |
+| Standard premium | S$120.37 a year, S$2.31 a week, before GST (S$131.20 with GST) |
+| Lite premium | S$75.23 a year, S$1.45 a week, before GST |
 | Site Match rider | S$88.13 a year, S$1.69 a week (Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.16 h a worker a year) |
-| Expected payout a worker | S$72.33 a year (loss ratio 65%) |
-| 1-in-10 payout a worker | S$118.84 (107% loss ratio) |
-| Worst back-test year | 2013: S$141.84 (127%); plus a 2015-like haze year 271% |
-| Hard cap | S$480 a worker (431% loss ratio) |
-| 20-worker firm | premium S$2,225 (S$2,425 with GST; S$1,698 with GST after 30% launch credit); expected payout S$1,447; worst capped S$9,600; premium 0.43% of labour bill; weather downtime costs about S$13,248 a year |
-| Break-even | 749 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,685 policies |
-| Pilot (300 firms, 6,000 workers) | premium S$667,560; expected claims S$434,003; worst back-test year S$851,040; hard cap S$2,880,000 |
+| Expected payout a worker | S$78.27 a year (loss ratio 65%) |
+| 1-in-10 payout a worker | S$128.76 (107% loss ratio) |
+| Worst back-test year | 2013: S$153.72 (128%); plus a 2015-like haze year 261% |
+| Hard cap | S$480 a worker (399% loss ratio) |
+| 20-worker firm | premium S$2,407 (S$2,624 with GST; S$1,837 with GST after 30% launch credit); expected payout S$1,565; worst capped S$9,600; premium 0.47% of labour bill; weather downtime costs about S$14,486 a year |
+| Break-even | 692 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,558 policies |
+| Pilot (300 firms, 6,000 workers) | premium S$722,220; expected claims S$469,595; worst back-test year S$922,320; hard cap S$2,880,000 |
 | Stop-loss (decided 150%) | attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years |
-| Stop-loss (alternative considered) | lowest attachment inside the 5% budget would be 100% (cost 4.52%, hit 4 of 26 years). Team kept 150% (decision 2026-11-15). |
-| Total market (premium) | S$20.6M (S$12.3M to S$29.1M); Income WIC slice S$2.5M; year-3 obtainable S$1.66M |
+| Stop-loss (alternative considered) | lowest attachment inside the 5% budget would be 100% (cost 4.66%, hit 5 of 26 years). Team kept 150% (decision 2026-11-15). |
+| Total market (premium) | S$22.3M (S$13.3M to S$31.5M); Income WIC slice S$2.7M; year-3 obtainable S$1.79M |
 
 **Liquidity**
 
 | Item | Value |
 |---|---|
 | Book (demo) | 300 firms, 4,774 outdoor workers |
-| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,924, P90 S$16,103, P99 S$26,510; buffer S$23,586 |
-| Cash call for Oct 2025, as of 20 Oct | P50 S$314, P90 S$7,485, P99 S$14,199; buffer S$13,885; settles 2025-11-07 |
-| Forecast validation (P90 coverage) | 90% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
+| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,912, P90 S$13,914, P99 S$22,031; buffer S$19,119 |
+| Cash call for Oct 2025, as of 20 Oct | P50 S$314, P90 S$9,815, P99 S$14,938; buffer S$14,624; settles 2025-11-07 |
+| Forecast validation (P90 coverage) | 87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
 | Forecast validation (P99 coverage) | 99% |
 
 **Site Match**
@@ -476,3 +476,9 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: none new. Background pulls still running.
 - Tests: `make test` 112 passed; production build passed.
 - Next: re-run `make export` and `make demo` when the pulls finish; rehearse the demo.
+
+### 2026-11-15 16:10, status check and refresh commit
+- Done: Found a full `make export` that ran at 15:56 (not started in this session) on the larger WBGT pull (stride-2 job adding days). Checked that data/processed, web/public/data, the section 5 generated block and docs/judge-pack.md all agree, then committed it. All 13 routes return 200, engine /health ok, background pulls running (WBGT stride 2, PSI about half done, rain queued behind WBGT).
+- Numbers produced (with source): generated block is the single version; Standard now S$120.37 a year, S$2.31 a week before GST. Earlier worklog entries quoting 8.04 h and S$111.26 are history.
+- Tests: `make test` 112 passed.
+- Next: UEN lookup (see next entry).
