@@ -24,12 +24,13 @@ def main() -> None:
     p.add_argument("--newest-first", action="store_true")
     p.add_argument("--pause", type=float, default=0.0, help="seconds to sleep after each network call")
     p.add_argument("--normalise-only", action="store_true")
+    p.add_argument("--stride", type=int, default=1, help="pull every Nth day (fill the rest later)")
     a = p.parse_args()
     what = [w.strip() for w in a.what.split(",") if w.strip()]
 
     for api in [w for w in what if w in ("wbgt", "rain", "temp", "psi")]:
         if not a.normalise_only:
-            days = _days(a.start, a.end, a.newest_first)
+            days = _days(a.start, a.end, a.newest_first)[:: a.stride]
             for i, d in enumerate(days):
                 if day_is_cached(api, d):
                     continue

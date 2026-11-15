@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T14:58",
+ "generated_at": "2026-11-15T15:02",
  "backtest": {
   "expected_insured_h": 8.83,
   "expected_payout_standard": 70.7,
@@ -34,5 +34,12 @@
   "Stop-loss (decided 150%)": "attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years",
   "Stop-loss (rule suggests)": "lowest attachment inside 5% budget: 110% (cost 3.4%, hit 3 of 26 years). Needs a decision.",
   "Total market (premium)": "S$22.4M (S$13.4M to S$31.7M); Income WIC slice S$2.7M; year-3 obtainable S$1.80M"
+ },
+ "liquidity": {
+  "Book (demo)": "300 firms, 4,774 outdoor workers",
+  "Next settlement": "2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$1,026, P90 S$14,588, P99 S$22,287; buffer S$21,261",
+  "Cash call for Oct 2025, as of 20 Oct": "P50 S$413, P90 S$10,832, P99 S$20,789; buffer S$20,376; settles 2025-11-07",
+  "Forecast validation (P90 coverage)": "87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90%",
+  "Forecast validation (P99 coverage)": "98%"
  }
 }

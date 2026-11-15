@@ -136,7 +136,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T14:58 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-15T15:02 from engine outputs. Source files: data/processed/*.json.
 
 **Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
 
@@ -170,6 +170,16 @@ Generated 2026-11-15T14:58 from engine outputs. Source files: data/processed/*.j
 | Stop-loss (decided 150%) | attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years |
 | Stop-loss (rule suggests) | lowest attachment inside 5% budget: 110% (cost 3.4%, hit 3 of 26 years). Needs a decision. |
 | Total market (premium) | S$22.4M (S$13.4M to S$31.7M); Income WIC slice S$2.7M; year-3 obtainable S$1.80M |
+
+**Liquidity**
+
+| Item | Value |
+|---|---|
+| Book (demo) | 300 firms, 4,774 outdoor workers |
+| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$1,026, P90 S$14,588, P99 S$22,287; buffer S$21,261 |
+| Cash call for Oct 2025, as of 20 Oct | P50 S$413, P90 S$10,832, P99 S$20,789; buffer S$20,376; settles 2025-11-07 |
+| Forecast validation (P90 coverage) | 87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
+| Forecast validation (P99 coverage) | 98% |
 
 <!-- END GENERATED NUMBERS -->
 
@@ -243,7 +253,7 @@ Forecasts NEVER change a payout. They plan cash and reinsurance.
 | Season | ENSO state (ONI) reweights historical years | Reinsurance purchase before haze (Aug to Oct) and monsoon (Nov to Jan) seasons |
 | Year | Annual loss-ratio distribution; stop-loss recovery at 150% | Capital and reinsurance |
 | Decades | V3 scenarios | Normals reset yearly; affordability check |
-Validation: back-test the month-end P90 against actual historical months (coverage rate should be about 90%); use archived forecasts so there is no hindsight.
+Validation: back-test the month-end P90 against actual historical months (coverage rate should be about 90%); use archived forecasts so there is no hindsight. Result: see "Liquidity" in the section 5 generated block and docs/liquidity-validation.md.
 
 ## 10. Income products in the story (mocked, not wired)
 | Income product | Role in prototype |
@@ -275,7 +285,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Trigger engine and receipts (P3, 2026-11-15)
 - [x] Back-test and robustness (P5, 2026-11-15; re-run when full WBGT and rain pulls finish)
 - [x] Pricing and reinsurance (P6, 2026-11-15; stop-loss attachment needs a team decision)
-- [ ] Liquidity forecasting
+- [x] Liquidity forecasting (P7, 2026-11-15)
 - [ ] Site Match AI
 - [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
 - [ ] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
@@ -361,3 +371,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: OPEN DECISION for the team: the decided 150% stop-loss is never reached in the 26 back-test years; "lowest attachment inside the 5% budget" now suggests 110% (cost 3.4%, hit 3 of 26 years). Numbers are provisional until the full data re-run.
 - Tests: `make test` 82 passed.
 - Next: P7 liquidity.
+
+### 2026-11-15 15:16, P7 liquidity forecasting for Income
+- Done: `rehat/liquidity.py`: daily counted hours per station group for the demo book; accrual ("insured if the month ended today"); month-end Monte Carlo (2,000 paths, one historical year per path for all stations, next 3 days from archived Open-Meteo forecast via Liljegren + station bias); settlement P10/P50/P90/P99 and buffer; fan series for the last complete month and the current month; season view by ONI state; annual view with stop-loss and hard cap; validation for every month Jan 2022 to Oct 2026 as of day 1, 10, 20; employer and worker alerts from the forecast. `GET /liquidity?asof=`. `docs/liquidity-validation.md`, model card.
+- Files changed: engine/rehat/{liquidity,api}.py, engine/tests/test_liquidity.py, docs/liquidity-validation.md, docs/model-cards/liquidity-forecast.md, CONTEXT.md section 9 and generated block.
+- Numbers produced (with source): P90 coverage 87% of 174 month-forecasts (P99 98%), target about 90%. As of 20 Oct 2025, Oct 2025 cash call P50 S$413, P90 S$10,832, P99 S$20,789 (settles 7 Nov 2025; actual S$0). Next settlement Mon 7 Dec 2026 for Nov 2026 (as of 10 Nov): P50 S$1,026, P90 S$14,588, P99 S$22,287. Oct 2026 actual book payout S$39,214 (fan chart month). Demo book 300 firms, 4,774 workers, premium S$513,102, hard cap S$2,035,740. Season: annual LR mean El Nino 41%, neutral 58%, La Nina 80% (years 2000 to 2025, Aug to Oct ONI).
+- Decisions: Book = demo book. Policy year = calendar year for year-to-date caps in the forecast. The PLAN "cash needed on 5 Dec" becomes 7 Dec 2026 (5 Dec is a Saturday). Alerts use raw rebuild 32.5 C as a 32 C stand-in (assumption).
+- Broken or unverified: Actuals before Feb 2025 are rebuilt, not observed. Historical forecast days 2 to 3 are optimistic. Haze not forecast.
+- Tests: `make test` 85 passed.
+- Next: P8 Site Match.

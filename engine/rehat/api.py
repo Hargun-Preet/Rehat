@@ -87,3 +87,15 @@ def get_reinsurance(attach: float = 1.5) -> dict[str, Any]:
     p = json.loads((PROCESSED / "pricing.json").read_text())
     rows = [r for r in p["reinsurance"]["table"] if abs(r["attach"] - attach) < 1e-9]
     return {"requested": attach, "row": rows[0] if rows else None, "table": p["reinsurance"]["table"], "note": p["reinsurance"]["note"]}
+
+
+@app.get("/liquidity")
+def get_liquidity(asof: str | None = None) -> dict[str, Any]:
+    """Cash call distribution for the settlement of the month containing `asof`. Plans Income's cash only."""
+    from datetime import date as _date
+
+    from rehat import liquidity
+
+    if asof is None:
+        return json.loads((PROCESSED / "liquidity.json").read_text())
+    return liquidity.forecast_month(_date.fromisoformat(asof))

@@ -7,7 +7,7 @@ The organisers want a product proposal with a strong proof of concept. Judges in
 Three moments the demo must deliver:
 1. The record-day replay: 31 Oct 2025, real NEA readings, rest minutes filling up station by station, ending in a PayNow receipt. (Concrete, emotional, true.)
 2. The Site Match claim: upload a site heat log, watch the checker pass an honest log and catch a faked one, with reasons. (Innovation plus AI that does real work.)
-3. The insurer console: "Cash needed on 5 Dec: P50 S$x, P90 S$y", the stop-loss curve, and the hard cap. (Income's CDO and CFO brain.)
+3. The insurer console: "Cash needed on 7 Dec (5th working day): P50 S$x, P90 S$y", the stop-loss curve, and the hard cap. (Income's CDO and CFO brain.)
 
 Everything else supports these three.
 
@@ -107,7 +107,7 @@ Code freeze at hour 32. Numbers in the deck must match the app.
 3. 1:15 Onboarding in 60 seconds: UEN, station on map, plan, the honest sentence, teach-back, quote.
 4. 2:00 Replay 31 Oct 2025: rest fills up; receipt; PayNow.
 5. 2:45 Site Match: honest log approved, fake log caught, reasons shown.
-6. 3:20 Insurer console: cash call for 5 Dec, P90 band narrowing, stop-loss at 150%, hard cap.
+6. 3:20 Insurer console: cash call for 7 Dec, P90 band narrowing, stop-loss at 150%, hard cap.
 7. 4:00 Back-test and unit economics: weekly premium a worker and zero-payout years from `web/public/data/numbers.json` (one version of each number), honest limits.
 8. 4:30 Roadmap and ask: riders via platform WIC, hawkers via Stallholder; 300-firm pilot from April 2027.
 
