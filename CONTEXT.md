@@ -84,8 +84,8 @@ Rejected, with reasons (say these if asked):
 - Firm uploads the main contractor's hourly WBGT log (photo, PDF or CSV).
 - AI extracts readings, then a checker scores plausibility against the station network: uplift within -1 to +2°C of station, daily shape correlates with station (r >= 0.7), no flat or copied values, no bunching just above 32.0 or 33.0.
 - Inside the band: auto-approved top-up = extra rest minutes implied by the log over the station's. Outside: sent to a person. AI never rejects a claim on its own.
-- Cap: 10 top-up hours a year. Optional rider, about S$0.50 per worker a week (assumption until real logs tested).
-- Prototype result (simulated logs on real 31 Oct 2025 curves, 400 logs): 0% of honest logs flagged; 100% of inflated and flat logs caught; 84% threshold-bunched caught; 77% pasted-from-another-day caught.
+- Cap: 10 top-up hours a year. Optional rider priced from the Site Match simulation (generated: see "Pricing" and "Site Match" in the section 5 block; assumptions in docs/model-cards/site-match.md).
+- Kit prototype result (400 logs on 31 Oct 2025 curves): 0% honest flagged; 100% inflated and flat; 84% threshold-bunched; 77% pasted (reversed curve). Current engine result on 11 real days with harder fakes: generated "Site Match" block in section 5.
 
 ### Plans
 | Plan | Benefit | Premium per worker (before GST) |
@@ -136,7 +136,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T15:02 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-15T15:05 from engine outputs. Source files: data/processed/*.json.
 
 **Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
 
@@ -159,7 +159,7 @@ Generated 2026-11-15T15:02 from engine outputs. Source files: data/processed/*.j
 | Expected insured hours (pricing) | 9.83 a worker a year (back-test 8.83 h + haze load 1.0 h (assumption)) |
 | Standard premium | S$120.98 a year, S$2.33 a week, before GST (S$131.87 with GST) |
 | Lite premium | S$75.62 a year, S$1.45 a week, before GST |
-| Site Match rider | S$26.00 a year, S$0.50 a week (Rider price until real site logs are tested (replaced by the Site Match simulation in P8).) |
+| Site Match rider | S$88.76 a year, S$1.71 a week (Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.21 h a worker a year) |
 | Expected payout a worker | S$78.67 a year (loss ratio 65%) |
 | 1-in-10 payout a worker | S$136.82 (113% loss ratio) |
 | Worst back-test year | 2013: S$163.10 (135%); plus a 2015-like haze year 267% |
@@ -180,6 +180,21 @@ Generated 2026-11-15T15:02 from engine outputs. Source files: data/processed/*.j
 | Cash call for Oct 2025, as of 20 Oct | P50 S$413, P90 S$10,832, P99 S$20,789; buffer S$20,376; settles 2025-11-07 |
 | Forecast validation (P90 coverage) | 87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
 | Forecast validation (P99 coverage) | 98% |
+
+**Site Match**
+
+| Item | Value |
+|---|---|
+| Simulated logs | 400 logs on 163 real station-days (11 days incl. 31 Oct 2025) |
+| Honest logs flagged | 2% |
+| Inflated logs caught | 100% |
+| Flat logs caught | 100% |
+| Threshold-bunched caught | 54% |
+| Pasted-from-another-day caught | 60% |
+| Fakes approved with a top-up | flat 0%, inflated 0%, pasted_day 28%, threshold 16% |
+| rider_price_year | 88.76 |
+| rider_basis | Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.21 h a worker a year |
+| Sample logs | 4 approved, 6 sent for review |
 
 <!-- END GENERATED NUMBERS -->
 
@@ -286,7 +301,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Back-test and robustness (P5, 2026-11-15; re-run when full WBGT and rain pulls finish)
 - [x] Pricing and reinsurance (P6, 2026-11-15; stop-loss attachment needs a team decision)
 - [x] Liquidity forecasting (P7, 2026-11-15)
-- [ ] Site Match AI
+- [x] Site Match AI (P8, 2026-11-15)
 - [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
 - [ ] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
 - [ ] Demo script rehearsed
@@ -380,3 +395,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Actuals before Feb 2025 are rebuilt, not observed. Historical forecast days 2 to 3 are optimistic. Haze not forecast.
 - Tests: `make test` 85 passed.
 - Next: P8 Site Match.
+
+### 2026-11-15 15:30, P8 Site Match AI (hybrid claim)
+- Done: `rehat/sitematch.py`: CSV parser (HH:MM or timestamps), checks with codes and plain-English reasons (TIMESTAMPS, ADDRESS, COVERAGE, UPLIFT, SHAPE, NOT_FLAT, NOT_BUNCHED, plus added SAME_DAY), APPROVED top-up (extra rest minutes over station, meal hour excluded, 10 h a year cap) or REVIEW; never REJECTED; review queue with human approve/decline and audit; optional vision stub (off without key); 10 sample logs in `data/seed/site_logs/` (4 honest, 2 inflated, flat, threshold, pasted, wrong-day); evaluation on 31 Oct 2025 + 10 hottest complete days with a "fakes approved with a top-up" metric; rider pricing from simulated honest uptake. API `POST /sitematch/check`, `GET /sitematch/queue`, `POST /sitematch/decide`. Model card.
+- Files changed: engine/rehat/{sitematch,api}.py, engine/tests/test_sitematch.py, data/seed/site_logs/*, docs/model-cards/site-match.md, CONTEXT.md section 4 and generated block.
+- Numbers produced (with source): 400 simulated logs on 163 station-days: honest flagged 2%; inflated 100%, flat 100%, threshold 54%, pasted 60% caught; fakes approved with a top-up: threshold 16%, pasted 28%. Samples: 4 approved, 6 review. Rider: 7.21 h a worker a year -> S$88.76 a year, S$1.71 a week (was S$0.50 a week placeholder).
+- Decisions: Added two checks (bunching among readings at 31.5+, same-day hour-to-hour correlation) because the harder fakes slipped past the kit rules; both keep honest flags at about 2%. Pasted fakes now use a real other-day curve.
+- Broken or unverified: Rider price rests on two assumptions (uplift N(0.8, 0.5) C, 50% filing) and is 3.4x the old placeholder; test on real contractor logs before pricing. Vision extraction not wired.
+- Tests: `make test` 99 passed.
+- Next: P9 other AI.

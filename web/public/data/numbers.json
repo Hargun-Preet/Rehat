@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T15:02",
+ "generated_at": "2026-11-15T15:05",
  "backtest": {
   "expected_insured_h": 8.83,
   "expected_payout_standard": 70.7,
@@ -23,7 +23,7 @@
   "Expected insured hours (pricing)": "9.83 a worker a year (back-test 8.83 h + haze load 1.0 h (assumption))",
   "Standard premium": "S$120.98 a year, S$2.33 a week, before GST (S$131.87 with GST)",
   "Lite premium": "S$75.62 a year, S$1.45 a week, before GST",
-  "Site Match rider": "S$26.00 a year, S$0.50 a week (Rider price until real site logs are tested (replaced by the Site Match simulation in P8).)",
+  "Site Match rider": "S$88.76 a year, S$1.71 a week (Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.21 h a worker a year)",
   "Expected payout a worker": "S$78.67 a year (loss ratio 65%)",
   "1-in-10 payout a worker": "S$136.82 (113% loss ratio)",
   "Worst back-test year": "2013: S$163.10 (135%); plus a 2015-like haze year 267%",
@@ -41,5 +41,17 @@
   "Cash call for Oct 2025, as of 20 Oct": "P50 S$413, P90 S$10,832, P99 S$20,789; buffer S$20,376; settles 2025-11-07",
   "Forecast validation (P90 coverage)": "87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90%",
   "Forecast validation (P99 coverage)": "98%"
+ },
+ "sitematch": {
+  "Simulated logs": "400 logs on 163 real station-days (11 days incl. 31 Oct 2025)",
+  "Honest logs flagged": "2%",
+  "Inflated logs caught": "100%",
+  "Flat logs caught": "100%",
+  "Threshold-bunched caught": "54%",
+  "Pasted-from-another-day caught": "60%",
+  "Fakes approved with a top-up": "flat 0%, inflated 0%, pasted_day 28%, threshold 16%",
+  "rider_price_year": 88.76,
+  "rider_basis": "Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.21 h a worker a year",
+  "Sample logs": "4 approved, 6 sent for review"
  }
 }

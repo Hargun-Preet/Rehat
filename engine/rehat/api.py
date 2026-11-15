@@ -99,3 +99,52 @@ def get_liquidity(asof: str | None = None) -> dict[str, Any]:
     if asof is None:
         return json.loads((PROCESSED / "liquidity.json").read_text())
     return liquidity.forecast_month(_date.fromisoformat(asof))
+
+
+class SiteMatchIn(BaseModel):
+    uen: str
+    day: str
+    csv: str
+    site_address: str | None = None
+    ytd_topup_h: float = 0.0
+
+
+@app.post("/sitematch/check")
+def post_sitematch(body: SiteMatchIn) -> dict[str, Any]:
+    """Status is APPROVED or REVIEW, never REJECTED. Only a person can decline."""
+    from dataclasses import asdict
+    from datetime import date as _date
+
+    from rehat import sitematch
+
+    try:
+        c = sitematch.check_claim(body.uen, _date.fromisoformat(body.day), body.csv, body.site_address, body.ytd_topup_h)
+    except sitematch.LogError as e:
+        raise HTTPException(422, str(e))
+    if c.status == "REVIEW":
+        sitematch.enqueue(c)
+    return asdict(c)
+
+
+@app.get("/sitematch/queue")
+def get_queue() -> list[dict[str, Any]]:
+    from rehat import sitematch
+
+    return sitematch.load_queue()
+
+
+class DecisionIn(BaseModel):
+    claim_id: str
+    decision: Literal["approve", "decline"]
+    reviewer: str
+    reason: str
+
+
+@app.post("/sitematch/decide")
+def post_decide(body: DecisionIn) -> dict[str, Any]:
+    from rehat import sitematch
+
+    try:
+        return sitematch.decide(body.claim_id, body.decision, body.reviewer, body.reason)
+    except KeyError:
+        raise HTTPException(404, "No such claim in the review queue")

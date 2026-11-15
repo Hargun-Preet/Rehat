@@ -1,0 +1,52 @@
+[
+ {
+  "file": "01_honest_contractor_log.csv",
+  "kind": "honest",
+  "label": "honest contractor log"
+ },
+ {
+  "file": "02_honest_shaded_side.csv",
+  "kind": "honest",
+  "label": "honest shaded side"
+ },
+ {
+  "file": "03_honest_open_slab.csv",
+  "kind": "honest",
+  "label": "honest open slab"
+ },
+ {
+  "file": "04_honest_quarter_hourly.csv",
+  "kind": "honest",
+  "label": "honest quarter hourly"
+ },
+ {
+  "file": "05_inflated_plus3.csv",
+  "kind": "inflated",
+  "label": "inflated plus3"
+ },
+ {
+  "file": "06_inflated_plus2_5.csv",
+  "kind": "inflated",
+  "label": "inflated plus2 5"
+ },
+ {
+  "file": "07_flat_copied.csv",
+  "kind": "flat",
+  "label": "flat copied"
+ },
+ {
+  "file": "08_threshold_bunched.csv",
+  "kind": "threshold",
+  "label": "threshold bunched"
+ },
+ {
+  "file": "09_pasted_other_day.csv",
+  "kind": "pasted_day",
+  "label": "pasted other day"
+ },
+ {
+  "file": "10_wrong_day_timestamps.csv",
+  "kind": "wrong_day",
+  "label": "wrong day timestamps"
+ }
+]
