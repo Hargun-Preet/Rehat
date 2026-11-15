@@ -1,0 +1,219 @@
+[
+ {
+  "station_id": "S124",
+  "name": "Upper Changi Road North",
+  "town": "Changi Meteorological Station",
+  "lat": 1.36777,
+  "lon": 103.982262
+ },
+ {
+  "station_id": "S125",
+  "name": "Woodlands Street 13",
+  "town": "Woodlands Stadium",
+  "lat": 1.433789,
+  "lon": 103.780731
+ },
+ {
+  "station_id": "S126",
+  "name": "Old Chua Chu Kang Road",
+  "town": "Old Choa Chu Kang Road",
+  "lat": 1.372566,
+  "lon": 103.724358
+ },
+ {
+  "station_id": "S127",
+  "name": "Stadium Road",
+  "town": "Kallang Practice Track",
+  "lat": 1.305738,
+  "lon": 103.878174
+ },
+ {
+  "station_id": "S128",
+  "name": "Bishan Street",
+  "town": "Bishan Stadium",
+  "lat": 1.354825,
+  "lon": 103.852219
+ },
+ {
+  "station_id": "S129",
+  "name": "Bedok North Street 2",
+  "town": "Bedok Stadium",
+  "lat": 1.325746,
+  "lon": 103.939691
+ },
+ {
+  "station_id": "S130",
+  "name": "West Coast Road",
+  "town": "Clementi Stadium",
+  "lat": 1.310524,
+  "lon": 103.763426
+ },
+ {
+  "station_id": "S131",
+  "name": "Hougang Stadium",
+  "town": "Hougang Stadium",
+  "lat": 1.36833,
+  "lon": 103.88611
+ },
+ {
+  "station_id": "S132",
+  "name": "Jurong West Street 93",
+  "town": "Jurong West Stadium",
+  "lat": 1.337859,
+  "lon": 103.695383
+ },
+ {
+  "station_id": "S133",
+  "name": "Cathay Green",
+  "town": "Cathay Green",
+  "lat": 1.29829165,
+  "lon": 103.84786601
+ },
+ {
+  "station_id": "S135",
+  "name": "Mandai Wildlife Reserve",
+  "town": "Mandai Wildlife Reserve",
+  "lat": 1.4084245,
+  "lon": 103.7808629
+ },
+ {
+  "station_id": "S137",
+  "name": "Sakra Road",
+  "town": "Sakra Road (Jurong Island)",
+  "lat": 1.2571,
+  "lon": 103.698
+ },
+ {
+  "station_id": "S138",
+  "name": "Stirling Road",
+  "town": "Stirling Road",
+  "lat": 1.29702179,
+  "lon": 103.80346961
+ },
+ {
+  "station_id": "S139",
+  "name": "Tuas Terminal Gateway",
+  "town": "Tuas Terminal Gateway",
+  "lat": 1.263757,
+  "lon": 103.616417
+ },
+ {
+  "station_id": "S140",
+  "name": "Choa Chu Kang Stadium",
+  "town": "Choa Chu Kang Stadium",
+  "lat": 1.390524,
+  "lon": 103.749664
+ },
+ {
+  "station_id": "S141",
+  "name": "Yio Chu Kang Stadium",
+  "town": "Yio Chu Kang Stadium",
+  "lat": 1.382564,
+  "lon": 103.84619
+ },
+ {
+  "station_id": "S142",
+  "name": "Sentosa Palawan Green",
+  "town": "Palawan Green (Sentosa)",
+  "lat": 1.24950363476734,
+  "lon": 103.819177652546
+ },
+ {
+  "station_id": "S143",
+  "name": "Punggol North",
+  "town": "Punggol North",
+  "lat": 1.41046864267577,
+  "lon": 103.904965342662
+ },
+ {
+  "station_id": "S144",
+  "name": "Upper Pickering Street",
+  "town": "Hong Lim Park",
+  "lat": 1.286011,
+  "lon": 103.846988
+ },
+ {
+  "station_id": "S145",
+  "name": "MacRitchie Reservoir",
+  "town": "MacRitchie Reservoir",
+  "lat": 1.3418179,
+  "lon": 103.833913
+ },
+ {
+  "station_id": "S146",
+  "name": "Jalan Bahar",
+  "town": "Jalan Bahar",
+  "lat": 1.365386,
+  "lon": 103.692372
+ },
+ {
+  "station_id": "S147",
+  "name": "Marina Barrage",
+  "town": "Marina Barrage",
+  "lat": 1.280001,
+  "lon": 103.8697302
+ },
+ {
+  "station_id": "S148",
+  "name": "Pasir Ris Walk",
+  "town": "Pasir Ris Walk",
+  "lat": 1.3715018,
+  "lon": 103.9642012
+ },
+ {
+  "station_id": "S149",
+  "name": "Tampines Walk",
+  "town": "Tampines Central Park",
+  "lat": 1.353834,
+  "lon": 103.938823
+ },
+ {
+  "station_id": "S150",
+  "name": "Evans Road",
+  "town": "MOE (Evans) Stadium",
+  "lat": 1.321182,
+  "lon": 103.819737
+ },
+ {
+  "station_id": "S151",
+  "name": "Outward Bound Singapore(Pulau ubin)",
+  "town": "Outward Bound Singapore(Pulau ubin)",
+  "lat": 1.4214527,
+  "lon": 103.9299001
+ },
+ {
+  "station_id": "S153",
+  "name": "Bukit Batok Street 22",
+  "town": "Bukit Batok Swimming Complex",
+  "lat": 1.344712,
+  "lon": 103.749077
+ },
+ {
+  "station_id": "S180",
+  "name": "Taman Jurong Greens",
+  "town": "Taman Jurong Greens",
+  "lat": 1.3370108,
+  "lon": 103.7182835
+ },
+ {
+  "station_id": "S184",
+  "name": "Sengkang East Avenue",
+  "town": "Sengkang East Avenue",
+  "lat": 1.382559,
+  "lon": 103.898525
+ },
+ {
+  "station_id": "S187",
+  "name": "Bukit Timah(West)",
+  "town": "Coronation Road",
+  "lat": 1.322505,
+  "lon": 103.80139
+ },
+ {
+  "station_id": "S910",
+  "name": "Outward Bound Singapore(East Coast)",
+  "town": "Outward Bound Singapore(East Coast)",
+  "lat": 1.31182524,
+  "lon": 103.95437923
+ }
+]

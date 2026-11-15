@@ -147,7 +147,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 ### Data sources to use
 | Data | Source | Notes |
 |---|---|---|
-| WBGT 15-min | data.gov.sg v2 real-time API, `api=wbgt`, by `date`, paginate with `paginationToken` | From Feb 2025. 15 stations 2025, about 30 by Sep 2026. Dataset d_87884af1f85d702d4f74c6af13b4853d |
+| WBGT 15-min | data.gov.sg v2 real-time API, `api=wbgt`, by `date`, paginate with `paginationToken` | From Feb 2025. 15 stations 2025, 31 by Nov 2026 (verified 2026-11-15). Dataset d_87884af1f85d702d4f74c6af13b4853d. Endpoints and shapes in docs/data-sources.md |
 | Rainfall 5-min | data.gov.sg v2 real-time rainfall, by date | Dataset d_72ef872af64a49bbf85c037e714267c0 |
 | Air temperature | data.gov.sg v2 real-time air temperature | Dataset d_66b77726bbae1b33f218db60ff5861f0 |
 | 24-hour PSI by region | data.gov.sg v2 real-time PSI, by date | Regions: north, south, east, west, central |
@@ -234,9 +234,9 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 ## 13. Status
 (Update every session.)
 - [x] Repo scaffolded (P0, 2026-11-15)
-- [ ] Data ingest and cache
-- [ ] WBGT rebuild and validation
-- [ ] Trigger engine and receipts
+- [x] Data ingest and cache (P2, 2026-11-15; full Feb 2025 to Nov 2026 pull of WBGT, PSI and rain still running in background)
+- [ ] WBGT rebuild and validation (P4 pipeline done 2026-11-15; final numbers need the full WBGT pull)
+- [x] Trigger engine and receipts (P3, 2026-11-15)
 - [ ] Back-test and robustness
 - [ ] Pricing and reinsurance
 - [ ] Liquidity forecasting
@@ -263,7 +263,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified:
 - Next:
 
-### 2026-11-15 14:40, P0 scaffold the monorepo
+### 2026-11-15 14:27, P0 scaffold the monorepo
 - Done: Copied the kit (AGENTS, CONTEXT, PLAN, PROMPTS, seed) from ~/Downloads/rehat-kit into the empty repo. Created `/engine` (pyproject, package `rehat` with module stubs, `ingest/`, FastAPI `/health`, `rehat.export`), `/web` (Next.js 15.5.4 App Router, TS strict, Tailwind 4.1.13, ESLint, shadcn init, Aceternity registry in components.json, recharts, leaflet, react-leaflet, framer-motion, lucide-react), `/data/{raw,processed,seed}`, `/docs/model-cards`, Makefile (setup, engine, web, test, export), `.env.example`, `.gitignore`, README.
 - Files changed: AGENTS.md, CONTEXT.md, PLAN.md, PROMPTS.md, Makefile, README.md, .env.example, .gitignore, engine/**, web/**, data/seed/d1031.csv, engine/prototypes/ai_usecases.py.
 - Numbers produced (with source): none.
@@ -272,7 +272,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Tests: `make test` 1 passed. `make web` 200 on /, `make engine` /health ok.
 - Next: P1 design system.
 
-### 2026-11-15 15:05, P1 design system that matches Income
+### 2026-11-15 14:33, P1 design system that matches Income
 - Done: Sampled Income's CSS variables from income.com.sg/assets/css/main.css (orange, blue, neutral scales; Ubuntu font-family). Wrote `web/src/styles/tokens.css`, mapped tokens into Tailwind theme and shadcn variables in `globals.css`. Loaded Ubuntu (500, 700) and Inter (400, 600) via next/font. Built `Ellipsis`, `AssumptionTag`, `StateBadge`, `Money`, `SourceNote`, `PrototypeFooter`, `PageHeader`, `AppShell` (text wordmark "Income Business (concept)", nav to every PLAN.md route, mobile menu below 1280px). Added shadcn tooltip, button, card, badge, tabs, slider, table, input, label, radio-group, checkbox, select, separator, switch, progress, dialog. `/styleguide` page.
 - Files changed: web/src/styles/tokens.css, web/src/app/globals.css, web/src/app/layout.tsx, web/src/app/styleguide/page.tsx, web/src/components/brand/*, web/src/components/ui/*, CONTEXT.md section 12.
 - Numbers produced (with source): brand hex values from income.com.sg main.css (see section 12).
@@ -280,3 +280,30 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Colours sampled from CSS, not a colour picker on rendered pages. Aceternity and 21st.dev components are not installed yet; they come in P10 to P12.
 - Tests: `make test` 1 passed. tsc and eslint clean. /styleguide renders with footer.
 - Next: P2 data ingest.
+
+### 2026-11-15 14:45, P2 data ingest with caching
+- Done: `rehat/ingest/` with `cache.py` (every response stored with URL, params, UTC fetch time; never refetched), `datagov.py` (WBGT, rainfall, air temperature, PSI by date, follows paginationToken, x-api-key from .env, backoff on 429/5xx), `normalise.py` (tidy parquet: wbgt_15min, rain_5min, temp_1min_or_5min, psi_hourly, station metadata JSON), `mss.py` (station code discovery S01 to S130, monthly CSVs), `openmeteo.py` (ERA5 archive with models=era5 and historical forecast, per 0.25 degree cell and year), `noaa.py` (ONI with enso_state), `coverage.py` (coverage table and seed check), CLI `python -m rehat.ingest`. Seed fixture loader. `docs/data-sources.md` with verified URLs and shapes, `docs/data-coverage.md`.
+- Files changed: engine/rehat/ingest/*, engine/rehat/paths.py, engine/tests/test_ingest.py, docs/data-sources.md, docs/data-coverage.md, data/seed/stations_wbgt.json, stations_rain.json, psi_regions.json, data/raw/logs/run_ingest.sh.
+- Numbers produced (with source): data.gov.sg API values for 31 Oct 2025 match d1031.csv for 15 of 15 stations, max diff 0.00 C. 31 WBGT stations by Nov 2026; 58 rain gauges; 5 PSI regions. 44 MSS station codes found. ONI to ASO 2026. ERA5 covers Singapore in 5 cells of 0.25 degrees.
+- Decisions: Pull Sep to Nov 2025 first, then Feb 2025 to Nov 2026 newest first. ERA5 per grid cell (5 cells), not per station. MSS pulled directly from weather.gov.sg (Changi from 1980, 12 more stations from 2000) instead of the third-party GitHub copy. Air temperature only for sample days (58 pages a day).
+- Broken or unverified: No DATA_GOV_SG_API_KEY: data.gov.sg rate-limits to about 4 WBGT days a minute and 30 s per rain day, so the full WBGT pull takes about 3 h and rain about 5 h. Both run in the background (data/raw/logs/). A key would help. ONI uses single-season thresholds, not NOAA's 5-season episode rule.
+- Tests: `make test` 62 passed.
+- Next: P3.
+
+### 2026-11-15 14:46, P3 rules engine and ledger
+- Done: `rules.py` pure functions with docstrings quoting section 4 (heat tiers, 3-of-4 hourly state, rain tiers and hourly state, haze tiers with 3rd-consecutive-day rule and 20 h limit, window and meal hour, fallback ladder, allowance, insured hours, caps, exclusions incl. MOM forfeit and 14-day wait, 5th-working-day settlement with SG public holidays, payout). `ledger.py` FirmMonthLedger (hourly lines with source and state, totals by peril, allowance, caps, payout, settlement date, plain-English receipt, "what did not count and why" incl. meal-hour heat, pending hours, allowance, caps, exclusions) and policy-year chaining. `stations.py` (nearest primary, backup, rain gauge, PSI region, reason text). `normals.py` with interim normals (assumption) in data/seed/normals_interim.json. `seedgen.py` writes 300 fictional firms to data/seed/firms.json. API `GET /stations`, `GET /ledger/{uen}/{month}`, `GET /receipt/{uen}/{month}`.
+- Files changed: engine/rehat/{rules,ledger,stations,store,normals,seedgen,api}.py, engine/tests/{test_rules,test_ledger,test_smoke}.py, data/seed/{firms.json,normals_interim.json}.
+- Numbers produced (with source): worked month reproduces S$510 (3.19 h x S$8 x 20). Demo book: 300 firms, 4,774 outdoor workers, 172 Standard, 92 Lite, 36 Standard with Site Match (rng seed 7). Tanjong Greenworks (T99DM0001B) at Jurong West: primary S132, backup S180, rain gauge S228, west PSI. Lim Landscaping (T99DM0002C) at Bishan: S128, S145, S216, central.
+- Decisions: (1) Tier comparisons use the unrounded hourly mean (31.99 is 5 min). (2) Rain hour needs 9 of 12 five-minute totals, else PENDING, unless the partial sum already reaches 10 mm (top tier certain). (3) Haze: consecutive = calendar days with noon PSI above 100; hours paid only Mon to Sat; tiers 101 to 200, 201 to 300, above 300 (300 is in the middle tier); a missing day makes a dependent 3rd day PENDING. (4) Fallback ladder: primary, backup, regional median (stations in the same PSI region), then after 14 days the regional advisory level; a model estimate after 48 h is proposed for review and never pays alone. (5) Rain read at the nearest rain gauge, named on the schedule; backup is the second nearest gauge. (6) Payout rounded to the nearest dollar. (7) Fictional UENs use prefix T99DM. (8) Interim normals tagged as assumptions until P5.
+- Broken or unverified: SG public holidays for 2025 to 2027 typed from memory (unverified; check MOM list). Oct 2025 receipt shows rain and haze PENDING until those pulls finish.
+- Tests: `make test` 62 passed.
+- Next: P4 WBGT rebuild.
+
+### 2026-11-15 15:05, P4 WBGT rebuild and validation (pipeline done, numbers provisional)
+- Done: `rehat/liljegren.py` (Liljegren 2008 Tg, Tnwb, WBGT in numpy, solar zenith, 10 m to 2 m wind). `rehat/wbgt_rebuild.py` (rebuild per ERA5 cell 2000 onward, observed hourly means with 3 of 4 rule, bias correction per station x month plus hour-of-day fitted on training only, last 3 months held out, metrics incl. band agreement and confusion matrix, `wbgt_hourly_rebuilt.parquet` with observed flag, `web/public/data/wbgt_validation.json`, `docs/wbgt-validation.md`). Model card `docs/model-cards/wbgt-rebuild.md`.
+- Files changed: engine/rehat/liljegren.py, engine/rehat/wbgt_rebuild.py, engine/pyproject.toml (pandas pinned <3), docs/model-cards/wbgt-rebuild.md, docs/wbgt-validation.md.
+- Numbers produced (with source): dry run only, on the data pulled so far (train Sep to Nov 2025, test 3 to 9 Nov 2026): corrected MAE 1.76 C, band agreement 0.76, band agreement when observed is 31 to 34 C 0.28. These are NOT final. Re-run when the full Feb 2025 to Nov 2026 pull finishes.
+- Decisions: pywbgt 3.0.7 crashes (segfault in its compiled solar routine on macOS arm64 with numpy 2.2 and 2.5; also casts DatetimeIndex to float, which fails on current pandas), so Liljegren is re-implemented with references. Additive correction (explainable) rather than quantile mapping.
+- Broken or unverified: Final validation numbers pending full data. Raw rebuild runs about 2 C warm before noon.
+- Tests: `make test` 62 passed.
+- Next: P5 back-test.
