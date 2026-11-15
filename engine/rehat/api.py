@@ -1,14 +1,17 @@
 """FastAPI service for the Rehat engine."""
 from __future__ import annotations
 
+import json
 from functools import lru_cache
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from rehat import ledger as L
+from rehat.paths import PROCESSED
 from rehat.stations import rain_gauges, wbgt_stations
 
 app = FastAPI(title="Rehat engine (concept prototype)", version="0.1.0")
@@ -56,3 +59,31 @@ def get_receipt(uen: str, month: str) -> dict[str, Any]:
     d = _ledger(uen, month).to_dict(include_hours=False)
     keep = ["firm", "month", "stations", "perils", "insured_before_caps_h", "insured_after_caps_h", "monthly_cap_h", "yearly_cap_h", "ytd_insured_before_h", "payout_sgd", "settlement_date", "receipt_lines", "not_counted", "exclusions"]
     return {k: d[k] for k in keep}
+
+
+class QuoteIn(BaseModel):
+    """Only plan, benefit (from plan) and headcount. No personal data."""
+
+    workers: int = Field(gt=0, le=500)
+    plan: Literal["Lite", "Standard"] = "Standard"
+    site_match: bool = False
+
+
+@app.post("/quote")
+def post_quote(q: QuoteIn) -> dict[str, Any]:
+    from rehat import pricing
+
+    p = json.loads((PROCESSED / "pricing.json").read_text())
+    return pricing.quote(q.workers, q.plan, p["expected_insured_h"], q.site_match, p["site_match_rider"]["week"])
+
+
+@app.get("/backtest")
+def get_backtest() -> dict[str, Any]:
+    return json.loads((PROCESSED / "backtest.json").read_text())
+
+
+@app.get("/reinsurance")
+def get_reinsurance(attach: float = 1.5) -> dict[str, Any]:
+    p = json.loads((PROCESSED / "pricing.json").read_text())
+    rows = [r for r in p["reinsurance"]["table"] if abs(r["attach"] - attach) < 1e-9]
+    return {"requested": attach, "row": rows[0] if rows else None, "table": p["reinsurance"]["table"], "note": p["reinsurance"]["note"]}

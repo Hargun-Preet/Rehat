@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T14:55",
+ "generated_at": "2026-11-15T14:58",
  "backtest": {
   "expected_insured_h": 8.83,
   "expected_payout_standard": 70.7,
@@ -18,5 +18,21 @@
   "rain_window_share": 0.55,
   "rain_window_share_basis": "assumption: 55% of heavy-rain hours fall in 08:00 to 18:00 (no 5-minute overlap yet)",
   "changi_rain_days_10mm_mean": 61.4
+ },
+ "pricing": {
+  "Expected insured hours (pricing)": "9.83 a worker a year (back-test 8.83 h + haze load 1.0 h (assumption))",
+  "Standard premium": "S$120.98 a year, S$2.33 a week, before GST (S$131.87 with GST)",
+  "Lite premium": "S$75.62 a year, S$1.45 a week, before GST",
+  "Site Match rider": "S$26.00 a year, S$0.50 a week (Rider price until real site logs are tested (replaced by the Site Match simulation in P8).)",
+  "Expected payout a worker": "S$78.67 a year (loss ratio 65%)",
+  "1-in-10 payout a worker": "S$136.82 (113% loss ratio)",
+  "Worst back-test year": "2013: S$163.10 (135%); plus a 2015-like haze year 267%",
+  "Hard cap": "S$480 a worker (397% loss ratio)",
+  "20-worker firm": "premium S$2,420 (S$2,637 with GST; S$1,846 with GST after 30% launch credit); expected payout S$1,573; worst capped S$9,600; premium 0.47% of labour bill; weather downtime costs about S$13,600 a year",
+  "Break-even": "689 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,550 policies",
+  "Pilot (300 firms, 6,000 workers)": "premium S$725,880; expected claims S$472,043; worst back-test year S$978,576; hard cap S$2,880,000",
+  "Stop-loss (decided 150%)": "attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years",
+  "Stop-loss (rule suggests)": "lowest attachment inside 5% budget: 110% (cost 3.4%, hit 3 of 26 years). Needs a decision.",
+  "Total market (premium)": "S$22.4M (S$13.4M to S$31.7M); Income WIC slice S$2.7M; year-3 obtainable S$1.80M"
  }
 }

@@ -108,7 +108,7 @@ Code freeze at hour 32. Numbers in the deck must match the app.
 4. 2:00 Replay 31 Oct 2025: rest fills up; receipt; PayNow.
 5. 2:45 Site Match: honest log approved, fake log caught, reasons shown.
 6. 3:20 Insurer console: cash call for 5 Dec, P90 band narrowing, stop-loss at 150%, hard cap.
-7. 4:00 Back-test and unit economics: S$2.48 a worker a week, 0 of 36 years with no payout, honest limits.
+7. 4:00 Back-test and unit economics: weekly premium a worker and zero-payout years from `web/public/data/numbers.json` (one version of each number), honest limits.
 8. 4:30 Roadmap and ask: riders via platform WIC, hawkers via Stallholder; 300-firm pilot from April 2027.
 
 ## 9. Risks and mitigations
