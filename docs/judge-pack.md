@@ -1,6 +1,6 @@
 # Rehat judge pack
 
-Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data. Generated 15 Nov 2026 15:45 by `python -m rehat.judgepack` from the same engine outputs the app shows.
+Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data. Generated 15 Nov 2026 15:50 by `python -m rehat.judgepack` from the same engine outputs the app shows.
 
 **Rehat** is weather downtime cover for small Singapore firms with outdoor crews, sold as a tick box at the Work Injury Compensation (WIC) renewal they already do with Income. MOM's rules make heat rest paid time and idle days paid for work permit holders, so heat, heavy rain and haze cost wages without any damage. When NEA's readings at the firm's named station are worse than that station's normal month, Rehat pays S$8 a worker for each extra hour by PayNow before payroll. No claim form.
 
@@ -28,7 +28,7 @@ No product in Singapore pays for weather downtime without damage. Rehat rides an
 Offered at WIC renewal in Income's business account and by brokers who place WIC, plus trade associations and NTUC's U SME network. 60-second onboarding pulls headcount from the WIC policy. Workers get notices by QR in their language through the Migrant Workers' Centre network. Roadmap: riders via platform WIC (Platform Workers Act), hawkers via Stallholder Insurance. Screens: [/income](/income), [/onboard](/onboard), [/worker](/worker).
 
 ### 8. How AI and data are integrated
-Data: NEA WBGT, rain and PSI from data.gov.sg, MSS daily records, ERA5 reanalysis, NOAA ONI, all cached with URL and time. AI and models stay upstream of the payout and are auditable: (a) Site Match checker on 400 simulated logs over 247 real station-days flags 2% of honest logs and catches 100% of inflated and 100% of flat logs; it never rejects. (b) Liquidity forecast: P90 covered the actual month 87% of the time over 2022-01 to 2026-10. (c) Receipt explainer in six languages with numbers locked. (d) Gap-fill proposes values for pending hours for human review only. (e) Declaration flags (12 of 300 demo firms). Model cards in `docs/model-cards/`.
+Data: NEA WBGT, rain and PSI from data.gov.sg, MSS daily records, ERA5 reanalysis, NOAA ONI, all cached with URL and time. AI and models stay upstream of the payout and are auditable: (a) Site Match checker on 400 simulated logs over 247 real station-days flags 2% of honest logs and catches 100% of inflated and 100% of flat logs; it never rejects. (b) Liquidity forecast: P90 covered the actual month 90% of the time over 2022-01 to 2026-10. (c) Receipt explainer in six languages with numbers locked. (d) Gap-fill proposes values for pending hours for human review only. (e) Declaration flags (12 of 300 demo firms). Model cards in `docs/model-cards/`.
 
 ## Must-haves
 
@@ -81,7 +81,7 @@ Full table in [/compliance](/compliance) and `web/public/data/compliance.json`.
 - Basis risk: the named station is below 31.5 C while a nearest neighbour is above in 3.6% of work hours. The may-not-pay sentence says so before purchase; Site Match narrows it for big sites.
 - Gap-fill near the thresholds agrees on the rest band only 55% of the time, so it never pays alone.
 - The Site Match rider price (S$88.13 a year) rests on two assumptions (site uplift and filing rate) and must be tested on real contractor logs.
-- Stop-loss: decided at 150%; the back-test never reaches it, and the lowest attachment inside the 5% budget is 100%. Open decision.
+- Stop-loss at 150% (team decision, 2026-11-15): the back-test never reaches it, so it is cheap catastrophe protection for years worse than history, such as a severe haze year. The lowest attachment inside the 5% budget would be 100%; it was considered and not chosen.
 - Translations are drafts for native-speaker review.
 
 ## What the pilot must prove (300 firms, 6,000 workers, from April 2027)
@@ -96,7 +96,7 @@ Full table in [/compliance](/compliance) and `web/public/data/compliance.json`.
 4. **Will employers pocket the money and not give rest?** Workers get the rule in their language, wages may not be cut, and the heat payout is forfeited in any month with an MOM heat enforcement action.
 5. **What if a station goes down?** The hour is pending, never no event. Backup station, regional median, then after 14 days the published regional advisory level. A model estimate is only proposed for human review.
 6. **Is the price right with so little WBGT history?** It is a back-test of 26 years using NEA where it exists and a validated rebuild before that, plus a haze load. The price is reviewed every year as normals reset. The pilot is sized so Income can retain the risk.
-7. **What does Income's finance team need on day one?** The cash call for each settlement: next one 2026-12-07, P50 S$2,912, P90 S$13,928, P99 S$23,263. P90 coverage 87% on past months.
+7. **What does Income's finance team need on day one?** The cash call for each settlement: next one 2026-12-07, P50 S$2,924, P90 S$16,103, P99 S$26,510. P90 coverage 90% on past months.
 8. **How bad can a year get?** Worst back-test year 2013 at 127% loss ratio; a 2015-like haze year added on top gives 271%. The hard cap is 60 h a worker (431%).
 9. **Where is the AI, and can it hurt a customer?** Upstream only. The payout is fixed arithmetic. AI reads site logs (and sends doubts to a person), explains receipts (numbers locked), proposes gap values (reviewed), flags declarations (flag only) and forecasts cash (never touches payouts). Every check gives a reason.
 10. **Does this need a change in the law or new hardware?** No. It sits on WIC, uses NEA's public stations and existing MOM rules, and is filed by Income as the licensed insurer.

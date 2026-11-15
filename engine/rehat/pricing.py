@@ -124,7 +124,7 @@ def reinsurance(lrs: np.ndarray, cap_lr: float, load: float | None = None, budge
     decided = next(r for r in rows if r["attach"] == DECIDED_ATTACH)
     return {"load": load, "budget_pct": 100 * budget, "table": rows, "rule_suggests_attach": chosen["attach"], "rule_suggests": chosen,
             "chosen_attach": DECIDED_ATTACH, "chosen": decided, "hard_cap_lr": round(cap_lr, 3),
-            "note": f"Decided attachment {DECIDED_ATTACH:.0%} (CONTEXT.md). The rule 'lowest attachment inside the 5% budget' now suggests {chosen['attach']:.0%}."}
+            "note": f"Attachment {DECIDED_ATTACH:.0%}, decided and confirmed by the team on 2026-11-15. The cheaper alternative inside the 5% budget would be {chosen['attach']:.0%}; 150% was kept as catastrophe protection that costs almost nothing while the back-test never reaches it."}
 
 
 # ---------------------------------------------------------------- market
@@ -235,7 +235,7 @@ def run(expected_insured_h: float | None = None) -> dict:
         "Break-even": f"{exp['breakeven_policies']} policies of 20 workers at S$300k fixed cost; expense ratio {exp['expense_ratio_at_breakeven']:.0%} at break-even; 20% at {exp['policies_for_20pct_expense_ratio']:,} policies",
         "Pilot (300 firms, 6,000 workers)": f"premium S${pilot['premium']:,}; expected claims S${pilot['expected_claims']:,}; worst back-test year S${pilot['worst_backtest_year_claims']:,}; hard cap S${pilot['hard_cap']:,}",
         "Stop-loss (decided 150%)": f"attach {re['chosen_attach']:.0%}: expected recovery {re['chosen']['expected_recovery_pct']}% of premium, cost {re['chosen']['cost_pct']}% at {re['load']}x load, hit {re['chosen']['years_hit']} of {re['chosen']['years']} years",
-        "Stop-loss (rule suggests)": f"lowest attachment inside 5% budget: {re['rule_suggests_attach']:.0%} (cost {re['rule_suggests']['cost_pct']}%, hit {re['rule_suggests']['years_hit']} of {re['rule_suggests']['years']} years). Needs a decision.",
+        "Stop-loss (alternative considered)": f"lowest attachment inside the 5% budget would be {re['rule_suggests_attach']:.0%} (cost {re['rule_suggests']['cost_pct']}%, hit {re['rule_suggests']['years_hit']} of {re['rule_suggests']['years']} years). Team kept 150% (decision 2026-11-15).",
         "Total market (premium)": f"S${mk['total_premium']['mid'] / 1e6:.1f}M (S${mk['total_premium']['low'] / 1e6:.1f}M to S${mk['total_premium']['high'] / 1e6:.1f}M); Income WIC slice S${mk['income_wic_slice'] / 1e6:.1f}M; year-3 obtainable S${mk['year3_obtainable_premium'] / 1e6:.2f}M",
     }
     (PROCESSED / "pricing.json").write_text(json.dumps(out, indent=1))

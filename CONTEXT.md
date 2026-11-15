@@ -131,12 +131,12 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 ### Reinsurance and capital (decided)
 - Pilot (300 firms, 6,000 workers): Income retains all. Premium, expected claims, worst back-test year and hard cap (S$2.88M) are in the generated block.
-- From year 2: aggregate stop-loss attaching at 150% annual loss ratio, up to the cap (decided). With back-test data the 150% layer is not reached in any of the 26 years; the rule "lowest attachment inside the 5% budget" now suggests 110%. Open decision for the team (see worklog 2026-11-15 P6).
+- From year 2: aggregate stop-loss attaching at 150% annual loss ratio, up to the cap (decided; reconfirmed by the team on 2026-11-15). The back-test never reaches 150% in 26 years, so the layer is cheap protection against years worse than history (for example a severe haze year). A lower attachment inside the 5% budget was considered and not chosen.
 - No quota share (gives away margin), no per-event cover (losses accrue over months). Capital under MAS RBC 2 set by Income's actuary; caps bound the maximum.
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T15:45 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-15T15:50 from engine outputs. Source files: data/processed/*.json.
 
 **Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
 
@@ -168,7 +168,7 @@ Generated 2026-11-15T15:45 from engine outputs. Source files: data/processed/*.j
 | Break-even | 749 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,685 policies |
 | Pilot (300 firms, 6,000 workers) | premium S$667,560; expected claims S$434,003; worst back-test year S$851,040; hard cap S$2,880,000 |
 | Stop-loss (decided 150%) | attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years |
-| Stop-loss (rule suggests) | lowest attachment inside 5% budget: 100% (cost 4.52%, hit 4 of 26 years). Needs a decision. |
+| Stop-loss (alternative considered) | lowest attachment inside the 5% budget would be 100% (cost 4.52%, hit 4 of 26 years). Team kept 150% (decision 2026-11-15). |
 | Total market (premium) | S$20.6M (S$12.3M to S$29.1M); Income WIC slice S$2.5M; year-3 obtainable S$1.66M |
 
 **Liquidity**
@@ -176,9 +176,9 @@ Generated 2026-11-15T15:45 from engine outputs. Source files: data/processed/*.j
 | Item | Value |
 |---|---|
 | Book (demo) | 300 firms, 4,774 outdoor workers |
-| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,912, P90 S$13,928, P99 S$23,263; buffer S$20,351 |
-| Cash call for Oct 2025, as of 20 Oct | P50 S$314, P90 S$9,738, P99 S$14,734; buffer S$14,420; settles 2025-11-07 |
-| Forecast validation (P90 coverage) | 87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
+| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,924, P90 S$16,103, P99 S$26,510; buffer S$23,586 |
+| Cash call for Oct 2025, as of 20 Oct | P50 S$314, P90 S$7,485, P99 S$14,199; buffer S$13,885; settles 2025-11-07 |
+| Forecast validation (P90 coverage) | 90% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
 | Forecast validation (P99 coverage) | 99% |
 
 **Site Match**
@@ -467,3 +467,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Rain 5-minute pull still running (Oct 2025 first), so the rain window share is still the 0.55 assumption and demo receipts still show rain PENDING. PSI pull about 40% done. Re-run `make export` then `make demo` when they finish.
 - Tests: `make test` 112 passed; production build passed.
 - Next: let the background pulls finish, re-run `make export`, rehearse the demo script.
+
+### 2026-11-15 18:00, decision: keep the 150% stop-loss
+- Done: Team confirmed the aggregate stop-loss stays at 150% annual loss ratio from year 2, up to the cap. Removed the "decision needed" flags from the insurer console, pricing headline, judge pack and section 5; the cheaper alternative inside the 5% budget is shown as "considered, not chosen".
+- Files changed: engine/rehat/{pricing,judgepack}.py, web/src/app/insurer/Console.tsx, CONTEXT.md section 5 and generated block, docs/pricing.md, docs/judge-pack.md, web/public/data/*.
+- Numbers produced (with source): unchanged. 150% layer: 0 of 26 back-test years reached, expected recovery 0.0% of premium. Alternative: 100% attachment, cost 4.52% at 1.75x load, hit 4 of 26 years (pricing.json).
+- Decisions: 150% kept as cheap protection against years worse than history (for example a severe haze year, which the back-test lacks). Supersedes the open decision in the P6 entry.
+- Broken or unverified: none new. Background pulls still running.
+- Tests: `make test` 112 passed; production build passed.
+- Next: re-run `make export` and `make demo` when the pulls finish; rehearse the demo.

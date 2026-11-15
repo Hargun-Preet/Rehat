@@ -98,7 +98,7 @@ def build() -> str:
         f"- Basis risk: the named station is below 31.5 C while a nearest neighbour is above in {bt['basis_risk']['overall_pct']}% of work hours. The may-not-pay sentence says so before purchase; Site Match narrows it for big sites.",
         f"- Gap-fill near the thresholds agrees on the rest band only {_pct(ridge['band_agreement_31_34'])} of the time, so it never pays alone.",
         f"- The Site Match rider price ({_sgd(pr['site_match_rider']['year'], 2)} a year) rests on two assumptions (site uplift and filing rate) and must be tested on real contractor logs.",
-        f"- Stop-loss: decided at {_pct(re['chosen_attach'])}; the back-test never reaches it, and the lowest attachment inside the 5% budget is {_pct(re['rule_suggests_attach'])}. Open decision.",
+        f"- Stop-loss at {_pct(re['chosen_attach'])} (team decision, 2026-11-15): the back-test never reaches it, so it is cheap catastrophe protection for years worse than history, such as a severe haze year. The lowest attachment inside the 5% budget would be {_pct(re['rule_suggests_attach'])}; it was considered and not chosen.",
         "- Translations are drafts for native-speaker review.",
         "",
         "## What the pilot must prove (300 firms, 6,000 workers, from April 2027)",

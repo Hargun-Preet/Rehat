@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BadgeCheck, Banknote, CalendarClock, Flag, ShieldHalf, Users } from "lucide-react";
+import { BadgeCheck, Banknote, CalendarClock, Flag, ShieldHalf, Users } from "lucide-react";
 import { useState } from "react";
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
@@ -73,8 +73,8 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
             </p>
             <p className="mt-2 font-heading text-2xl font-bold">Stop-loss at {pct(re.chosen_attach)}</p>
             <p className="text-sm text-muted-foreground">Aggregate, from year 2, up to the {pct(re.hard_cap_lr)} hard cap. Decided.</p>
-            <p className="mt-3 flex items-start gap-2 rounded-xl bg-state-pending-bg p-3 text-xs text-state-pending">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Decision needed: the back-test never reaches {pct(re.chosen_attach)}. The lowest attachment inside the 5% budget is {pct(re.rule_suggests_attach)}.
+            <p className="mt-3 rounded-xl bg-paper p-3 text-xs text-muted-foreground">
+              Kept at {pct(re.chosen_attach)} on 15 Nov 2026. No back-test year reaches it, so it guards against years worse than history. A {pct(re.rule_suggests_attach)} attachment would also fit the 5% budget; it was considered and not chosen.
             </p>
           </div>
         </div>

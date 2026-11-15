@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-15T15:45",
+ "generated_at": "2026-11-15T15:50",
  "backtest": {
   "expected_insured_h": 8.04,
   "expected_payout_standard": 64.3,
@@ -32,14 +32,14 @@
   "Break-even": "749 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,685 policies",
   "Pilot (300 firms, 6,000 workers)": "premium S$667,560; expected claims S$434,003; worst back-test year S$851,040; hard cap S$2,880,000",
   "Stop-loss (decided 150%)": "attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years",
-  "Stop-loss (rule suggests)": "lowest attachment inside 5% budget: 100% (cost 4.52%, hit 4 of 26 years). Needs a decision.",
+  "Stop-loss (alternative considered)": "lowest attachment inside the 5% budget would be 100% (cost 4.52%, hit 4 of 26 years). Team kept 150% (decision 2026-11-15).",
   "Total market (premium)": "S$20.6M (S$12.3M to S$29.1M); Income WIC slice S$2.5M; year-3 obtainable S$1.66M"
  },
  "liquidity": {
   "Book (demo)": "300 firms, 4,774 outdoor workers",
-  "Next settlement": "2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,912, P90 S$13,928, P99 S$23,263; buffer S$20,351",
-  "Cash call for Oct 2025, as of 20 Oct": "P50 S$314, P90 S$9,738, P99 S$14,734; buffer S$14,420; settles 2025-11-07",
-  "Forecast validation (P90 coverage)": "87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90%",
+  "Next settlement": "2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,924, P90 S$16,103, P99 S$26,510; buffer S$23,586",
+  "Cash call for Oct 2025, as of 20 Oct": "P50 S$314, P90 S$7,485, P99 S$14,199; buffer S$13,885; settles 2025-11-07",
+  "Forecast validation (P90 coverage)": "90% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90%",
   "Forecast validation (P99 coverage)": "99%"
  },
  "sitematch": {
