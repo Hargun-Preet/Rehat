@@ -29,10 +29,12 @@ export: normalise
 	cd engine && .venv/bin/python -m rehat.gapfill > /dev/null
 	cd engine && .venv/bin/python -m rehat.anomaly > /dev/null
 	cd engine && .venv/bin/python -m rehat.export
+	cd engine && .venv/bin/python -m rehat.judgepack
 
 # Only rewrite web JSON from existing engine outputs.
 export-fast:
 	cd engine && .venv/bin/python -m rehat.export
+	cd engine && .venv/bin/python -m rehat.judgepack
 
 # Production build served on :3000; runs with the engine stopped and Wi-Fi off.
 demo:

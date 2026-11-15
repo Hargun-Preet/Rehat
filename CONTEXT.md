@@ -449,3 +449,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Not tested with Wi-Fi physically off (verified by request inspection only). ESLint warnings remain inside two vendored Aceternity files (unused import, expression statement).
 - Tests: `make test` passed; `npm run build` passed.
 - Next: P14 judge pack; then re-run `make export` when the WBGT and rain pulls finish.
+
+### 2026-11-15 17:10, P14 docs and judge pack
+- Done: `rehat/judgepack.py` writes `docs/judge-pack.md` from the engine outputs (eight strong-outcome items with numbers and screen links, must-haves, legal map, model-card index, limits stated plainly, what the pilot must prove, ten hardest questions with answers). Added to `make export` so it regenerates with every data refresh. Scanned UI copy and docs: no em dashes, no hype words.
+- Files changed: engine/rehat/judgepack.py, docs/judge-pack.md, Makefile.
+- Numbers produced (with source): none new; all read from data/processed/*.json.
+- Decisions: Judge pack is generated, not hand-written, so it cannot drift from the app. One-page PDF not made (time); the markdown renders cleanly.
+- Broken or unverified: Demo script not rehearsed with people.
+- Tests: `make test` passed.
+- Next: Re-run `make export` on the larger WBGT pull; keep the rain pull running for the window-share calibration.
