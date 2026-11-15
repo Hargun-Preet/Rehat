@@ -224,7 +224,7 @@ Verify every endpoint before relying on it. data.gov.sg may rate-limit: cache ev
 Stations do not perfectly represent a site and there is no universal correction factor; rebuild WBGT from ERA5 with Liljegren and validate against NEA observations near the payout threshold; the nearest station is not always the most representative; test robustness by varying thresholds, durations, station choice and estimation error; missing data must never be treated as "no event"; for 36 hours, demonstrate event calculations rather than claim a validated product.
 
 ### AI prototype results (real 31 Oct 2025 data)
-- Gap-filler (estimate a missing station from the other 14, afternoon test): network median MAE 0.87°C, correct rest band 83%; median+offset 1.11°C, 79%; ridge 1.06°C, 81%. NOT good enough to pay on, so pending hours wait up to 48 h for a backup station. Retest with a full year of history.
+- Gap-filler, kit prototype (estimate a missing station from the other 14, afternoon of 31 Oct 2025): network median MAE 0.87°C, correct rest band 83%; median+offset 1.11°C, 79%; ridge 1.06°C, 81%. Engine retest on pulled history: docs/model-cards/gapfill.md (near the thresholds band agreement is about 57%). NOT good enough to pay on, so pending hours wait up to 48 h for a backup station, then a labelled estimate goes to human review.
 - Site Match checker: see section 4.
 
 ## 7. Legal and regulatory constraints (encode these as rules in code and copy)
@@ -404,3 +404,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Rider price rests on two assumptions (uplift N(0.8, 0.5) C, 50% filing) and is 3.4x the old placeholder; test on real contractor logs before pricing. Vision extraction not wired.
 - Tests: `make test` 99 passed.
 - Next: P9 other AI.
+
+### 2026-11-15 15:40, P9 other AI: explainer, gap-fill, station suggestion, declaration anomalies
+- Done: `rehat/explain.py` (templates in en, ms, zh, ta, bn, my; optional LLM rephrase with number lock: any changed, dropped or added number returns the template; "why wasn't I paid" from the receipt; worker notice in six languages, flagged for native-speaker review). `rehat/gapfill.py` (median, median+offset, ridge; leave-one-station-out validation; `propose()` returns PENDING with a labelled model estimate after 48 h). `stations.suggest_station()` (three nearest, correlation with local ERA5 rebuild, reason, human approves, no correction factor). `rehat/anomaly.py` (rules + isolation forest, seeded anomalies, flag only). API `GET /explain/{uen}/{month}?lang=`, `GET /compliance`. Model cards: explainer, gapfill, station-suggestion, declaration-anomaly.
+- Files changed: engine/rehat/{explain,gapfill,anomaly,stations,api}.py, engine/tests/test_explain.py, docs/model-cards/*.md, CONTEXT.md section 6.
+- Numbers produced (with source): gap-fill (test from 2025-10-31, 15 stations): ridge MAE 0.501 C, band agreement 95% overall but 57% when observed is 31 to 34 C; median MAE 0.688 C. Anomalies: 8 seeded, 12 flagged, precision 67%, recall 100%.
+- Decisions: LLM provider stays OpenAI as in AGENTS.md (optional, off without key); model name configurable and unverified. Number lock compares the multiset of numbers, so the LLM may not drop "25%" either. Firm size, activity code and paid-up capital for the anomaly test are fictional stand-ins for ACRA.
+- Broken or unverified: Translations are drafts (Bengali, Tamil, Burmese, Mandarin, Malay) for native-speaker review. Vision log reading not wired.
+- Tests: `make test` 112 passed (explainer refuses changed, dropped and added numbers).
+- Next: P10 web landing, Income hub, onboarding.

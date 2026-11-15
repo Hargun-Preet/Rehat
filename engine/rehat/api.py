@@ -148,3 +148,19 @@ def post_decide(body: DecisionIn) -> dict[str, Any]:
         return sitematch.decide(body.claim_id, body.decision, body.reviewer, body.reason)
     except KeyError:
         raise HTTPException(404, "No such claim in the review queue")
+
+
+@app.get("/explain/{uen}/{month}")
+def get_explain(uen: str, month: str, lang: str = "en") -> dict[str, Any]:
+    from rehat import explain
+
+    r = get_receipt(uen, month)
+    if lang not in explain.LANGS:
+        raise HTTPException(400, f"lang must be one of {list(explain.LANGS)}")
+    return {**explain.explain(r, lang), "why_not_paid": explain.why_not_paid(r, lang)}
+
+
+@app.get("/compliance")
+def get_compliance() -> dict[str, Any]:
+    p = PROCESSED.parent.parent / "web" / "public" / "data" / "compliance.json"
+    return json.loads(p.read_text()) if p.exists() else {"rows": []}

@@ -84,3 +84,36 @@ def assign(lat: float, lon: float) -> dict:
         "reason": f"Nearest NEA heat-stress station is {w[0][0].name}, {w[0][1]:.1f} km from your site. "
         f"Backup is {w[1][0].name}, {w[1][1]:.1f} km. Rain is read at the {r[0][0].name} gauge, {r[0][1]:.1f} km.",
     }
+
+
+def suggest_station(lat: float, lon: float) -> dict:
+    """Representativeness suggestion for a site: rank the three nearest WBGT stations by distance and by correlation
+    of their observed hourly WBGT with the local ERA5 rebuild (the site's grid cell). Human approves; no correction
+    factor is ever applied to readings."""
+    import numpy as np
+    import pandas as pd
+
+    from rehat.ingest.openmeteo import cell_id
+    from rehat.paths import PROCESSED
+
+    near3 = nearest(lat, lon, wbgt_stations(), 3)
+    reb = pd.read_parquet(PROCESSED / "wbgt_hourly_rebuilt.parquet", columns=["station_id", "hour", "wbgt", "observed", "wbgt_raw"])
+    site_cell = cell_id(lat, lon)
+    cell_stations = [s.station_id for s in wbgt_stations() if cell_id(s.lat, s.lon) == site_cell]
+    local = reb[reb.station_id == (cell_stations[0] if cell_stations else near3[0][0].station_id)].set_index("hour").wbgt_raw
+    rows = []
+    for st, km in near3:
+        obs = reb[(reb.station_id == st.station_id) & reb.observed].set_index("hour").wbgt
+        common = obs.index.intersection(local.index)
+        r = float(np.corrcoef(obs.loc[common], local.loc[common])[0, 1]) if len(common) > 100 else float("nan")
+        rows.append({"station_id": st.station_id, "name": st.name, "km": round(km, 2), "corr_with_local": None if np.isnan(r) else round(r, 3), "hours": int(len(common))})
+    scored = [x for x in rows if x["corr_with_local"] is not None]
+    best = max(scored, key=lambda x: x["corr_with_local"] - 0.01 * x["km"]) if scored else rows[0]
+    nearest_id = rows[0]["station_id"]
+    if best["station_id"] == nearest_id:
+        reason = f"Keep the nearest station, {rows[0]['name']} ({rows[0]['km']} km). It tracks local conditions as well as the others."
+    else:
+        reason = (f"Suggest {best['name']} ({best['km']} km) over the nearest, {rows[0]['name']} ({rows[0]['km']} km): its hourly readings follow "
+                  f"the local weather pattern more closely (r = {best['corr_with_local']} vs {rows[0]['corr_with_local']}). A person approves before it is printed on the schedule.")
+    return {"candidates": rows, "suggested": best["station_id"], "nearest": nearest_id, "changed": best["station_id"] != nearest_id, "reason": reason,
+            "note": "Suggestion only. No correction factor is applied to any reading."}
