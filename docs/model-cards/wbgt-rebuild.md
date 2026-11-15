@@ -8,7 +8,7 @@
 |---|---|
 | Inputs | ERA5 hourly reanalysis from Open-Meteo (`models=era5`): 2 m temperature, relative humidity, surface pressure, 10 m wind, shortwave and direct radiation |
 | Method | Liljegren et al. (2008) natural wet bulb and globe temperature, re-implemented in numpy (`engine/rehat/liljegren.py`) from Argonne's public C code. `pywbgt` 3.0.7 was tried first and segfaults on macOS arm64 in its solar routine |
-| Correction | Additive bias per station x calendar month, plus a per-station hour-of-day term, fitted on NEA observations in the training period only |
+| Correction | Additive bias per station x calendar month, plus a per-station hour-of-day term, then quantile mapping of each station's daytime distribution onto NEA's (so the hot tail is not smoothed away). All fitted on NEA observations in the training period only |
 | Hold-out | Last 3 months of NEA observations, never used for fitting |
 | Validation | `docs/wbgt-validation.md` (MAE, bias, band agreement for <31.5, 31.5-31.9, 32-32.9, 33+, confusion matrix, 31 to 34 C performance) |
 | Output | `data/processed/wbgt_hourly_rebuilt.parquet`: station, hour, wbgt (observed where available, else corrected rebuild), `observed` flag, raw and corrected values. Hours 08:00 to 17:59 |

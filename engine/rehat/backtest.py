@@ -130,7 +130,7 @@ def calibrate_rain_share() -> tuple[float, str]:
     m = m.assign(date=m.date.dt.normalize()).set_index(["station_code", "date"])
     est = pd.Series(rain_day_hours(m.rain_mm.values, m.rain_max60_mm.values), index=m.index)
     days = actual.index.intersection(est.index)
-    if len(days) < 30 or est.loc[days].sum() == 0:
+    if len(days) < 300 or est.loc[days].sum() == 0:
         return DEFAULT_RAIN_SHARE, f"assumption: 55% (only {len(days)} overlapping station-days)"
     share = float(actual.loc[days].sum() / est.loc[days].sum())
     return round(share, 3), f"calibrated on {len(days)} station-days where NEA 5-minute gauges and MSS daily records overlap"

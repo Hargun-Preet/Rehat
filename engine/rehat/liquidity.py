@@ -232,7 +232,7 @@ def forecast_month(asof: date, n_paths: int = N_PATHS, pool_years: list[int] | N
         "accrued_counted_rain_h_per_worker": round(float((acc_r * D.workers).sum() / D.workers.sum()), 3),
         "insured_if_month_ended_today": round(accrued_if_ended),
         "p10": round(float(q[0])), "p50": round(float(q[1])), "p90": round(float(q[2])), "p99": round(float(q[3])),
-        "buffer_p99_minus_p50": round(float(q[3] - q[1])),
+        "buffer_p99_minus_p50": round(float(q[3])) - round(float(q[1])),  # from the shown values, so the subtraction always matches
         "mean": round(float(pay.mean())),
         "histogram": np.histogram(pay, bins=24)[0].tolist(), "histogram_edges": [round(float(x)) for x in np.histogram(pay, bins=24)[1]],
     }

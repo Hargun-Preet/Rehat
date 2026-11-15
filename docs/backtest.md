@@ -7,13 +7,13 @@ Representative firm: 1 worker, Standard S$8/h, premium S$128.7. Book weighted by
 
 | Number | Back-test | Proxy in CONTEXT.md (before) |
 |---|---|---|
-| Expected insured hours a worker a year | 8.83 | 10.46 |
-| Expected payout a worker a year | S$70.7 | S$84 |
+| Expected insured hours a worker a year | 8.04 | 10.46 |
+| Expected payout a worker a year | S$64.3 | S$84 |
 | Zero-payout years (book) | 0 of 26 | 0 of 36 |
-| Zero-payout years (average firm) | 0.58 of 26 | |
-| Months paying something | 49.3% | 55% |
-| 1-in-10 loss ratio | 106% | 124% |
-| Worst year | 2013: S$163.1 (127%) | 1997-like S$295 (229%) |
+| Zero-payout years (average firm) | 1.1 of 26 | |
+| Months paying something | 46.1% | 55% |
+| 1-in-10 loss ratio | 92% | 124% |
+| Worst year | 2013: S$141.8 (110%) | 1997-like S$295 (229%) |
 | Firm-years hitting the 60 h cap | 0.0% | |
 
 ## MSS Changi long view (rain only, 1983 to 2018)
@@ -26,93 +26,93 @@ Representative firm: 1 worker, Standard S$8/h, premium S$128.7. Book weighted by
 
 | Case | Expected payout | Change | 1-in-10 loss ratio | Change |
 |---|---|---|---|---|
-| Allowance x1.0 | S$119.8 | +49.1 | 158% | +52% |
-| Allowance x1.5 | S$41.0 | -29.7 | 70% | -36% |
-| Station readings +0.5 C (estimation error) | S$79.6 | +8.9 | 124% | +18% |
-| Heat thresholds +0.5 C (32.5 / 33.5) | S$63.9 | -6.8 | 92% | -15% |
-| Station readings -0.5 C (estimation error) | S$63.9 | -6.8 | 92% | -15% |
-| No near-miss tier (31.5 to 31.9 pays nothing) | S$67.9 | -2.8 | 99% | -7% |
-| Station: second nearest | S$69.6 | -1.1 | 106% | -0% |
-| Station: median of three | S$71.7 | +1.0 | 108% | +2% |
-| Haze pays from day 2 | S$70.7 | +0.0 | 106% | +0% |
+| Allowance x1.0 | S$110.8 | +46.5 | 141% | +48% |
+| Allowance x1.5 | S$36.7 | -27.6 | 59% | -33% |
+| Station readings +0.5 C (estimation error) | S$75.7 | +11.4 | 113% | +21% |
+| Heat thresholds +0.5 C (32.5 / 33.5) | S$56.7 | -7.6 | 81% | -11% |
+| Station readings -0.5 C (estimation error) | S$56.7 | -7.6 | 81% | -11% |
+| No near-miss tier (31.5 to 31.9 pays nothing) | S$60.5 | -3.8 | 85% | -7% |
+| Station: second nearest | S$65.2 | +0.9 | 95% | +3% |
+| Station: median of three | S$65.0 | +0.7 | 92% | -0% |
+| Haze pays from day 2 | S$64.3 | +0.0 | 92% | +0% |
 
 ## Basis risk (observed NEA data)
 
-Share of insured-window hours where the named station is below 31.5 C while at least one of its two nearest neighbours is at 31.5 C or more: **3.51%** overall (2025-09-01 08:00:00 to 2026-11-14 17:00:00).
+Share of insured-window hours where the named station is below 31.5 C while at least one of its two nearest neighbours is at 31.5 C or more: **3.6%** overall (2025-02-01 08:00:00 to 2026-11-14 17:00:00).
 
 | Station | Basis risk % | Station triggered % | Neighbours |
 |---|---|---|---|
-| S133 Cathay Green | 13.13 | 0.0 | S144, S147 |
-| S139 Tuas Terminal Gateway | 11.51 | 0.0 | S137, S132 |
-| S144 Hong Lim Park | 11.11 | 2.02 | S133, S147 |
-| S184 Sengkang East Avenue | 9.18 | 3.06 | S131, S143 |
-| S127 Kallang Practice Track | 9.09 | 2.68 | S147, S133 |
-| S132 Jurong West Stadium | 7.29 | 1.65 | S180, S146 |
-| S129 Bedok Stadium | 7.07 | 2.81 | S910, S149 |
-| S151 Outward Bound Singapore(Pulau ubin) | 6.06 | 7.07 | S143, S184 |
-| S150 MOE (Evans) Stadium | 5.05 | 1.01 | S187, S145 |
-| S140 Choa Chu Kang Stadium | 4.65 | 0.15 | S126, S135 |
-| S131 Hougang Stadium | 4.04 | 2.02 | S184, S128 |
-| S138 Stirling Road | 4.04 | 2.02 | S187, S150 |
-| S143 Punggol North | 3.06 | 2.47 | S151, S184 |
-| S147 Marina Barrage | 3.06 | 13.27 | S144, S127 |
-| S142 Palawan Green (Sentosa) | 3.03 | 17.79 | S144, S138 |
-| S148 Pasir Ris Walk | 3.03 | 0.0 | S124, S149 |
-| S187 Coronation Road | 3.03 | 1.94 | S150, S138 |
-| S128 Bishan Stadium | 2.15 | 1.49 | S145, S141 |
-| S141 Yio Chu Kang Stadium | 1.85 | 1.68 | S128, S131 |
-| S130 Clementi Stadium | 1.76 | 0.0 | S153, S187 |
-| S125 Woodlands Stadium | 1.64 | 1.19 | S135, S140 |
-| S126 Old Choa Chu Kang Road | 1.35 | 2.38 | S140, S146 |
-| S146 Jalan Bahar | 1.03 | 9.28 | S132, S126 |
-| S145 MacRitchie Reservoir | 1.01 | 3.03 | S128, S150 |
-| S180 Taman Jurong Greens | 1.01 | 0.0 | S132, S153 |
-| S137 Sakra Road (Jurong Island) | 0.89 | 10.55 | S132, S139 |
-| S124 Changi Meteorological Station | 0.0 | 0.6 | S148, S149 |
-| S135 Mandai Wildlife Reserve | 0.0 | 17.17 | S125, S140 |
-| S149 Tampines Central Park | 0.0 | 0.0 | S129, S148 |
-| S153 Bukit Batok Swimming Complex | 0.0 | 0.0 | S180, S130 |
-| S910 Outward Bound Singapore(East Coast) | 0.0 | 7.07 | S129, S149 |
+| S133 Cathay Green | 12.34 | 0.0 | S144, S147 |
+| S144 Hong Lim Park | 10.95 | 3.08 | S133, S147 |
+| S139 Tuas Terminal Gateway | 8.62 | 0.0 | S137, S132 |
+| S145 MacRitchie Reservoir | 7.9 | 4.13 | S128, S150 |
+| S127 Kallang Practice Track | 7.37 | 4.03 | S147, S133 |
+| S131 Hougang Stadium | 6.77 | 3.87 | S184, S128 |
+| S140 Choa Chu Kang Stadium | 6.1 | 0.46 | S126, S135 |
+| S132 Jurong West Stadium | 5.68 | 2.55 | S180, S146 |
+| S141 Yio Chu Kang Stadium | 5.11 | 1.78 | S128, S131 |
+| S146 Jalan Bahar | 4.69 | 7.03 | S132, S126 |
+| S150 MOE (Evans) Stadium | 4.56 | 0.4 | S187, S145 |
+| S143 Punggol North | 3.89 | 2.71 | S151, S184 |
+| S151 Outward Bound Singapore(Pulau ubin) | 3.77 | 6.82 | S143, S184 |
+| S184 Sengkang East Avenue | 3.77 | 3.5 | S131, S143 |
+| S125 Woodlands Stadium | 3.14 | 2.01 | S135, S140 |
+| S180 Taman Jurong Greens | 3.05 | 0.9 | S132, S153 |
+| S138 Stirling Road | 2.22 | 0.95 | S187, S150 |
+| S147 Marina Barrage | 2.16 | 13.13 | S144, S127 |
+| S128 Bishan Stadium | 2.12 | 4.09 | S145, S141 |
+| S129 Bedok Stadium | 2.05 | 2.8 | S910, S149 |
+| S149 Tampines Central Park | 1.88 | 0.27 | S129, S148 |
+| S130 Clementi Stadium | 1.84 | 0.47 | S153, S187 |
+| S126 Old Choa Chu Kang Road | 1.57 | 4.6 | S140, S146 |
+| S148 Pasir Ris Walk | 1.26 | 1.08 | S124, S149 |
+| S142 Palawan Green (Sentosa) | 1.21 | 15.47 | S144, S138 |
+| S137 Sakra Road (Jurong Island) | 0.86 | 7.41 | S132, S139 |
+| S124 Changi Meteorological Station | 0.81 | 0.47 | S148, S149 |
+| S187 Coronation Road | 0.54 | 1.96 | S150, S138 |
+| S153 Bukit Batok Swimming Complex | 0.41 | 1.09 | S180, S130 |
+| S135 Mandai Wildlife Reserve | 0.36 | 12.39 | S125, S140 |
+| S910 Outward Bound Singapore(East Coast) | 0.0 | 5.06 | S129, S149 |
 
 ## Why the numbers differ from the proxy
 
-- Rain hours come from MSS daily records with an estimator (wettest hour by tier plus 0.5 h per further 5 mm), scaled by the window share 0.55 (assumption: 55% of heavy-rain hours fall in 08:00 to 18:00 (no 5-minute overlap yet)). The proxy counted rain days, not hours.
+- Rain hours come from MSS daily records with an estimator (wettest hour by tier plus 0.5 h per further 5 mm), scaled by the window share 0.55 (assumption: 55% (only 228 overlapping station-days)). The proxy counted rain days, not hours.
 - Heat comes from a WBGT rebuild whose band agreement near the threshold is limited (see docs/wbgt-validation.md). Heat frequencies are estimates.
-- Haze: PSI is only in the back-test where NEA data was pulled (1 region-months). Haze years before 2025 (1997, 2006, 2013, 2015, 2019) are missing, so the back-test UNDERSTATES haze. Pricing adds a haze load (docs/pricing.md).
+- Haze: PSI is only in the back-test where NEA data was pulled (10 region-months). Haze years before 2025 (1997, 2006, 2013, 2015, 2019) are missing, so the back-test UNDERSTATES haze. Pricing adds a haze load (docs/pricing.md).
 - The allowance is relative to each station's own normal, so a uniformly hotter station does not pay more; only months worse than that station's normal pay.
 
 ## Station table
 
 | Station | Heat counted h/yr | Rain counted h/yr | Expected insured h | Zero-payout years | Months paying % | Cap-hit years |
 |---|---|---|---|---|---|---|
-| S124 Changi Meteorological Station | 8.69 | 49.57 | 6.32 | 0 | 47.8 | 0 |
-| S125 Woodlands Stadium | 12.12 | 62.84 | 7.12 | 0 | 43.3 | 0 |
-| S126 Old Choa Chu Kang Road | 10.77 | 62.84 | 7.0 | 0 | 42.9 | 0 |
-| S127 Kallang Practice Track | 12.13 | 57.35 | 6.37 | 0 | 47.8 | 0 |
-| S128 Bishan Stadium | 7.01 | 38.56 | 12.54 | 2 | 55.8 | 0 |
-| S129 Bedok Stadium | 14.01 | 27.78 | 11.66 | 2 | 55.1 | 0 |
-| S130 Clementi Stadium | 10.4 | 61.58 | 6.55 | 0 | 45.8 | 0 |
-| S131 Hougang Stadium | 13.9 | 57.33 | 6.65 | 0 | 46.8 | 0 |
-| S132 Jurong West Stadium | 14.08 | 61.29 | 6.86 | 0 | 45.8 | 0 |
-| S133 Cathay Green | 21.02 | 53.34 | 8.03 | 0 | 47.4 | 0 |
-| S135 Mandai Wildlife Reserve | 14.15 | 62.84 | 7.45 | 0 | 44.2 | 0 |
-| S137 Sakra Road (Jurong Island) | 34.75 | 30.0 | 15.68 | 5 | 53.2 | 0 |
-| S138 Stirling Road | 21.02 | 61.58 | 7.78 | 0 | 48.1 | 0 |
-| S139 Tuas Terminal Gateway | 6.69 | 30.0 | 12.83 | 3 | 53.8 | 0 |
-| S140 Choa Chu Kang Stadium | 6.79 | 62.84 | 6.33 | 1 | 42.6 | 0 |
-| S141 Yio Chu Kang Stadium | 11.67 | 38.56 | 13.34 | 1 | 56.4 | 0 |
-| S142 Palawan Green (Sentosa) | 34.19 | 53.34 | 9.22 | 0 | 47.8 | 0 |
-| S143 Punggol North | 11.37 | 36.3 | 13.08 | 0 | 58.0 | 0 |
-| S144 Hong Lim Park | 21.02 | 53.34 | 8.03 | 0 | 47.4 | 0 |
-| S145 MacRitchie Reservoir | 21.02 | 38.56 | 14.33 | 2 | 55.1 | 0 |
-| S146 Jalan Bahar | 21.02 | 61.29 | 7.5 | 0 | 47.1 | 0 |
-| S147 Marina Barrage | 21.02 | 53.34 | 8.03 | 0 | 47.4 | 0 |
-| S148 Pasir Ris Walk | 13.9 | 49.57 | 7.05 | 0 | 48.1 | 0 |
-| S149 Tampines Central Park | 13.9 | 57.33 | 6.65 | 0 | 46.8 | 0 |
-| S150 MOE (Evans) Stadium | 21.02 | 61.58 | 7.78 | 0 | 48.1 | 0 |
-| S151 Outward Bound Singapore(Pulau ubin) | 18.07 | 36.3 | 13.77 | 1 | 58.0 | 0 |
-| S153 Bukit Batok Swimming Complex | 21.02 | 61.58 | 7.78 | 0 | 48.1 | 0 |
-| S180 Taman Jurong Greens | 21.02 | 61.29 | 7.5 | 0 | 47.1 | 0 |
-| S184 Sengkang East Avenue | 18.07 | 36.3 | 13.77 | 1 | 58.0 | 0 |
-| S187 Coronation Road | 9.21 | 61.58 | 6.34 | 0 | 43.9 | 0 |
-| S910 Outward Bound Singapore(East Coast) | 13.9 | 27.78 | 11.65 | 2 | 55.8 | 0 |
+| S124 Changi Meteorological Station | 0.01 | 49.57 | 4.2 | 0 | 28.2 | 0 |
+| S125 Woodlands Stadium | 9.57 | 62.84 | 6.47 | 0 | 44.2 | 0 |
+| S126 Old Choa Chu Kang Road | 26.07 | 62.84 | 8.4 | 0 | 45.5 | 0 |
+| S127 Kallang Practice Track | 16.35 | 57.35 | 6.46 | 0 | 49.4 | 0 |
+| S128 Bishan Stadium | 20.29 | 38.56 | 14.07 | 3 | 54.8 | 0 |
+| S129 Bedok Stadium | 13.54 | 27.78 | 11.23 | 1 | 54.8 | 0 |
+| S130 Clementi Stadium | 3.41 | 61.58 | 5.06 | 0 | 45.8 | 0 |
+| S131 Hougang Stadium | 8.81 | 57.33 | 5.71 | 0 | 46.8 | 0 |
+| S132 Jurong West Stadium | 14.69 | 61.29 | 6.5 | 0 | 47.8 | 0 |
+| S133 Cathay Green | 24.12 | 53.34 | 8.37 | 0 | 47.4 | 0 |
+| S135 Mandai Wildlife Reserve | 16.83 | 62.84 | 7.94 | 0 | 43.9 | 0 |
+| S137 Sakra Road (Jurong Island) | 52.27 | 30.0 | 16.56 | 6 | 52.9 | 0 |
+| S138 Stirling Road | 24.12 | 61.58 | 8.12 | 0 | 48.7 | 0 |
+| S139 Tuas Terminal Gateway | 0.0 | 30.0 | 11.09 | 11 | 42.9 | 0 |
+| S140 Choa Chu Kang Stadium | 0.0 | 62.84 | 4.66 | 2 | 24.4 | 0 |
+| S141 Yio Chu Kang Stadium | 12.9 | 38.56 | 13.45 | 2 | 56.1 | 0 |
+| S142 Palawan Green (Sentosa) | 86.43 | 53.34 | 11.1 | 0 | 46.8 | 0 |
+| S143 Punggol North | 8.01 | 36.3 | 12.4 | 1 | 57.4 | 0 |
+| S144 Hong Lim Park | 12.35 | 53.34 | 7.02 | 0 | 46.2 | 0 |
+| S145 MacRitchie Reservoir | 8.95 | 38.56 | 12.97 | 2 | 55.8 | 0 |
+| S146 Jalan Bahar | 6.49 | 61.29 | 5.66 | 0 | 45.5 | 0 |
+| S147 Marina Barrage | 19.84 | 53.34 | 8.14 | 0 | 46.8 | 0 |
+| S148 Pasir Ris Walk | 5.54 | 49.57 | 5.69 | 0 | 44.2 | 0 |
+| S149 Tampines Central Park | 0.0 | 57.33 | 3.8 | 2 | 25.6 | 0 |
+| S150 MOE (Evans) Stadium | 2.05 | 61.58 | 4.86 | 0 | 44.6 | 0 |
+| S151 Outward Bound Singapore(Pulau ubin) | 11.84 | 36.3 | 13.12 | 1 | 58.3 | 0 |
+| S153 Bukit Batok Swimming Complex | 5.21 | 61.58 | 5.49 | 0 | 45.2 | 0 |
+| S180 Taman Jurong Greens | 7.53 | 61.29 | 5.85 | 0 | 44.9 | 0 |
+| S184 Sengkang East Avenue | 9.67 | 36.3 | 12.7 | 1 | 57.4 | 0 |
+| S187 Coronation Road | 9.66 | 61.58 | 6.25 | 0 | 49.0 | 0 |
+| S910 Outward Bound Singapore(East Coast) | 8.81 | 27.78 | 10.71 | 1 | 55.1 | 0 |

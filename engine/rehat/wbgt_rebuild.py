@@ -70,6 +70,7 @@ class Correction:
     overall: pd.Series  # station_id -> bias
     cell_month: pd.DataFrame  # cell, month, bias_cell (fallback for stations without training data)
     cell_hod: pd.DataFrame  # cell, hod, bias_cell_hod
+    qmap: dict | None = None  # station or cell -> (additive-corrected quantiles, observed quantiles), daytime hours
 
     def apply(self, df: pd.DataFrame) -> pd.Series:
         d = df[["station_id", "hour", "wbgt_raw"]].copy()
@@ -84,7 +85,16 @@ class Correction:
         d.loc[no_station, "bias_hod"] = d.loc[no_station, "bias_cell_hod"]
         d["bias"] = d["bias"].fillna(d["bias_cell"]).fillna(0)
         d["bias_hod"] = d["bias_hod"].fillna(0)
-        return pd.Series((d.wbgt_raw + d.bias + d.bias_hod).values, index=df.index)
+        add = (d.wbgt_raw + d.bias + d.bias_hod).values
+        if not self.qmap:
+            return pd.Series(add, index=df.index)
+        out = add.copy()
+        day = ((d.hod >= 8) & (d.hod < 18)).values
+        for key, (xq, yq) in self.qmap.items():
+            m = day & ((d.station_id == key).values if key.startswith("S") else ((d.cell == key) & no_station).values)
+            if m.any():
+                out[m] = np.interp(add[m], xq, yq)
+        return pd.Series(out, index=df.index)
 
 
 def _station_cell() -> dict[str, str]:
@@ -100,7 +110,18 @@ def fit_correction(train: pd.DataFrame) -> Correction:
     t = t.merge(month, on=["station_id", "month"]).merge(cell_month, on=["cell", "month"])
     hod = (t.err - t.bias).groupby([t.station_id, t.hod]).mean().rename("bias_hod").reset_index()
     cell_hod = (t.err - t.bias_cell).groupby([t.cell, t.hod]).mean().rename("bias_cell_hod").reset_index()
-    return Correction(month, hod, overall, cell_month, cell_hod)
+    corr = Correction(month, hod, overall, cell_month, cell_hod)
+    # Quantile mapping (decided before looking at the test set): after the additive step, map each station's daytime
+    # distribution onto its observed distribution, so the hot tail is not smoothed away. Training data only.
+    t = t.assign(add=corr.apply(t[["station_id", "hour", "wbgt_raw"]]).values)
+    qs = np.linspace(0.005, 0.995, 100)
+    qmap: dict = {}
+    day = t[(t.hod >= 8) & (t.hod < 18)]
+    for key, g in list(day.groupby("station_id")) + list(day.groupby("cell")):
+        if len(g) >= 500:
+            qmap[key] = (np.quantile(g["add"], qs), np.quantile(g.wbgt_obs, qs))
+    corr.qmap = qmap
+    return corr
 
 
 def metrics(obs: np.ndarray, pred: np.ndarray) -> dict:
