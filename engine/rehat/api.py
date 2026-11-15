@@ -164,3 +164,45 @@ def get_explain(uen: str, month: str, lang: str = "en") -> dict[str, Any]:
 def get_compliance() -> dict[str, Any]:
     p = PROCESSED.parent.parent / "web" / "public" / "data" / "compliance.json"
     return json.loads(p.read_text()) if p.exists() else {"rows": []}
+
+
+@app.get("/live")
+def get_live() -> dict[str, Any]:
+    """Live mode: today's WBGT and PSI from data.gov.sg. Today's pages are still filling, so each response is saved to
+    data/raw/live/ for audit instead of the day cache. The web app falls back to its offline snapshot on any error."""
+    from datetime import datetime as _dt
+
+    import requests as _rq
+
+    from rehat import rules as _r
+    from rehat.ingest.cache import write_cached
+    from rehat.ingest.datagov import BASE, _headers
+    from rehat.paths import RAW
+
+    today = _dt.now().strftime("%Y-%m-%d")
+    out: dict[str, Any] = {"mode": "live", "day": today, "stations": [], "psi": {}}
+    url = f"{BASE}/weather"
+    recs: list[dict] = []
+    token = None
+    for _ in range(8):
+        params = {"api": "wbgt", "date": today, **({"paginationToken": token} if token else {})}
+        body = _rq.get(url, params=params, headers=_headers(), timeout=20).json()
+        data = body.get("data") or {}
+        write_cached(RAW / "live" / f"{_dt.now():%Y%m%dT%H%M%S}_wbgt.json", url, params, data)
+        recs += data.get("records", [])
+        token = data.get("paginationToken")
+        if not token:
+            break
+    latest: dict[str, dict] = {}
+    for rec in sorted(recs, key=lambda r: r["datetime"]):
+        for rd in rec["item"]["readings"]:
+            latest[rd["station"]["id"]] = {"ts": rec["datetime"], "wbgt": float(rd["wbgt"]), "name": rd["station"].get("townCenter"),
+                                           "lat": float(rd["location"]["latitude"]), "lon": float(rd["location"]["longitude"])}
+    for sid, v in sorted(latest.items()):
+        out["stations"].append({"station_id": sid, **v, "rest_if_hour_mean": _r.heat_rest_minutes(v["wbgt"])})
+    pbody = _rq.get(f"{BASE}/psi", params={"date": today}, headers=_headers(), timeout=20).json().get("data") or {}
+    write_cached(RAW / "live" / f"{_dt.now():%Y%m%dT%H%M%S}_psi.json", f"{BASE}/psi", {"date": today}, pbody)
+    items = pbody.get("items", [])
+    if items:
+        out["psi"] = {"ts": items[-1]["timestamp"], "regions": items[-1]["readings"]["psi_twenty_four_hourly"]}
+    return out

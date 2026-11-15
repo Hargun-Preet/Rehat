@@ -303,7 +303,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Liquidity forecasting (P7, 2026-11-15)
 - [x] Site Match AI (P8, 2026-11-15)
 - [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
-- [ ] Web (P10 landing, Income hub, onboarding done 2026-11-15): landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
+- [ ] Web (P10 and P11 done 2026-11-15): landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
 - [ ] Demo script rehearsed
 
 ## 14. Open questions for Income's mentor
@@ -422,3 +422,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Onboarding automated run: 17 s end to end; a human reading each step should finish in under 60 s (not timed with a person yet).
 - Tests: `make test` 112 passed. tsc clean; no console errors on /onboard.
 - Next: P11 live map, replay, receipt, Site Match, worker.
+
+### 2026-11-15 16:20, P11 web: live map, replay, receipt, Site Match, worker
+- Done: `/live` (Leaflet map and table of every WBGT station with hourly state badges for the snapshot day, hour picker, PSI chips by region with bands, source per station, live/offline toggle: live calls the engine `GET /live`, which pulls today from data.gov.sg and logs each response to data/raw/live/; any failure falls back to the snapshot with a message). `/replay` (31 Oct 2025, 39 readings, play/pause/scrub, 15 station cards with current reading tiers and rest meters on completed hourly means, meal hour struck through, Tanjong Greenworks day total and S$ count-up, end card linking the day to the October receipt honestly). `/employer/receipt` (firm and month pickers, payout and settlement date, peril cards with normal, allowance and insured hours and assumption/station-normal tags, caps line, pending notice, hour-by-hour heatmap for heat and rain with tooltips, what did not count and why, FIDReC link, "Ask about this receipt" in six languages with locked numbers). `/employer/site-match` (Aceternity File Upload or 10 sample logs, extracted table to confirm, checks revealed line by line, APPROVED top-up or REVIEW with reason chips, hour-by-hour site vs station, evaluation panel). `/worker` (phone mockup, notice in Bengali, Tamil, Mandarin, Burmese, Malay and English, review badge, demo QR pattern labelled not scannable, no personal data).
+- Files changed: web/src/app/{live,replay,employer/receipt,employer/site-match,worker}/*, engine/rehat/api.py (GET /live), web/package.json (framer-motion removed; motion/react used everywhere).
+- Numbers produced (with source): replay: Jurong West rest owed on 31 Oct 2025 = 35 min a worker excluding the meal hour, S$93.33 of wages across 20 workers at S$8; network mean 12 min (CONTEXT section 6 says 13 including the meal hour).
+- Decisions: Replay title says "a record heat-stress day", not "hottest day on record". Uploaded CSVs that are not samples need the engine; offline the page says so. framer-motion 12 clashed with motion 14 (from Aceternity), so all motion imports use motion/react.
+- Broken or unverified: Live mode returned no stations during the background pull (rate limit); fallback works. Receipts show rain PENDING until 5-minute rain is pulled.
+- Tests: `make test` passed; all five pages 200 and render from /data.
+- Next: P12 back-test lab, insurer console, compliance.
