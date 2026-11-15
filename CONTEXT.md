@@ -482,3 +482,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Numbers produced (with source): generated block is the single version; Standard now S$120.37 a year, S$2.31 a week before GST. Earlier worklog entries quoting 8.04 h and S$111.26 are history.
 - Tests: `make test` 112 passed.
 - Next: UEN lookup (see next entry).
+
+### 2026-11-15 16:20, UEN check against ACRA's public register
+- Done: `rehat/uen.py`: shape check (business 8 digits + letter; local company 4-digit year + 5 digits + letter; other entities T/S/R + year + 2 letters + 4 digits + letter), then exact lookup on ACRA's "Entities Registered with ACRA" dataset on data.gov.sg, cached per UEN in data/raw/acra/. Fictional T99DM UENs are never sent; network failure returns "offline", never an error. `GET /uen/{uen}`. Onboarding: invalid UEN is stopped with a plain message; otherwise the record (name, type, status, issue date, source, date checked) is shown above the WIC details, with a note that the prototype continues with the fictional firm's WIC policy; offline shows "ACRA check offline". Compliance map row and docs/data-sources.md updated.
+- Files changed: engine/rehat/{uen,api,export}.py, engine/tests/test_uen.py, web/src/app/onboard/Onboard.tsx, docs/data-sources.md, web/public/data/compliance.json.
+- Numbers produced (with source): none.
+- Decisions: Check letter not validated (ACRA does not publish the algorithm; only third-party versions exist). Real company names are shown only as the register returns them and are never used as demo data, so the fictional-firms rule holds. Production route remains Corppass sign-in plus Myinfo Business (needs GovTech onboarding).
+- Broken or unverified: The ACRA dataset is a monthly snapshot, so a company registered this month may show as not found.
+- Tests: `make test` 126 passed (14 new UEN tests); production build passed.
+- Next: unchanged.

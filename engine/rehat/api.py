@@ -206,3 +206,11 @@ def get_live() -> dict[str, Any]:
     if items:
         out["psi"] = {"ts": items[-1]["timestamp"], "regions": items[-1]["readings"]["psi_twenty_four_hourly"]}
     return out
+
+
+@app.get("/uen/{uen}")
+def get_uen(uen: str) -> dict[str, Any]:
+    """Format check plus ACRA public register lookup. Fictional T99DM UENs are never sent out."""
+    from rehat import uen as _uen
+
+    return _uen.check(uen)

@@ -11,6 +11,7 @@ Every response is cached under `data/raw/` with request URL, params and fetch ti
 | MSS daily | `GET https://www.weather.gov.sg/files/dailydata/DAILYDATA_<CODE>_<YYYYMM>.csv` | Station, Year, Month, Day, daily rain, highest 30/60/120 min rain, mean/max/min temp, wind. latin-1 with BOM | `data/raw/mss/<CODE>/<YYYYMM>.csv` |
 | ERA5 hourly | `GET https://archive-api.open-meteo.com/v1/archive?models=era5&...` | `hourly.{time, temperature_2m, relative_humidity_2m, dew_point_2m, wind_speed_10m, shortwave_radiation, direct_radiation, diffuse_radiation, surface_pressure, precipitation}` | `data/raw/openmeteo/era5/<cell>/<year>.json` |
 | Archived forecasts | `GET https://historical-forecast-api.open-meteo.com/v1/forecast?...` | same hourly block | `data/raw/openmeteo/histfc/<cell>/<year>.json` |
+| ACRA register (UEN) | `GET https://data.gov.sg/api/action/datastore_search?resource_id=d_3f960c10fed6145404ca7b821f263b87&filters={"uen":"<UEN>"}` | `result.records[].{uen, entity_name, entity_type_desc, uen_status_desc, uen_issue_date, reg_street_name, reg_postal_code}`; no key; updated monthly | `data/raw/acra/<UEN>.json` |
 | ONI | `GET https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt` | `SEAS YR TOTAL ANOM` | `data/raw/noaa/oni.json` |
 
 ## Notes

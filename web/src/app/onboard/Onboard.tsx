@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronLeft, ChevronRight, Clock, Lock, MapPin, ShieldCheck } from "lucide-react";
+import { Building2, Check, ChevronLeft, ChevronRight, Clock, Lock, MapPin, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AssumptionTag, Ellipsis, PageHeader, Section } from "@/components/brand";
@@ -13,6 +13,7 @@ import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { cn } from "@/lib/utils";
 import { sgd } from "@/lib/format";
 import type { Plan } from "@/lib/types";
+import { ENGINE_URL } from "@/lib/useJSON";
 
 export type OnboardData = {
   firm: {
@@ -37,6 +38,22 @@ export type OnboardData = {
 };
 type St = { station_id: string; name: string; lat: number; lon: number };
 export type StationsData = { wbgt: St[]; rain: St[] };
+
+type UenCheck = {
+  uen: string;
+  format_ok: boolean;
+  kind: string | null;
+  message: string;
+  acra: null | { found?: boolean; demo?: boolean; offline?: boolean; name?: string; status?: string; live?: boolean; entity_type?: string; issue_date?: string; checked_at?: string; source?: string };
+};
+
+/** Same shape rules as the engine (rehat/uen.py), used when the engine is not running. */
+function localFormat(raw: string): UenCheck {
+  const u = raw.replace(/\s+/g, "").toUpperCase();
+  if (u.startsWith("T99DM")) return { uen: u, format_ok: true, kind: "demo", message: "Fictional demo UEN. Not looked up.", acra: { demo: true } };
+  const ok = /^\d{8}[A-Z]$/.test(u) || /^(19|20)\d{7}[A-Z]$/.test(u) || /^[TSR]\d{2}[A-Z]{2}\d{4}[A-Z]$/.test(u);
+  return { uen: u, format_ok: ok, kind: ok ? "unknown" : null, message: ok ? "Format looks right." : "That does not look like a Singapore UEN. A company UEN is 9 digits and a letter, for example 201912345K.", acra: ok ? { offline: true } : null };
+}
 
 const STEPS = ["Your business", "Checking records", "Headcount", "Site and station", "Plan", "Before you buy", "Quick check", "Your data", "Done"];
 const LOADER = [{ text: "Checking ACRA via Corppass" }, { text: "Reading your WIC policy" }, { text: "Finding your nearest NEA stations" }, { text: "Ready" }];
@@ -91,13 +108,34 @@ export default function Onboard({ data, stations }: { data: OnboardData; station
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
-  const startChecks = () => {
+  const [uenCheck, setUenCheck] = useState<UenCheck | null>(null);
+  const [uenError, setUenError] = useState<string | null>(null);
+  const startChecks = async () => {
+    setUenError(null);
+    const local = localFormat(uen);
+    if (!local.format_ok) {
+      setUenError(local.message);
+      return;
+    }
     setLoading(true);
     setStep(1);
-    setTimeout(() => {
-      setLoading(false);
-      setStep(2);
-    }, 4200);
+    const started = Date.now();
+    let result: UenCheck = local;
+    if (local.kind !== "demo") {
+      try {
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 6000);
+        const r = await fetch(`${ENGINE_URL}/uen/${encodeURIComponent(local.uen)}`, { signal: ctl.signal });
+        clearTimeout(t);
+        if (r.ok) result = await r.json();
+      } catch {
+        /* engine or Wi-Fi off: keep the local format check, marked offline */
+      }
+    }
+    await new Promise((res) => setTimeout(res, Math.max(0, 4200 - (Date.now() - started))));
+    setUenCheck(result);
+    setLoading(false);
+    setStep(2);
   };
   const canNext = step === 5 ? ack : step === 6 ? answer !== null : step === 7 ? consent : true;
   const correct = TEACH.find((t) => t.id === answer)?.correct;
@@ -135,8 +173,11 @@ export default function Onboard({ data, stations }: { data: OnboardData; station
               <h2 className="text-xl font-bold">Your business</h2>
               <div className="space-y-2">
                 <Label htmlFor="uen">Company UEN</Label>
-                <Input id="uen" value={uen} onChange={(e) => setUen(e.target.value)} className="num" />
-                <p className="text-xs text-muted-foreground">Demo: any UEN loads the fictional firm {f.name}. We sign in through Corppass; no password is typed here.</p>
+                <Input id="uen" value={uen} onChange={(e) => { setUen(e.target.value); setUenError(null); }} className="num" aria-invalid={!!uenError} aria-describedby="uen-help" />
+                {uenError ? <p className="text-sm text-state-review" role="alert">{uenError}</p> : null}
+                <p id="uen-help" className="text-xs text-muted-foreground">
+                  We check the UEN on ACRA&apos;s public register. The demo UEN {data.firm.uen} is fictional and is not looked up. Whatever you enter, this prototype continues with the fictional firm {f.name}&apos;s WIC policy. We sign in through Corppass; no password is typed here.
+                </p>
               </div>
               <Button onClick={startChecks} disabled={!uen.trim()}>
                 Continue with Corppass <ChevronRight className="ml-1 h-4 w-4" />
@@ -152,6 +193,7 @@ export default function Onboard({ data, stations }: { data: OnboardData; station
 
           {step === 2 && (
             <div className="space-y-4">
+              {uenCheck ? <AcraBox c={uenCheck} demoName={f.name} /> : null}
               <h2 className="text-xl font-bold">We found this on your WIC policy</h2>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Box k="Business" v={f.name} />
@@ -384,5 +426,40 @@ function Row({ k, v, strong, accent }: { k: string; v: string; strong?: boolean;
       <td className={cn("py-1.5", strong && "font-semibold")}>{k}</td>
       <td className={cn("num py-1.5 text-right", strong && "text-base font-bold", accent && "text-income-orange-700")}>{v}</td>
     </tr>
+  );
+}
+
+function AcraBox({ c, demoName }: { c: UenCheck; demoName: string }) {
+  const a = c.acra;
+  let tone = "bg-paper";
+  let title = "";
+  let body = "";
+  if (!a || a.demo) {
+    title = `UEN ${c.uen}: fictional demo firm`;
+    body = "Demo UENs start with T99DM and are not sent to ACRA.";
+  } else if (a.offline) {
+    tone = "bg-state-pending-bg text-state-pending";
+    title = `UEN ${c.uen}: ACRA check offline`;
+    body = "The format looks right, but the register could not be reached (engine or Wi-Fi off). A real policy would wait for the check.";
+  } else if (a.found) {
+    tone = a.live ? "bg-state-ok-bg" : "bg-state-pending-bg";
+    title = `Found on ACRA's register: ${a.name}`;
+    body = `${a.entity_type ?? "Entity"}, status ${a.status ?? "unknown"}, registered ${a.issue_date ?? "unknown"}.${a.live ? "" : " Rehat needs a live company, so a real policy would stop here."}`;
+  } else {
+    tone = "bg-state-review-bg text-state-review";
+    title = `UEN ${c.uen} is not on ACRA's register`;
+    body = "Please check the number. A real policy would stop here.";
+  }
+  return (
+    <div className={cn("rounded-xl p-4 text-sm", tone)} aria-live="polite">
+      <p className="flex items-center gap-2 font-semibold">
+        <Building2 className="h-4 w-4" /> {title}
+      </p>
+      <p className="mt-1">{body}</p>
+      <p className="mt-1 text-xs opacity-80">
+        {a && !a.demo && !a.offline ? `Source: ${a.source}${a.checked_at ? `, checked ${a.checked_at.slice(0, 10)}` : ""}. ` : ""}
+        {a && !a.demo ? `Concept prototype: the WIC details below belong to the fictional firm ${demoName}, not to this UEN.` : ""}
+      </p>
+    </div>
   );
 }
