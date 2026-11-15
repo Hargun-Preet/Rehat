@@ -303,7 +303,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Liquidity forecasting (P7, 2026-11-15)
 - [x] Site Match AI (P8, 2026-11-15)
 - [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
-- [ ] Web (P10 and P11 done 2026-11-15): landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
+- [x] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance (P10 to P12, 2026-11-15)
 - [ ] Demo script rehearsed
 
 ## 14. Open questions for Income's mentor
@@ -431,3 +431,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Live mode returned no stations during the background pull (rate limit); fallback works. Receipts show rain PENDING until 5-minute rain is pulled.
 - Tests: `make test` passed; all five pages 200 and render from /data.
 - Next: P12 back-test lab, insurer console, compliance.
+
+### 2026-11-15 16:40, P12 web: back-test lab, insurer console, compliance
+- Done: `/backtest` (sliders for threshold shift, reading error, near-miss tier, allowance multiple, benefit, monthly and yearly caps, station rule, all reading the precomputed 810-cell grid so they are instant; headline cards; payout by year with 65% line; loss-ratio histogram; tornado; basis risk by station; WBGT rebuild vs NEA scatter near the threshold; loss ratios at the current premium for the chosen benefit). `/insurer` (top row readable in 10 seconds: cash needed on the 5th working day with P50/P90/P99 and buffer, and the stop-loss decision with the open question flagged; KPIs: book, year-to-date paid and loss ratio, P90 coverage, hard cap; fan chart for the last complete month with actual line, and for the current month to date; annual loss ratio by back-test year with stop-loss and target lines and the stop-loss table; season tabs El Nino / neutral / La Nina; Site Match review queue with approve/decline, reason and audit log (posts to the engine when it is running); fairness panel with price inputs, never-used inputs and expected insured hours by region and firm size; declaration flags). `/compliance` (21 rows: brief must-haves, every CONTEXT section 7 row, plus pending-data and forecast rules, each with source, what Rehat does, screen links and code rule; also served by `GET /compliance`).
+- Files changed: web/src/app/{backtest,insurer,compliance}/*, engine/rehat/export.py (compliance, fairness), engine/rehat/sitematch.py (claim id now includes a 4-character hash of the log so ids are unique).
+- Numbers produced (with source): year-to-date 2026 book payout and loss ratio shown from liquidity.json (computed in the browser from recent_months / book premium).
+- Decisions: Fairness shows payout rates by region and size from back-test station results (same price everywhere). Reviewer decisions are kept on the page offline and posted to the engine when live.
+- Broken or unverified: Recharts animates on mount; screenshots taken too early look empty (charts verified in the DOM).
+- Tests: `make test` passed. All pages 200.
+- Next: P13 polish, offline hardening, pitch mode.

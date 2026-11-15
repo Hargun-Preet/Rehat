@@ -169,11 +169,41 @@ def fairness() -> None:
     })
 
 
+COMPLIANCE = [
+    # (requirement, source, what the product does, screen, code)
+    ("Offered by or with Income as the licensed insurer", "Brief must-have; Insurance Act, MAS", "Every page footer and the onboarding say 'Underwritten by Income Insurance Limited (proposed)' and 'Concept prototype'. Sold as an add-on to Income's WIC.", "/income, every page footer", "web/src/components/brand/PrototypeFooter.tsx"),
+    ("Triggers and pricing use independent, verifiable data", "Brief must-have", "Triggers read NEA WBGT, rain gauge and PSI from data.gov.sg; every call cached with URL and time; pricing from a back-test on the same data plus MSS records.", "/live, /replay, /backtest", "engine/rehat/ingest/datagov.py, engine/rehat/rules.py"),
+    ("Customer understands what they pay for and when they get paid in under a minute", "Brief must-have", "Onboarding shows plan, weekly price, GST, the may-not-pay sentence and a teach-back question; a timer shows elapsed seconds.", "/onboard", "web/src/app/onboard/Onboard.tsx"),
+    ("Collect only the personal data needed; AI decisions explainable", "Brief must-have; PDPA", "Only UEN, WIC policy number, outdoor headcount, wage band, site addresses, PayNow (UEN) and one contact. No worker data. Every AI check outputs a reason.", "/onboard (Your data step), /employer/site-match", "web/src/app/onboard/Onboard.tsx (PDPA), engine/rehat/sitematch.py"),
+    ("No new hardware for the core product", "Brief must-have", "Core product uses NEA's public stations. Site Match uses logs the main contractor already keeps.", "/live, /employer/site-match", "engine/rehat/rules.py"),
+    ("WIC compulsory for manual workers and non-manual earning S$2,600 or less", "Work Injury Compensation Act, MOM", "Rehat needs an active WIC policy; headcount comes from the WIC declaration; lapsed WIC excludes the month.", "/income, /onboard", "engine/rehat/rules.py exclusions(WIC_LAPSED)"),
+    ("Heat-stress rest: WBGT 32+ 10 min/h, 33+ 15 min/h; paid working time; hourly monitoring", "MOM heat stress framework and FAQs", "Heat tiers mirror MOM (plus a 5 min near-miss tier at 31.5); hourly mean of four NEA readings; worker notices state the rule.", "/replay, /worker", "engine/rehat/rules.py heat_rest_minutes"),
+    ("Four measures mandatory from 1 Dec 2026: heat-stress training, cool water, cooling supplies, suitable clothing", "MOM, 28 Aug 2026", "Listed for employers at renewal; renewal reward for compliance (concept).", "/compliance", "this table"),
+    ("Declared salary owed on idle days", "MOM Work Permit FAQ", "Basis of insurable interest for rain and haze hours.", "/ (landing)", "engine/rehat/rules.py rain_hours, haze_hours"),
+    ("Haze guidance for outdoor work", "MOM haze guidelines (Oct 2026)", "Haze tiers on NEA 24-hour PSI at 12:00; PSI chips on the live map.", "/live", "engine/rehat/rules.py haze_hours"),
+    ("Fair dealing and disclosure", "MAS Guidelines on Fair Dealing (revised May 2024)", "May-not-pay sentence shown verbatim before purchase; teach-back answer recorded with explanation; plain-language receipts.", "/onboard, /employer/receipt", "web/src/app/onboard/Onboard.tsx"),
+    ("Fair, explainable AI", "MAS FEAT principles; Veritas", "Price uses plan, benefit and headcount only; every AI check gives a reason; humans review flags; model cards; explainer cannot change numbers.", "/insurer (Fairness), /employer/receipt", "engine/rehat/pricing.py quote(), engine/rehat/explain.py, docs/model-cards/"),
+    ("Climate risk management", "MAS Guidelines on Environmental Risk Management for Insurers (2020) and transition addendum (Mar 2026)", "Back-test with stress cases, season view by ENSO, annual repricing from normals, climate assumptions disclosed.", "/backtest, /insurer", "engine/rehat/backtest.py, engine/rehat/liquidity.py"),
+    ("Personal data", "PDPA", "Consent and purpose screen; workers opt in to notices by QR without personal data; delete at policy end.", "/onboard, /worker", "web/src/app/worker/Worker.tsx"),
+    ("Insurable interest", "Income brief constraint", "Benefit (S$8) below the idle-hour cost (about S$10.20, assumption); only firms with declared outdoor workers; one policy per UEN.", "/onboard", "engine/rehat/pricing.py ASSUMPTIONS"),
+    ("GST 9% on premiums", "IRAS", "Premium shown before and after GST everywhere it appears.", "/onboard, /income", "web/src/components/brand/Money.tsx"),
+    ("Disputes", "FIDReC", "Receipt explains how to dispute; disputes are data checks; FIDReC link.", "/employer/receipt", "web/src/app/employer/receipt/ReceiptView.tsx"),
+    ("Platform Workers Act (from 1 Jan 2025)", "MOM", "Roadmap only: riders via platform WIC.", "/income", "roadmap card"),
+    ("No law change needed", "Brief", "Everything above uses existing rules.", "/compliance", "this table"),
+    ("Missing data is never 'no event'", "NEA researcher guidance; AGENTS.md", "Fewer than 3 of 4 readings is PENDING; fallback ladder; model estimate never pays alone.", "/live, /employer/receipt", "engine/rehat/rules.py fallback, hourly_wbgt_state"),
+    ("Forecasts never change payouts or prices", "AGENTS.md", "Liquidity module is separate; a test checks payout code does not import it.", "/insurer", "engine/tests/test_liquidity.py"),
+]
+
+
+def compliance() -> None:
+    _w("compliance.json", {"rows": [dict(zip(["requirement", "source", "what", "screen", "code"], r)) for r in COMPLIANCE]})
+
+
 def main() -> None:
     WEB_DATA.mkdir(parents=True, exist_ok=True)
     from rehat import numbers
 
-    steps = [stations, receipts, replay, live, worker, onboarding, book, fairness]
+    steps = [stations, receipts, replay, live, worker, onboarding, book, fairness, compliance]
     done = []
     for step in steps:
         step()

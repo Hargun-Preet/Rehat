@@ -8,6 +8,7 @@ Ported from engine/prototypes/ai_usecases.py (checker) and extended per PROMPTS.
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -216,7 +217,7 @@ def check_claim(uen: str, day: date, csv_text: str, site_address: str | None = N
         notes.append(f"Top-up cut to {hrs:.2f} h by the 10 h a year Site Match cap.")
     status = "APPROVED" if passed else "REVIEW"
     claim = Claim(
-        claim_id=f"SM-{uen[-5:]}-{day:%Y%m%d}", uen=uen, firm=firm.name, day=day.isoformat(), station=firm.primary_station, workers=firm.outdoor_workers,
+        claim_id=f"SM-{uen[-5:]}-{day:%Y%m%d}-{hashlib.sha1(csv_text.encode()).hexdigest()[:4].upper()}", uen=uen, firm=firm.name, day=day.isoformat(), station=firm.primary_station, workers=firm.outdoor_workers,
         benefit=firm.benefit, status=status, checks=[asdict(c) for c in checks], hours=lines, topup_minutes_per_worker=int(mins),
         topup_hours_per_worker=round(hrs, 3) if passed else 0.0, topup_sgd=float(round(hrs * firm.benefit * firm.outdoor_workers)) if passed else 0.0,
         ytd_topup_h_before=ytd_topup_h, notes=notes,

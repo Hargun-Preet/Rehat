@@ -44,7 +44,7 @@ def _headers() -> dict[str, str]:
     return {"x-api-key": key} if key else {}
 
 
-def _get(url: str, params: dict[str, str], max_tries: int = 8) -> dict[str, Any]:
+def _get(url: str, params: dict[str, str], max_tries: int = 20) -> dict[str, Any]:
     delay = 2.0
     for attempt in range(max_tries):
         try:
