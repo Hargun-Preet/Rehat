@@ -136,7 +136,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T15:05 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-15T15:09 from engine outputs. Source files: data/processed/*.json.
 
 **Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
 
@@ -303,7 +303,7 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - [x] Liquidity forecasting (P7, 2026-11-15)
 - [x] Site Match AI (P8, 2026-11-15)
 - [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
-- [ ] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
+- [ ] Web (P10 landing, Income hub, onboarding done 2026-11-15): landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance
 - [ ] Demo script rehearsed
 
 ## 14. Open questions for Income's mentor
@@ -413,3 +413,12 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: Translations are drafts (Bengali, Tamil, Burmese, Mandarin, Malay) for native-speaker review. Vision log reading not wired.
 - Tests: `make test` 112 passed (explainer refuses changed, dropped and added numbers).
 - Next: P10 web landing, Income hub, onboarding.
+
+### 2026-11-15 16:05, P10 web: landing, Income hub, onboarding
+- Done: `rehat/export.py` (`make export`) writes 58 JSON files to `web/public/data` (stations, receipts with six-language explanations for Tanjong Greenworks and Lim Landscaping for every month Mar 2025 to Oct 2026, 31 Oct replay, live snapshot, worker notices, onboarding, book, fairness, numbers). Aceternity Spotlight, Bento Grid, Timeline, Multi Step Loader and File Upload installed from the registry and restyled to tokens (no default demo colours). Pages: `/` (Spotlight hero, key numbers with tags, why the law created the loss, Bento of four pillars, Timeline "A month with Rehat", may-not-pay sentence), `/income` (mock Income Business account: WIC active and renewing, SmartBiz 360, highlighted Rehat offer priced for the firm, roadmap cards marked concept), `/onboard` (UEN, mock Corppass/ACRA/WIC loader, headcount locked to WIC, site map with named, backup and rain stations and reason, plan choice with price per worker per week and total before and after GST and launch credit, Site Match rider, may-not-pay sentence verbatim with acknowledgement, teach-back with explanation if wrong, PDPA field list and consent, policy schedule with named stations and SMS). Shared Leaflet `StationMap` (OpenStreetMap tiles, desaturated; markers still render offline).
+- Files changed: engine/rehat/export.py, web/src/app/{page,income/page,onboard/*}.tsx, web/src/components/rehat/*, web/src/components/ui/{spotlight-new,bento-grid,timeline,multi-step-loader,file-upload}.tsx, web/src/lib/*, web/src/app/globals.css.
+- Numbers produced (with source): none new; all from engine JSON.
+- Decisions: CARTO tiles now need an API key, so OpenStreetMap tiles are used. 21st.dev components were not installed (their install commands are per component page); equivalent cards, stepper and quote blocks are built with shadcn and tokens. Teach-back answer is recorded in page state for the demo (no backend write).
+- Broken or unverified: Onboarding automated run: 17 s end to end; a human reading each step should finish in under 60 s (not timed with a person yet).
+- Tests: `make test` 112 passed. tsc clean; no console errors on /onboard.
+- Next: P11 live map, replay, receipt, Site Match, worker.
