@@ -1,0 +1,11 @@
+.env
+data/raw/*
+!data/raw/.gitkeep
+node_modules
+.venv
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.next/
+.DS_Store
+.Rhistory
