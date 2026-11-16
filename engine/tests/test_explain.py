@@ -1,9 +1,9 @@
 import pytest
 
-from rehat import explain
+from rehat import explain, product
 
 RECEIPT = {
-    "firm": {"name": "Lim Landscaping Pte Ltd", "outdoor_workers": 20, "benefit_sgd": 8.0},
+    "firm": {"name": "Lim Landscaping Pte Ltd", "outdoor_workers": 20, "benefit_sgd": 8.0, "plan": "standard"},
     "month": "2026-05",
     "stations": {"primary": {"name": "Bishan Stadium"}},
     "perils": {"heat": {"counted_h": 1.69, "allowance_h": 1.25, "insured_h": 0.44, "pending_hours": 0},
@@ -48,8 +48,11 @@ def test_llm_rephrase_with_same_numbers_is_used() -> None:
     assert out["source"] == "llm"
 
 
-def test_no_llm_gives_template() -> None:
-    assert explain.explain(RECEIPT, "ms", rephrase=None)["source"] == "template"
+def test_non_english_receipt_is_withheld_pending_native_review() -> None:
+    out = explain.explain(RECEIPT, "ms", rephrase=None)
+    assert out["source"] == "withheld_pending_native_review"
+    assert out["translation_status"] == "pending_native_review"
+    assert explain.REVIEW_NOTE in out["text"]
 
 
 def test_why_not_paid_from_receipt_only() -> None:
@@ -57,9 +60,12 @@ def test_why_not_paid_from_receipt_only() -> None:
              perils={**RECEIPT["perils"], "heat": {**RECEIPT["perils"]["heat"], "insured_h": 0.0, "pending_hours": 3},
                      "rain": {**RECEIPT["perils"]["rain"], "insured_h": 0.0}})
     a = explain.why_not_paid(r, "en")
-    assert "normal range" in a and "pending" in a
+    assert "plan allowance" in a and "pending" in a
 
 
-def test_worker_notice_in_five_languages_plus_english() -> None:
+def test_worker_notice_uses_canonical_english_and_gates_other_languages() -> None:
     assert set(explain.WORKER_NOTICE) == {"en", "bn", "ta", "zh", "my", "ms"}
-    assert all("32" in v and "10" in v for v in explain.WORKER_NOTICE.values())
+    assert explain.WORKER_NOTICE["en"] == product.get_product().copy_text("worker_notice_en")
+    for lang in set(explain.WORKER_NOTICE) - {"en"}:
+        assert explain.WORKER_NOTICE[lang] == explain.REVIEW_NOTE
+        assert explain.WORKER_NOTICE_STATUS[lang] == "pending_native_review"

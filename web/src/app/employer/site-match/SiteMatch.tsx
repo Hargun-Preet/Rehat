@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, FileSpreadsheet, Search, UserRound, XCircle } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, FileSpreadsheet, FlaskConical, Search, UserRound, XCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/ui/file-upload";
 import { ENGINE_URL } from "@/lib/useJSON";
 import { sgd } from "@/lib/format";
+import type { ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 
 type Check = { code: string; passed: boolean; value: number | string | null; rule: string; text: string };
@@ -31,7 +33,6 @@ type Claim = {
 export type SiteMatchData = {
   samples: { file: string; kind: string; label: string; claim: Claim }[];
   evaluation: { logs: number; station_days: number; days: string[]; flag_rate: Record<string, number>; approved_with_topup_rate: Record<string, number> };
-  rider: { rider_price_week: number };
 };
 
 function parseCsv(text: string) {
@@ -39,7 +40,7 @@ function parseCsv(text: string) {
   return rows.filter((r) => r.length >= 2).map((r) => ({ time: r[0].trim(), wbgt: r[1].trim() }));
 }
 
-export default function SiteMatch({ data }: { data: SiteMatchData }) {
+export default function SiteMatch({ data, product }: { data: SiteMatchData; product: ProductSpec }) {
   const [file, setFile] = useState<string | null>(null);
   const [csv, setCsv] = useState<string | null>(null);
   const [claim, setClaim] = useState<Claim | null>(null);
@@ -62,7 +63,7 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
     setConfirmed(false);
     setClaim(null);
     if (!f.name.toLowerCase().endsWith(".csv")) {
-      setMsg("Photo and PDF reading is off in this prototype. Please upload the CSV export from the site's WBGT meter.");
+      setMsg("Upload the CSV export from the site heat meter. This pilot does not read photos or PDFs.");
       return;
     }
     setFile(f.name);
@@ -81,7 +82,7 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
       const r = await fetch(`${ENGINE_URL}/sitematch/check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uen: "T99DM0001B", day: "2025-10-31", csv }),
+        body: JSON.stringify({ uen: product.demo_firm.uen, day: product.demo_clock.replay_day, csv }),
       });
       if (!r.ok) throw new Error((await r.json()).detail ?? r.status);
       setClaim(await r.json());
@@ -107,14 +108,18 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
 
   return (
     <>
-      <PageHeader eyebrow="Site Match claim" title="Is your site hotter than the station?">
-        Upload the main contractor&apos;s heat log for a day. We check it against NEA&apos;s station network. If it holds up, you get a top-up for the extra rest your site needed. Anything odd goes to a person; the checker never rejects a claim.
+      <PageHeader eyebrow="Labs / Site Match pilot rider" title={`Up to ${product.site_match_pilot_rider.top_up_cap_hours_year} extra hours in the pilot`} icon={FlaskConical}>
+        This optional pilot rider is separate from Rehat&apos;s core cover. It can suggest a top-up from an independent main-contractor log; it never changes the core payout and never rejects automatically.
       </PageHeader>
       <Section>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-4 text-sm">
+          <span><span className="font-semibold">Pilot rider.</span> Up to {product.site_match_pilot_rider.top_up_cap_hours_year} extra hours a worker a year. {sgd(product.site_match_pilot_rider.price_per_worker_week.value, 2)} a worker a week is an assumption for the pilot.</span>
+          <Link href="/labs" className="font-semibold text-income-blue underline underline-offset-2">Back to Labs</Link>
+        </div>
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="space-y-4 lg:col-span-2">
             <div className="rounded-2xl border border-line bg-surface p-5">
-              <p className="text-sm font-semibold">Tanjong Greenworks Pte Ltd · 31 Oct 2025 · station Jurong West (S132)</p>
+              <p className="text-sm font-semibold">{product.demo_firm.name} · {product.demo_clock.replay_day} · {product.demo_firm.site_area} station</p>
               <div className="mt-3">
                 <FileUpload onChange={onUpload} />
               </div>
@@ -165,7 +170,7 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
                 </div>
                 {!confirmed ? (
                   <Button className="mt-4" onClick={submit}>
-                    This is correct, submit
+                    Run the pilot check
                   </Button>
                 ) : null}
               </div>
@@ -196,7 +201,7 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
                           +{claim.topup_minutes_per_worker} min a worker = {sgd(claim.topup_sgd)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Extra rest your site log needed over the station, x S${claim.benefit} x {claim.workers} workers. Counts toward the 10 h a year Site Match cap. Paid with the monthly receipt.
+                          Extra rest your site log needed over the station, x {sgd(product.product.benefit_per_worker_hour)} x {claim.workers} workers. Counts toward the {product.site_match_pilot_rider.top_up_cap_hours_year} h a year Site Match cap. Paid with the monthly receipt.
                         </p>
                       </>
                     ) : (
@@ -214,7 +219,7 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
                         </p>
                       </>
                     )}
-                    {claim.notes.length ? <p className="mt-2 text-xs text-muted-foreground">{claim.notes.join(" ")}</p> : null}
+                    {claim.notes?.length ? <p className="mt-2 text-xs text-muted-foreground">{claim.notes.join(" ")}</p> : null}
                   </motion.div>
                 ) : null}
                 {done && claim.hours.length ? (
@@ -254,10 +259,10 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
       <Section>
         <div className="rounded-2xl border border-line bg-surface p-5">
           <p className="flex items-center gap-2 font-semibold">
-            <Search className="h-4 w-4 text-income-orange" /> How well does the checker work?
+            <Search className="h-4 w-4 text-income-orange" /> What the pilot checker caught
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {ev.logs} simulated logs on {ev.station_days} real NEA station-days ({ev.days.length} days, including 31 Oct 2025).
+            This is a limited test, not a production decision model: {ev.logs} simulated logs on {ev.station_days} real NEA station-days ({ev.days.length} days, including {product.demo_clock.replay_day}). Anything outside the published band still goes to a person.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-5">
             {Object.entries(ev.flag_rate).map(([k, v]) => (
@@ -265,11 +270,11 @@ export default function SiteMatch({ data }: { data: SiteMatchData }) {
                 <p className="text-xs capitalize text-muted-foreground">{k.replace("_", " ")}</p>
                 <p className="num font-heading text-xl font-bold">{Math.round(v * 100)}%</p>
                 <p className="text-[11px] text-muted-foreground">{k === "honest" ? "sent to review" : "caught"}</p>
-                {k !== "honest" ? <p className="num text-[11px] text-muted-foreground">{Math.round((ev.approved_with_topup_rate[k] ?? 0) * 100)}% paid a top-up anyway</p> : null}
+                {k !== "honest" ? <p className="num text-[11px] text-muted-foreground">{Math.round((ev.approved_with_topup_rate[k] ?? 0) * 100)}% could still receive a top-up</p> : null}
               </div>
             ))}
           </div>
-          <SourceNote>Engine evaluation; details in docs/model-cards/site-match.md.</SourceNote>
+          <SourceNote>Engine evaluation; details in docs/model-cards/site-match.md. Pilot rider terms come from product.json.</SourceNote>
         </div>
       </Section>
     </>

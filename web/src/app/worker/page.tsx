@@ -1,7 +1,12 @@
 import { loadJSON } from "@/lib/data";
+import { loadProduct } from "@/lib/product.server";
 
 import Worker, { type WorkerData } from "./Worker";
 
 export default async function WorkerPage() {
-  return <Worker data={await loadJSON<WorkerData>("worker.json")} />;
+  const [data, product] = await Promise.all([
+    loadJSON<WorkerData>("worker.json"),
+    loadProduct(),
+  ]);
+  return <Worker data={data} product={product} />;
 }

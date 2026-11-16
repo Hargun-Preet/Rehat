@@ -1,177 +1,144 @@
 import Link from "next/link";
-import { ArrowRight, BellRing, Bot, Building2, CalendarClock, FileCheck2, LineChart, ShieldCheck, Sun, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  BellRing,
+  Building2,
+  CalendarClock,
+  FileCheck2,
+  HardHat,
+  MapPinned,
+  ReceiptText,
+  ShieldCheck,
+  Sun,
+  WalletCards,
+} from "lucide-react";
 
-import { AssumptionTag, Ellipsis, EllipsisDivider, SourceNote } from "@/components/brand";
-import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
+import { AssumptionTag, Ellipsis, EllipsisDivider, IconTile, SourceNote } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Spotlight } from "@/components/ui/spotlight-new";
-import { Timeline } from "@/components/ui/timeline";
-import { loadJSON } from "@/lib/data";
-import { pct, sgd } from "@/lib/format";
-import type { Backtest, Pricing } from "@/lib/types";
+import { sgd } from "@/lib/format";
+import { productPlan } from "@/lib/product";
+import { loadProduct } from "@/lib/product.server";
 
-type Liquidity = { validation: { overall_p90_coverage: number }; current: { settlement_date: string; p50: number; p90: number; month: string } };
+import { LandingQuote } from "./LandingQuote";
 
-const orange = (a: number) => `radial-gradient(68.54% 68.72% at 55.02% 31.46%, rgba(245,113,0,${a}) 0, rgba(245,113,0,${a / 4}) 50%, rgba(245,113,0,0) 80%)`;
+const orange = (alpha: number) => `radial-gradient(68.54% 68.72% at 55.02% 31.46%, rgba(245,113,0,${alpha}) 0, rgba(245,113,0,${alpha / 4}) 50%, rgba(245,113,0,0) 80%)`;
 
 export default async function Home() {
-  const [pr, bt, lq] = await Promise.all([loadJSON<Pricing>("pricing.json"), loadJSON<Backtest>("backtest.json"), loadJSON<Liquidity>("liquidity.json")]);
-  const std = pr.plans.find((p) => p.plan === "Standard")!;
-  const b = bt.base;
-  const years = b.years.length;
+  const product = await loadProduct();
+  const standard = productPlan(product);
+  const benefit = product.product.benefit_per_worker_hour;
 
   const stats = [
-    { label: "Standard cover a worker a week", value: sgd(std.week, 2), sub: `before 9% GST (${sgd(std.week_gst, 2)} with GST)`, basis: pr.expected_insured_h_basis + ". Premium = expected insured hours x S$8 / 0.65." },
-    { label: "Paid per worker per extra hour", value: "S$8", sub: "Standard plan. Lite pays S$5." },
-    { label: "Back-test years with no payout", value: `${b.zero_payout_years_book} of ${years}`, sub: `${b.years[0]} to ${b.years[years - 1]}, ${b.pct_months_paying}% of months pay something`, basis: "Back-test on NEA WBGT (observed and ERA5 rebuild), MSS daily rain, NEA PSI where pulled. Heat rebuild and rain estimator are models." },
-    { label: "Claim forms", value: "0", sub: "PayNow to your UEN by the 5th working day" },
+    { Icon: WalletCards, tone: "orange" as const, label: "Standard cover", value: `${sgd(standard.per_worker_week, 2)} / week`, detail: "per outdoor worker, before GST", source: "back-test" },
+    { Icon: ReceiptText, tone: "blue" as const, label: "Eligible benefit", value: `${sgd(benefit, 0)} / hour`, detail: "per worker for each insured hour", source: null },
+    { Icon: CalendarClock, tone: "amber" as const, label: "Standard months that pay", value: standard.months_that_pay, detail: "in the product back-test", source: "back-test" },
+    { Icon: FileCheck2, tone: "green" as const, label: "Claim forms", value: "0", detail: product.product.payment, source: null },
   ];
 
   return (
     <>
       <section className="relative overflow-hidden border-b border-line bg-surface">
-        <Spotlight gradientFirst={orange(0.12)} gradientSecond={orange(0.08)} gradientThird={orange(0.05)} />
-        <div className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-16 sm:pt-24">
-          <p className="mb-5 flex items-center gap-2 text-sm font-semibold text-income-orange-700">
-            <Ellipsis size="sm" /> Rehat by Income (concept)
-          </p>
-          <h1 className="max-w-3xl text-4xl font-bold leading-tight text-ink sm:text-6xl">Rest that is paid for gets taken.</h1>
-          <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Weather downtime cover for small firms with outdoor crews, added to the Work Injury Compensation policy they already buy. When NEA&apos;s heat, rain or haze readings at your named station are worse than a normal month, we pay S$8 a worker for each extra hour by PayNow before payroll. No claim form.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link href="/onboard">
-                Get covered in 60 seconds <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="secondary">
-              <Link href="/replay">Replay the record day</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/insurer">Insurer console</Link>
-            </Button>
+        <Spotlight gradientFirst={orange(0.13)} gradientSecond={orange(0.08)} gradientThird={orange(0.05)} />
+        <div className="relative z-10 mx-auto grid max-w-6xl gap-10 px-6 pb-14 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.72fr)] lg:items-center">
+          <div>
+            <p className="eyebrow mb-5 flex items-center gap-2"><Ellipsis size="sm" /> {product.product.descriptor}</p>
+            <h1 className="max-w-3xl text-4xl font-bold text-ink sm:text-6xl">{product.copy.tagline}</h1>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              Weather downtime cover helps outdoor teams keep required rest breaks and payroll on track when heat, rain or haze make a normal month hard.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <HeroTag Icon={HardHat} text="Built around your work injury policy" />
+              <HeroTag Icon={MapPinned} text="Named NEA station" />
+              <HeroTag Icon={WalletCards} text="PayNow before payroll" />
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button asChild size="lg"><Link href="/onboard">See your quote <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
+              <Button asChild size="lg" variant="secondary"><Link href="/employer">Explore the employer workspace</Link></Button>
+            </div>
           </div>
+          <LandingQuote plans={product.plans} product={product.product} demo_firm={product.demo_firm} />
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pt-10">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
-              <p className="text-sm text-muted-foreground">{s.label}</p>
-              <p className="num mt-2 font-heading text-3xl font-bold text-ink">
-                {s.value}
-                {s.basis ? <AssumptionTag basis={s.basis} label="model" /> : null}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
+      <section className="mx-auto max-w-6xl px-6 pt-8">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map(({ Icon, tone, label, value, detail, source }) => (
+            <div key={label} className="product-card p-5">
+              <div className="flex items-start justify-between gap-3"><p className="text-sm text-muted-foreground">{label}</p><IconTile icon={Icon} tone={tone} size="sm" /></div>
+              <p className="num mt-3 font-heading text-2xl font-bold text-ink">{value}{source ? <AssumptionTag basis={`Published ${source} result in the product terms.`} label={source} /> : null}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{detail}</p>
             </div>
           ))}
         </div>
-        <SourceNote>Numbers generated by the Rehat engine from public NEA and MSS data. Fictional firms.</SourceNote>
+        <SourceNote>Rehat uses precomputed public NEA and MSS readings so the product can be reviewed offline.</SourceNote>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-14">
-        <h2 className="text-2xl font-bold sm:text-3xl">The law already made this loss</h2>
+        <div className="max-w-2xl">
+          <p className="eyebrow">Why teams choose Rehat</p>
+          <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Keep the rule, protect the workday.</h2>
+          <p className="mt-3 text-muted-foreground">Clear independent readings, a plain monthly deductible and one evidence-led receipt make the cover easy to run.</p>
+        </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {[
-            { Icon: Sun, t: "Heat rest is paid time", d: "MOM: at WBGT 32 or more, heavy work needs 10 minutes rest an hour; at 33, 15 minutes. Rest breaks count as paid working hours." },
-            { Icon: Wallet, t: "Idle days are still paid", d: "Work permit holders must be paid their declared salary on idle days, so heavy rain and haze cost wages without any damage." },
-            { Icon: ShieldCheck, t: "No cover exists today", d: "Property and liability policies pay for damage. Nothing pays for a crew sitting in the shade, as the rules require." },
-          ].map(({ Icon, t, d }) => (
-            <div key={t} className="rounded-2xl border border-line bg-surface p-6">
-              <Icon className="h-6 w-6 text-income-orange" aria-hidden />
-              <h3 className="mt-3 text-lg font-bold">{t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-            </div>
-          ))}
+          <ValueCard Icon={Sun} title="Required breaks stay protected" text={product.copy.rule_statement} tone="orange" />
+          <ValueCard Icon={ShieldCheck} title="The rule is visible before you buy" text="You see the named station, the monthly deductible, the allowance and the annual cap before you submit." tone="blue" />
+          <ValueCard Icon={Building2} title="No worker details to price it" text="Price uses the selected plan and declared outdoor headcount. Worker names, NRICs and phone numbers are not needed." tone="green" />
         </div>
       </section>
 
       <EllipsisDivider />
 
-      <section className="mx-auto max-w-6xl px-6 pb-6">
-        <h2 className="mb-6 text-2xl font-bold sm:text-3xl">Four things Income can check</h2>
-        <BentoGrid className="md:auto-rows-[15rem]">
-          <BentoGridItem
-            className="md:col-span-2"
-            title="Explainable to the hour"
-            description="Payout is fixed arithmetic on NEA readings, plan terms and the WIC headcount. Every receipt lists each counted hour, the reading, the station, the allowance and what did not count and why. Missing data is pending, never read as no event."
-            icon={<FileCheck2 className="h-5 w-5 text-income-orange" />}
-            header={<Pill items={["NEA WBGT", "Rain gauge", "24-hour PSI", "Fallback ladder"]} />}
-          />
-          <BentoGridItem
-            title="Back-tested and forecast"
-            description={`${years} years of the exact rules. Month-end cash forecast covers the actual payout ${pct(lq.validation.overall_p90_coverage)} of the time at P90.`}
-            icon={<LineChart className="h-5 w-5 text-income-orange" />}
-            header={<Big n={`${b.zero_payout_years_book} / ${years}`} l="years with no payout" />}
-          />
-          <BentoGridItem
-            title="Value to Income"
-            description={`Sold as a tick box at WIC renewal. Total market about ${sgd(pr.market.total_premium.mid / 1e6, 1)}M premium a year.`}
-            icon={<Building2 className="h-5 w-5 text-income-orange" />}
-            header={<Big n={sgd(pr.market.income_wic_slice / 1e6, 1) + "M"} l="slice of Income's WIC book" />}
-          />
-          <BentoGridItem
-            className="md:col-span-2"
-            title="KYC and fraud by design"
-            description="Headcount comes from the WIC declaration, which also sets the WIC premium. Payout depends only on NEA readings, so stopping work cannot raise it. The Site Match checker reads site logs and sends anything odd to a person; AI never rejects a claim."
-            icon={<Bot className="h-5 w-5 text-income-orange" />}
-            header={<Pill items={["WIC headcount", "Station set by rule", "Site Match checker", "Human review"]} />}
-          />
-        </BentoGrid>
+      <section className="mx-auto max-w-6xl px-6 py-12">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="eyebrow">A month with Rehat</p>
+            <h2 className="mt-2 text-2xl font-bold sm:text-3xl">One clear operational loop.</h2>
+          </div>
+          <Link className="inline-flex items-center gap-1 text-sm font-semibold text-income-blue hover:text-income-blue-600" href="/replay">See a replay <ArrowRight className="h-4 w-4" /></Link>
+        </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <MonthStep number="01" Icon={BellRing} title="Plan tomorrow" text="An alert names the station and likely heat window so heavy work can move earlier." />
+          <MonthStep number="02" Icon={Sun} title="Protect the break" text="Workers receive a plain notice when the reading reaches the heat threshold." />
+          <MonthStep number="03" Icon={ReceiptText} title="Review the receipt" text="Every counted hour, allowance and unresolved reading stays visible." />
+          <MonthStep number="04" Icon={CalendarClock} title="Receive payment" text={product.product.payment} />
+        </div>
       </section>
 
-      <Timeline
-        heading="A month with Rehat"
-        intro="Lim Landscaping, 20 outdoor workers, named station Bishan."
-        data={[
-          { title: "Alert", content: <Step Icon={BellRing} t="Heat stress likely 12:00 to 15:00 tomorrow at Bishan." d="Plan heavy work early. Forecasts help you plan; they never change what you are paid." /> },
-          { title: "Rest", content: <Step Icon={Sun} t="Workers get a notice in their language." d="WBGT is 32 now. By MOM rule you get 10 minutes paid rest in shade every hour. Your pay is not cut." /> },
-          { title: "Receipt", content: <Step Icon={FileCheck2} t="Every counted hour, reading and allowance." d="Heat 1.69 h vs allowance 1.25 h, rain 9.0 h vs 6.25 h: 3.19 h x S$8 x 20 workers = S$510 (worked example)." /> },
-          { title: "PayNow", content: <Step Icon={CalendarClock} t="Paid to your UEN by the 5th working day." d="Before payroll. No claim form, no adjuster, no site visit." /> },
-        ]}
-      />
-
-      <section className="mx-auto max-w-6xl px-6 pb-4">
-        <div className="rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-6">
-          <p className="text-sm font-semibold text-income-orange-700">Before you buy</p>
-          <p className="mt-2 text-lg text-ink">
-            Rehat pays only when NEA&apos;s published readings at your named station cross the levels shown; your own site can be hotter or wetter than the station, so you can lose work time and receive nothing.
-          </p>
+      <section className="mx-auto max-w-6xl px-6 pb-5">
+        <div className="rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-6 sm:flex sm:items-start sm:gap-4">
+          <IconTile icon={MapPinned} tone="orange" className="mb-4 sm:mb-0" />
+          <div>
+            <p className="text-sm font-semibold text-income-orange-700">The named-station rule</p>
+            <p className="mt-2 max-w-4xl text-lg leading-relaxed text-ink">{product.copy.may_not_pay}</p>
+          </div>
         </div>
       </section>
     </>
   );
 }
 
-function Pill({ items }: { items: string[] }) {
+function HeroTag({ Icon, text }: { Icon: typeof HardHat; text: string }) {
+  return <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface/80 px-3 py-1.5 text-sm font-medium text-ink shadow-sm"><Icon className="h-3.5 w-3.5 text-income-blue" aria-hidden />{text}</span>;
+}
+
+function ValueCard({ Icon, title, text, tone }: { Icon: typeof Sun; title: string; text: string; tone: "orange" | "blue" | "green" }) {
   return (
-    <div className="flex flex-1 flex-wrap content-start gap-2 rounded-xl bg-paper p-4">
-      {items.map((i) => (
-        <span key={i} className="rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink">
-          {i}
-        </span>
-      ))}
+    <div className="product-card p-6">
+      <IconTile icon={Icon} tone={tone} />
+      <h3 className="mt-4 text-lg font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
     </div>
   );
 }
 
-function Big({ n, l }: { n: string; l: string }) {
+function MonthStep({ number, Icon, title, text }: { number: string; Icon: typeof BellRing; title: string; text: string }) {
   return (
-    <div className="flex flex-1 flex-col justify-center rounded-xl bg-paper p-4">
-      <p className="num font-heading text-3xl font-bold text-income-orange-700">{n}</p>
-      <p className="text-xs text-muted-foreground">{l}</p>
-    </div>
-  );
-}
-
-function Step({ Icon, t, d }: { Icon: typeof Sun; t: string; d: string }) {
-  return (
-    <div className="rounded-2xl border border-line bg-surface p-6 shadow-[var(--shadow-card)]">
-      <Icon className="h-6 w-6 text-income-orange" aria-hidden />
-      <p className="mt-3 text-lg font-semibold text-ink">{t}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{d}</p>
+    <div className="product-card relative overflow-hidden p-5">
+      <span className="num absolute right-4 top-3 text-3xl font-bold text-income-orange-200">{number}</span>
+      <IconTile icon={Icon} tone="blue" size="sm" />
+      <h3 className="mt-5 text-base font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
     </div>
   );
 }

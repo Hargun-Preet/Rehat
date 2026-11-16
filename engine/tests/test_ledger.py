@@ -90,8 +90,8 @@ def test_ledger_no_data_is_pending(monkeypatch) -> None:
     assert led.payout_sgd == 0.0
 
 
-def test_demo_book_has_300_fictional_firms() -> None:
+def test_demo_book_has_the_product_pilot_firm_count() -> None:
     book = ledger.demo_book()
-    assert len(book) == 300
+    assert len(book) == 500
     assert all(f.uen.startswith("T99DM") for f in book)
     assert book[0].name == "Tanjong Greenworks Pte Ltd" and book[0].primary_station == "S132"

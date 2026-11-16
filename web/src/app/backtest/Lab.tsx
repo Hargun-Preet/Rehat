@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { pct, sgd } from "@/lib/format";
+import { productPlan, type ProductSpec } from "@/lib/product";
 import type { Backtest } from "@/lib/types";
 
 export type Grid = {
@@ -24,26 +25,32 @@ const BLUE = "#00467a";
 const MUTED = "#8b8d8e";
 const RULES: Record<string, string> = { nearest: "Nearest station", second: "Second nearest", median3: "Median of three" };
 
-export default function Lab({ bt, grid, premium, val }: { bt: Backtest; grid: Grid; premium: number; val: Validation }) {
+export default function Lab({ bt, grid, product, val }: { bt: Backtest; grid: Grid; product: ProductSpec; val: Validation }) {
+  const defaultPlan = productPlan(product);
   const [shift, setShift] = useState(0);
   const [err, setErr] = useState(0);
   const [nearmiss, setNearmiss] = useState(true);
-  const [allow, setAllow] = useState(1.25);
-  const [benefit, setBenefit] = useState(8);
-  const [mcap, setMcap] = useState(20);
-  const [ycap, setYcap] = useState(60);
+  const [planId, setPlanId] = useState(defaultPlan.id);
   const [rule, setRule] = useState("nearest");
+  const plan = productPlan(product, planId);
+  const benefit = product.product.benefit_per_worker_hour;
+  const publishedCalibration = product.unit_economics_standard_per_worker;
+  const mcap = product.limits.insured_hours_per_month;
+  const ycap = product.limits.insured_hours_per_year;
+  const allow = plan.allowance_multiple;
+  const nearMissTier = product.triggers.heat.tiers[0];
+  const targetLossRatio = product.premium_split.find((part) => part.id === "claims")!.share;
   const delta = Math.round((err - shift) * 2) / 2;
   const key = `${rule}|${delta}|${nearmiss ? 1 : 0}|${allow}|${mcap}|${ycap}`;
-  const cell = grid.cells[key];
+  const cell = grid.cells[key] ?? grid.cells[`nearest|0|1|${defaultPlan.allowance_multiple}|${mcap}|${ycap}`];
   const years = bt.base.years;
-  const premFor = (premium * benefit) / 8;
+  const premFor = plan.per_worker_year;
   const series = useMemo(() => cell.y.map((h, i) => ({ year: years[i], payout: +(h * benefit).toFixed(2), lr: (h * benefit) / premFor })), [cell, years, benefit, premFor]);
   const lrs = series.map((s) => s.lr).sort((a, b) => a - b);
   const q = (p: number) => lrs[Math.min(lrs.length - 1, Math.max(0, Math.ceil(p * lrs.length) - 1))];
   const lr10 = q(0.9);
   const meanPay = series.reduce((a, s) => a + s.payout, 0) / series.length;
-  const isBase = key === "nearest|0|1|1.25|20|60" && benefit === 8;
+  const isBase = key === `nearest|0|1|${defaultPlan.allowance_multiple}|${mcap}|${ycap}`;
   const hist = useMemo(() => {
     const bins = [0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 5];
     return bins.slice(0, -1).map((b, i) => ({ bin: `${Math.round(b * 100)}-${Math.round(bins[i + 1] * 100)}%`, n: lrs.filter((x) => x >= b && x < bins[i + 1]).length, lo: b }));
@@ -51,33 +58,44 @@ export default function Lab({ bt, grid, premium, val }: { bt: Backtest; grid: Gr
 
   return (
     <>
-      <PageHeader eyebrow="Back-test lab" title="Move the rules, see the book">
-        The exact product rules run on {years[0]} to {years[years.length - 1]}: NEA WBGT where observed and a corrected ERA5 rebuild before that, MSS daily rain, NEA PSI where pulled. Every slider setting was precomputed by the engine.
+      <PageHeader eyebrow="Labs / pricing and back-test" title={`${plan.name}: ${sgd(plan.per_worker_week, 2)} a worker a week before GST`}>
+        Test the published deductible against the historical record. This lab reads precomputed engine results only. Changing a control here never changes a policy, a price or a payout.
       </PageHeader>
       <Section>
         <div className="grid gap-6 lg:grid-cols-4">
           <div className="space-y-5 rounded-2xl border border-line bg-surface p-5 lg:col-span-1">
-            <Ctl label={`Heat thresholds ${shift >= 0 ? "+" : ""}${shift} C`} sub={`Tiers at ${(31.5 + shift).toFixed(1)} / ${(32 + shift).toFixed(1)} / ${(33 + shift).toFixed(1)}`}>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Choose a deductible</p>
+              <Tabs value={planId} onValueChange={setPlanId}>
+                <TabsList className="grid h-auto w-full grid-cols-3">
+                  {product.plans.map((item) => (
+                    <TabsTrigger key={item.id} value={item.id} className="px-2 py-2 text-xs">
+                      {item.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {plan.deductible_label}. {plan.months_that_pay} months pay. {sgd(plan.per_worker_week, 2)} a worker a week before GST.
+              </p>
+              <SourceNote className="mt-1">{plan.source} plan terms in the product schedule.</SourceNote>
+            </div>
+            <Ctl
+              label={`Heat thresholds ${shift >= 0 ? "+" : ""}${shift} C`}
+              sub={`Tiers at ${product.triggers.heat.tiers.map((tier) => `${(tier.from + shift).toFixed(1)} C`).join(" / ")}`}
+            >
               <Slider min={-0.5} max={0.5} step={0.5} value={[shift]} onValueChange={(v) => setShift(v[0])} aria-label="Threshold shift" />
             </Ctl>
             <Ctl label={`Reading error ${err >= 0 ? "+" : ""}${err} C`} sub="Station reads higher or lower than truth">
               <Slider min={-0.5} max={0.5} step={0.5} value={[err]} onValueChange={(v) => setErr(v[0])} aria-label="Estimation error" />
             </Ctl>
             <label className="flex items-center justify-between text-sm">
-              Near-miss tier (31.5 to 31.9: 5 min) <Switch checked={nearmiss} onCheckedChange={setNearmiss} aria-label="Near-miss tier" />
+              Near-miss tier ({nearMissTier.from} to {nearMissTier.to}: {nearMissTier.rest_minutes} min) <Switch checked={nearmiss} onCheckedChange={setNearmiss} aria-label="Near-miss tier" />
             </label>
-            <Ctl label={`Allowance: normal x ${allow}`}>
-              <Slider min={1} max={1.5} step={0.25} value={[allow]} onValueChange={(v) => setAllow(v[0])} aria-label="Allowance multiple" />
-            </Ctl>
-            <Ctl label={`Benefit S$${benefit} an hour`}>
-              <Slider min={5} max={10} step={1} value={[benefit]} onValueChange={(v) => setBenefit(v[0])} aria-label="Benefit" />
-            </Ctl>
-            <Ctl label={`Monthly cap ${mcap} h`}>
-              <Slider min={10} max={30} step={10} value={[mcap]} onValueChange={(v) => setMcap(v[0])} aria-label="Monthly cap" />
-            </Ctl>
-            <Ctl label={`Yearly cap ${ycap} h`}>
-              <Slider min={40} max={80} step={20} value={[ycap]} onValueChange={(v) => setYcap(v[0])} aria-label="Yearly cap" />
-            </Ctl>
+            <div className="rounded-xl bg-paper p-3 text-xs leading-relaxed text-muted-foreground">
+              <p><span className="font-semibold text-ink">Fixed on every plan:</span> {sgd(benefit)} an insured hour.</p>
+              <p className="mt-1">Limits: {mcap} insured hours a month and {ycap} a year.</p>
+            </div>
             <div className="space-y-2">
               <p className="text-sm">Station rule</p>
               <Tabs value={rule} onValueChange={setRule}>
@@ -95,27 +113,34 @@ export default function Lab({ bt, grid, premium, val }: { bt: Backtest; grid: Gr
               type="button"
               className="text-sm text-income-blue-600 underline disabled:text-muted-foreground disabled:no-underline"
               disabled={isBase}
-              onClick={() => { setShift(0); setErr(0); setNearmiss(true); setAllow(1.25); setBenefit(8); setMcap(20); setYcap(60); setRule("nearest"); }}
+              onClick={() => { setShift(0); setErr(0); setNearmiss(true); setPlanId(defaultPlan.id); setRule("nearest"); }}
             >
-              {isBase ? "Showing the product as filed" : "Reset to the product"}
+              {isBase ? "Showing the default product terms" : "Reset to the default product terms"}
             </button>
           </div>
 
           <div className="space-y-6 lg:col-span-3">
+            <div className="rounded-2xl border border-income-blue-100 bg-income-blue-50 p-4 text-sm leading-relaxed text-ink">
+              <p className="font-semibold text-income-blue">Published Standard calibration</p>
+              <p className="mt-1 text-muted-foreground">
+                The schedule uses {publishedCalibration.expected_insured_hours_year.value.toFixed(2)} insured hours and {sgd(publishedCalibration.expected_payout_year.value, 2)} expected payout a worker a year, including its stated haze load. The charts below use the generated 500-firm geographic mix as a portfolio diagnostic, so they can differ without changing a customer price or payout.
+                <AssumptionTag basis="The pricing calibration retains a 1.0-hour haze load because earlier PSI history is incomplete. The 500-firm mix is a separate portfolio diagnostic." label="calibration basis" />
+              </p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <Kpi label="Expected insured hours" v={`${cell.h.toFixed(2)} h`} sub="a worker a year" />
+              <Kpi label="Expected insured hours" v={`${cell.h.toFixed(2)} h`} sub="a worker a year · 500-firm portfolio diagnostic" />
               <Kpi label="Years with no payout" v={`${cell.z} of ${years.length}`} sub={`book; average firm ${cell.zf}`} />
               <Kpi label="Months paying something" v={`${cell.m}%`} sub="share of firm-months" />
-              <Kpi label="1-in-10 loss ratio" v={pct(lr10)} sub={`at ${sgd(premFor, 2)} a worker a year`} tag="Premium for this benefit at the current pricing. Loss ratio = payout / premium." />
+              <Kpi label="1-in-10 loss ratio" v={pct(lr10)} sub={`at ${sgd(premFor, 2)} a worker a year`} tag={`${plan.source} price from the selected published plan. Loss ratio = payout / premium.`} />
             </div>
-            <Card title="Payout a worker by year" sub={`Mean ${sgd(meanPay, 2)}. Haze before 2025 is not in the data, so haze years are understated.`}>
+            <Card title="Payout a worker by year" sub={`Mean ${sgd(meanPay, 2)}. Historical haze coverage is incomplete, so older haze years are understated.`}>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={series} margin={{ left: 0, right: 8, top: 8 }}>
                   <CartesianGrid vertical={false} stroke="#efebe4" />
                   <XAxis dataKey="year" tick={{ fontSize: 11 }} interval={2} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `S$${v}`} width={52} />
                   <Tooltip formatter={(v: number) => sgd(v, 2)} />
-                  <ReferenceLine y={premFor * 0.65} stroke={BLUE} strokeDasharray="4 4" label={{ value: "65% of premium", fontSize: 10, fill: BLUE, position: "insideTopRight" }} />
+                  <ReferenceLine y={premFor * targetLossRatio} stroke={BLUE} strokeDasharray="4 4" label={{ value: `${pct(targetLossRatio)} of premium`, fontSize: 10, fill: BLUE, position: "insideTopRight" }} />
                   <Bar dataKey="payout" radius={[4, 4, 0, 0]}>
                     {series.map((s) => (
                       <Cell key={s.year} fill={s.lr > 1 ? "#b35300" : ORANGE} />
@@ -188,7 +213,7 @@ export default function Lab({ bt, grid, premium, val }: { bt: Backtest; grid: Gr
                 </ResponsiveContainer>
               </Card>
             </div>
-            <SourceNote>Engine back-test (docs/backtest.md) and WBGT validation (docs/wbgt-validation.md). Rain window share {bt.rain_window_share} ({bt.rain_window_share_basis}).</SourceNote>
+            <SourceNote>Engine back-test (docs/backtest.md) and WBGT validation (docs/wbgt-validation.md). Rain window share {bt.rain_window_share} ({bt.rain_window_share_basis}). Published plan terms come from product.json.</SourceNote>
           </div>
         </div>
       </Section>

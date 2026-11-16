@@ -1,10 +1,10 @@
-"""Site Match: hybrid claim for firms whose site is hotter than the named station.
+"""Site Match: a Labs pilot for firms whose site is hotter than the named station.
 
 The firm uploads the main contractor's hourly WBGT log. Rules-based checks with explicit reasons compare it to the
 station network. Inside the band: APPROVED top-up = extra rest minutes implied by the log over the station's, capped at
 10 h a year. Outside: REVIEW by a person, with the reasons. The model never rejects a claim (CONTEXT.md section 4).
 
-Ported from engine/prototypes/ai_usecases.py (checker) and extended per PROMPTS.md P8.
+Built from the documented checker rules and kept outside the core payout path.
 """
 from __future__ import annotations
 
@@ -21,14 +21,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from rehat import rules
+from rehat import product, rules
 from rehat.paths import DOCS, PROCESSED, SEED, WEB_DATA
 
 UPLIFT_MIN, UPLIFT_MAX = -1.0, 2.0
 MIN_CORR = 0.7
 MIN_DIFF_STD = 0.05
 MAX_BUNCHED = 0.35
-MAX_BUNCHED_AMONG_HOT = 0.6  # added check: share among readings at 31.5+ (prototype rule kept as well)
+MAX_BUNCHED_AMONG_HOT = 0.6  # additional check: share among readings at 31.5+
 MIN_DIFF_CORR = 0.3  # added check: same-day hour-to-hour changes
 WINDOW_HOURS = list(range(rules.WINDOW_START_H, rules.WINDOW_END_H))
 
@@ -265,8 +265,8 @@ def extract_from_image(image_bytes: bytes) -> dict:
     """Optional: read a photo or PDF of a log with a vision model. Only if OPENAI_API_KEY is set.
     The user always confirms the extracted table before submitting."""
     if not os.getenv("OPENAI_API_KEY"):
-        return {"available": False, "message": "Photo reading is off in this prototype (no API key). Please upload the CSV export from the site's WBGT meter."}
-    return {"available": False, "message": "Vision extraction not wired in this prototype build. Upload CSV."}
+        return {"available": False, "message": "Photo reading is unavailable without an API key. Upload the CSV export from the site's WBGT meter."}
+    return {"available": False, "message": "Vision extraction is unavailable in this Labs pilot. Upload CSV."}
 
 
 # ---------------------------------------------------------------- simulation and evaluation
@@ -427,11 +427,11 @@ def run() -> dict:
         results.append({"file": s["file"], "kind": s["kind"], "label": s["label"], "claim": asdict(c)})
     QUEUE.write_text(json.dumps([r["claim"] for r in results if r["claim"]["status"] == "REVIEW"], indent=1))
     ev = evaluate()
-    rider = price_rider()
+    pilot_terms = product.product_dict()["site_match_pilot_rider"]
     out = {
         "samples": results,
         "evaluation": ev,
-        "rider": rider,
+        "pilot_rider": pilot_terms,
         "headline": {
             "Simulated logs": f"{ev['logs']} logs on {ev['station_days']} real station-days ({len(ev['days'])} days incl. 31 Oct 2025)",
             "Honest logs flagged": f"{ev['flag_rate'].get('honest', 0):.0%}",
@@ -440,8 +440,7 @@ def run() -> dict:
             "Threshold-bunched caught": f"{ev['flag_rate'].get('threshold', 0):.0%}",
             "Pasted-from-another-day caught": f"{ev['flag_rate'].get('pasted_day', 0):.0%}",
             "Fakes approved with a top-up": ", ".join(f"{k} {v:.0%}" for k, v in ev["approved_with_topup_rate"].items() if k != "honest"),
-            "rider_price_year": rider["rider_price_year"],
-            "rider_basis": f"Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up {rider['expected_topup_h']} h a worker a year",
+            "Pilot status": "Labs only. It is separate from core plan price and payout.",
             "Sample logs": f"{sum(r['claim']['status'] == 'APPROVED' for r in results)} approved, {sum(r['claim']['status'] == 'REVIEW' for r in results)} sent for review",
         },
     }

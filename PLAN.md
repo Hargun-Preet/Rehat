@@ -1,123 +1,208 @@
-# PLAN.md: how we build and win with Rehat
+# PLAN.md: how we finish Rehat and win with it (version 2)
+
+Version 2, Sun 15 Nov 2026. The repo is already built. This plan is about turning a set of working screens into one product that a contractor could use without help, and that matches the version 6 deck number for number. Read CONTEXT.md first. Section 16 there lists what changed.
 
 ## 1. What wins this room
 
-The organisers want a product proposal with a strong proof of concept. Judges include three Income C-suite officers. Most teams will show a dashboard of weather data and a chatbot. We win by showing an insurance product Income could file, priced from a real back-test, with a working claims engine, an honest AI layer, and a liquidity view their finance team would recognise.
+The room needs a product Income could pilot, not a weather dashboard or chatbot: one tick box, a price a contractor understands, a payout they can check, and a profit line inside Income's 20% expense limit.
 
-Three moments the demo must deliver:
-1. The record-day replay: 31 Oct 2025, real NEA readings, rest minutes filling up station by station, ending in a PayNow receipt. (Concrete, emotional, true.)
-2. The Site Match claim: upload a site heat log, watch the checker pass an honest log and catch a faked one, with reasons. (Innovation plus AI that does real work.)
-3. The insurer console: "Cash needed on 7 Dec (5th working day): P50 S$x, P90 S$y", the stop-loss curve, and the hard cap. (Income's CDO and CFO brain.)
+Three moments the demo must deliver, in this order:
+1. "What Rehat would have paid you", then cover in 60 seconds. The landing page shows Tanjong Greenworks its last 12 months with and without Rehat. One click starts onboarding: firm details pulled from WIC, choose a deductible, read the honest sentence, done. (Employer-friendly. The founder mentor asked for exactly this.)
+2. The record day to the receipt. Replay 31 Oct 2025 on real NEA readings. The meter fills, the month closes, the receipt lists every counted hour, and PayNow goes out. (Concrete and true.)
+3. The Income console. 65 / 20 / 5 / 10 of every premium dollar, the three-year path, next month's cash call, and a worst case capped in the contract. (What the finance and data judges need.)
 
-Everything else supports these three.
+Site Match is no longer a demo moment. It sits under Labs as a pilot rider.
 
-## 2. Product surfaces (screens)
+## 2. What changed from version 1 and what it means for the code
 
-| Route | Who | Purpose | Key components |
-|---|---|---|---|
-| `/` | Judges | Story in 60 seconds: problem, law, product, proof | Aceternity Spotlight hero (subtle, orange), Bento Grid of the four pillars, Timeline of "a month with Rehat", three-dot ellipsis motif |
-| `/income` | Employer (mock Income business account) | Shows the firm's existing Income policies (WIC active, SmartBiz 360) with Rehat offered as an add-on at WIC renewal; roadmap tiles for Stallholder and platform WIC | 21st.dev product/plan cards, status badges, Aceternity Card Hover Effect |
-| `/onboard` | Employer | 60-second onboarding: UEN -> mock Corppass/ACRA pull -> WIC headcount and wage band pulled -> site address -> station assigned on map with reason -> plan choice -> may-not-pay sentence -> teach-back question -> quote with GST and launch credit -> consent | Aceternity Multi Step Loader for the mock pulls, 21st.dev stepper, shadcn form, Leaflet map |
-| `/employer/receipt` | Employer | Monthly receipt: every counted hour, reading, station, allowance, caps, payout, what did not count and why; "Ask about this receipt" (AI explainer, numbers locked) | Data table, hour heatmap, receipt card, chat panel |
-| `/employer/site-match` | Employer | Upload a site heat log (CSV or photo); extraction preview; checker result with reasons; approved top-up or "sent for review" | Aceternity File Upload, result cards with reason chips |
-| `/worker` | Worker | Phone mockup showing the notice in Bengali, Tamil, Mandarin, Burmese, Malay; QR opt-in; no personal data | 21st.dev phone/iPhone mockup, language tabs |
-| `/live` | Everyone | Live map of stations: WBGT, rain, PSI, hour state (triggered, not triggered, pending), fallback used | Leaflet map, legend, live/offline toggle |
-| `/replay` | Judges | Scrub through 31 Oct 2025, 08:00 to 17:30; rest minutes accumulate per station; firm at Jurong West ends with its payout | Timeline scrubber, animated meters, count-up |
-| `/backtest` | CDO | Sliders: thresholds, allowance multiple, benefit, caps, station rule, ±0.5°C error. Outputs: payout by year, zero-payout years, months paying, loss ratio distribution, tornado chart, basis-risk rate, WBGT rebuild validation | Recharts, shadcn sliders |
-| `/insurer` | Income ops and finance | Liquidity: next settlement cash call P50/P90/P99, daily accrual, 1 to 3 day forecast, season scenario (El Niño/La Niña), stop-loss simulation, capital ceiling; claims queue for Site Match flags; audit log; fairness panel | 21st.dev KPI/stat cards, fan chart, queue table |
-| `/compliance` | Judges | Every brief constraint and law mapped to the screen and rule that satisfies it | Checklist table with links |
-| `/pitch` | Presenter | Full-screen guided demo that steps through the three moments | Keyboard-driven sections |
-
-## 3. Visual system (looks like an Income product)
-
-- Tokens in `web/src/styles/tokens.css`: `--income-orange` (primary), `--income-blue` (secondary), warm neutrals (`--paper #FAF7F2`, `--ink #1A1D21`), state colours: triggered = orange, not triggered = slate, pending = amber with a dashed border (never colour alone: always a label).
-- Type: Ubuntu for headings, Inter for body (verify against income.com.sg). Numbers in tabular figures.
-- Brand device: three orange dots (Income's "For every story" ellipsis) as loader, section divider and the "payout on its way" state.
-- Layout: product-grade, calm. Cards with soft 1px borders, 16px radius, lots of white space. Motion only to explain: meters filling, numbers counting, a log being checked line by line.
-- Header: "Income Business (concept)" text wordmark, not Income's logo. Footer disclaimer on every page.
-- Use Aceternity for 3 to 4 hero moments only (Spotlight, Bento Grid, Timeline, File Upload, Multi Step Loader). Use 21st.dev for product UI blocks (pricing cards, stat cards, stepper, phone mockup). Restyle everything to tokens.
-
-## 4. Engine modules (Python)
-
-| Module | Responsibility |
+| Change | Work in the repo |
 |---|---|
-| `ingest/` | Pull and cache data.gov.sg WBGT, rainfall, air temperature, PSI by date (paginate); MSS daily CSVs; Open-Meteo ERA5 hourly and archived forecasts; NOAA ONI. Write tidy parquet |
-| `stations.py` | Station metadata, nearest/backup assignment, representativeness score (distance, correlation, coastal/inland) with explanation |
-| `wbgt_rebuild.py` | Liljegren WBGT from ERA5 (use a maintained implementation, e.g. `thermofeel` or `pywbgt`, verify on PyPI); bias correction per station; validation report (MAE, band agreement at 31.5/32/33, confusion matrix) |
-| `rules.py` | Pure functions: heat tier, rain tier, haze tier with consecutive-day logic, window and meal hour, hour state, fallback ladder, allowance, caps, exclusions |
-| `ledger.py` | Firm-month ledger: counted hours by peril, allowance, insured hours, payout, receipt lines, audit events |
-| `backtest.py` | Year-by-year and month-by-month product simulation; zero-payout years; months paying; loss-ratio distribution; robustness grid; basis-risk (neighbour disagreement) |
-| `pricing.py` | Premium = expected insured hours x benefit / target loss ratio; plan table; GST; launch credit; break-even and expense ratio curves |
-| `liquidity.py` | Daily accrual; month-end Monte Carlo (bootstrap remaining days, conditioned on forecast); P50/P90/P99 cash call; season reweighting by ONI; annual stop-loss recoveries; forecast validation (P90 coverage) |
-| `sitematch.py` | Log extraction (CSV parser; vision model optional), plausibility checks with reasons, top-up calculation, review queue |
-| `gapfill.py` | Neighbour-based estimate for pending hours, with validation; never pays on its own |
-| `explain.py` | Receipt to plain language; LLM may rephrase, numbers locked and re-checked |
-| `api.py` | FastAPI endpoints; also exports JSON to `/web/public/data` |
+| Plans are now Essential, Standard, Plus, set by deductible. S$8 on all | Replace the plan model. Remove Lite everywhere |
+| No launch credit | Remove the 30% credit from pricing, quotes and copy |
+| Work classes A and B | Add a heat factor by class, set from the WIC job class |
+| Premium split 65 / 20 / 5 / 10 and a 500-firm pilot | New economics module and console panels. Demo book grows from 300 to 500 firms |
+| Free heat alert and compliance log | New employer screen and PDF export |
+| Misuse conditions | Warranty tick at purchase; forfeit on first MOM action, cancel heat cover on second; worker QR notice |
+| Site Match demoted | Move route under Labs, remove from onboarding, landing and main nav |
+| Rule wording fixed | Replace "15 minutes at 33" claims and "45 minutes" with the wording in CONTEXT.md section 3 |
+| One source for numbers | `data/seed/product.json` read by engine and web; `make check-numbers` |
+| Twelve loose routes | Three doors with a role switcher and one demo firm |
 
-API: `GET /stations`, `GET /readings?date=`, `GET /hours?station=&date=`, `POST /quote`, `GET /ledger/{firm}/{month}`, `GET /receipt/{firm}/{month}`, `POST /sitematch/check`, `GET /backtest?params`, `GET /liquidity?asof=`, `GET /reinsurance?attach=`, `GET /compliance`.
+## 3. Information architecture: three doors, one firm
 
-## 5. Liquidity forecasting design (headline for Income's finance judges)
+Header: Rehat wordmark, a role switcher (Employer, Worker, Income), a "Story" link and a quiet "Labs" link. The required footer disclosure remains on every page.
 
-1. Accrual: each day, add counted downtime hours per firm. The allowance is monthly, so keep both "counted to date" and "insured if the month ended today".
-2. Month-end distribution: for each station, simulate the remaining working days 2,000 times by sampling the same calendar month from history (rebuilt WBGT, real rain, PSI), with the next 1 to 3 days drawn from the forecast instead. Apply allowance and caps per firm, sum across the book.
-3. Output for the settlement date (5th working day): P50, P90, P99 cash; recommended buffer P99 - P50; chart of how the band narrows as the month progresses.
-4. Season: reweight historical years by ONI state (El Niño years hotter, drier, hazier; La Niña wetter). Show the reinsurance decision before Aug to Oct.
-5. Year: annual loss ratio distribution, stop-loss recovery at 150% attachment, retained worst case, hard cap.
-6. Validation: run the month-end forecast on past months using only data available at the time (archived forecasts from about 2022). Report P90 coverage. Honest number on screen.
+| Door | Route | Screen | The one job | Primary button |
+|---|---|---|---|---|
+| Story | `/` | Landing | Understand Rehat in 30 seconds and see what it would have paid | See what it would have paid you |
+| Story | `/replay` | Record day | Watch a real day turn into a payout | Open the receipt |
+| Employer | `/income` | Account | See the WIC policy and add Rehat at renewal | Add Rehat |
+| Employer | `/onboard` | Get cover | Buy in four steps, 60 seconds | Confirm cover |
+| Employer | `/employer` | Home (new) | Know where this month stands | View receipt |
+| Employer | `/employer/receipt` | Receipts | Check a payout line by line | Download PDF |
+| Employer | `/employer/log` | Compliance log (new) | Show an inspector the hourly record | Export log |
+| Worker | `/worker` | Notice | Know pay is not cut and where to report | (none, read only) |
+| Income | `/insurer` | Console | Tabs: Overview, Cash, Risk, Pricing lab, Review queue | Per tab |
+| Labs | `/labs` | Index (new) | Find the technical detail | |
+| Labs | `/employer/site-match` | Site Match pilot | Check a site heat log | Check log |
+| Labs | `/backtest` | Back-test detail | Sliders and validation | |
+| Labs | `/live` | Live map | Stations and hour states now | |
+| Labs | `/compliance` | Brief and law map | Every constraint mapped to a screen | |
+| | `/pitch` | Pitch mode | Step through the ten beats | Arrow keys |
+| | `/glossary` | Drawer | Twelve terms in plain words | |
 
-## 6. AI use cases (each with a test and a reason output)
+Keep every existing route path. Add only `/employer`, `/employer/log`, `/labs` and `/glossary`. `/backtest` keeps working and is also embedded as the console's Pricing lab tab. Do not rename routes this late.
 
-| Use | Model | Test | Guardrail |
-|---|---|---|---|
-| Site Match: read log | Vision LLM or OCR; CSV first | Extraction accuracy on 10 hand-made sample logs | Human sees extracted table before submit |
-| Site Match: check log | Rules plus scores (uplift, correlation, flatness, threshold bunching) | 400 simulated logs (already: 0% honest flagged) | Never auto-reject |
-| Gap-fill pending hours | Neighbour median / ridge | MAE and band agreement on held-out days | Never pays alone; proposes a value for review after 48 h |
-| Station representativeness | Correlation clustering | Compare suggested vs nearest on history | Reason shown, human approves |
-| Claim explainer | LLM over the fixed receipt | Numbers in output must equal receipt numbers (automatic check) | Falls back to template |
-| Declaration anomaly | Isolation forest on headcount/wage band vs ACRA activity and size | Seeded anomalies | Flag only |
-| Liquidity forecast | Monte Carlo + forecast conditioning | P90 coverage on past months | Forecast never changes payouts |
+The demo firm on every screen: Tanjong Greenworks Pte Ltd, landscaping, class A, 20 outdoor workers, Jurong West, Standard plan, owner Mr Tan. Read it from `product.json`.
 
-Each gets a one-page model card in `/docs/model-cards/`.
+The demo date on every screen: 29 May 2026 in offline mode. The engine computes the demo firm's month at its own station. The S$510 worked month is a Bishan test fixture and can differ from it. The replay is 31 Oct 2025 and opens the October 2025 receipt. Read both from `demo_clock` in `product.json`. If the repo already pins another month with a payout, keep it and update the file.
 
-## 7. Team split and 36-hour timeline
+## 4. Primary journeys
 
-Suggested roles (adjust to the team):
-- Engine and data lead: ingest, rules, ledger, tests.
-- Back-test and forecast lead: WBGT rebuild, back-test, pricing, liquidity.
-- Web lead: design system, all screens, offline JSON mode.
-- AI lead: Site Match, explainer, gap-fill, model cards.
-- Product and pitch lead (Singapore teammates ideal): hawker/contractor interviews, compliance mapping, deck, demo script, Q&A drills.
+### Employer: from landing to covered (target 60 seconds, 3 clicks to a quote)
+1. Landing. Headline: "Rest that is paid for gets taken." Under it, the calculator: workers (default 20), trade, area. Result: "In the last 12 months heat, rain and haze cost a firm like yours about S$12,000. Rehat Standard would have cost S$2,575 and paid S$x." A month-by-month bar strip shows which months paid.
+2. Account. WIC card: active, renewal in 30 days, 20 outdoor workers declared. One offer card: "Add Rehat to this renewal. S$2.48 per worker a week."
+3. Get cover, four steps:
+   - Your firm. UEN, then a three-dot loader for the mock pulls. Headcount, job class and wage band come from WIC and are read only. Station shown on a small map with one line of reason.
+   - Choose your deductible. Three PlanCards. Each shows price a week, price a year for this firm before and after GST, "pays in about 1 in 2 months", average year back, worst year back. A 12-month strip under the cards redraws as the plan changes: grey up to the deductible, orange above it.
+   - The fine print, honestly. The may-not-pay sentence. The teach-back question. The warranty tick. The PDPA consent listing the eight fields.
+   - Your schedule. Named stations, the allowance for each month, limits, first payout date, "Download schedule".
+4. Home.
 
-| Hours | Engine and data | Back-test and forecast | Web | AI | Product and pitch |
-|---|---|---|---|---|---|
-| 0 to 4 | Scaffold, ingest WBGT/rain/PSI with cache | Pull ERA5, MSS, ONI | Scaffold, tokens, layout, landing | Site Match checker port | Confirm open questions with Income mentor |
-| 4 to 10 | Rules + tests | WBGT rebuild + validation | Onboarding + Income hub | Log extraction | Interviews; compliance table |
-| 10 to 16 | Ledger, receipts, API | Back-test + robustness | Live map + replay | Explainer with locked numbers | Deck v2 with real numbers |
-| 16 to 22 | Fallback ladder, pending | Pricing, reinsurance | Back-test lab | Gap-fill validation | Demo script |
-| 22 to 28 | JSON export, offline mode | Liquidity Monte Carlo + validation | Insurer console | Model cards | Rehearsal 1, judge Q&A |
-| 28 to 32 | Bug fixes | Freeze numbers into CONTEXT.md | Polish, motion, empty states | Edge cases | Rehearsal 2 |
-| 32 to 36 | Freeze | Freeze | Pitch mode | Freeze | Final pitch |
+### Employer: a month with Rehat
+Home answers four questions top to bottom: Is today a break day? Where does this month stand? What did I get? What must I do?
+- Today strip: heat reading at the station, state badge, "Ten-minute breaks this hour" or "No breaks owed". Tomorrow's forecast alert if any.
+- This month: one Meter per peril, counted hours against the deductible, with the insured part in orange. One sentence, for example: "3.2 insured hours so far. S$510 on its way by 5 June."
+- This year: paid in S$x, back S$y, hours left before the limit.
+- Tasks: "Share the worker notice" (QR), "Export this month's compliance log", the Dec 2026 MOM checklist.
 
-Code freeze at hour 32. Numbers in the deck must match the app.
+### Worker
+Phone frame. The notice in five languages. "Your pay is not cut. No break? Scan to tell us." No login, no personal data.
 
-## 8. Demo script (5 minutes)
+### Income
+- Overview: four stat cards (firms, premium, loss ratio year to date, next cash call), the planned 65 / 20 / 5 / 10 allocation and the observed 61% back-test result, the three-year path table, and the pilot card with its S$4.8M cap.
+- Cash: fan chart narrowing through the month, P50, P90, P99 for the 5th working day, forecast validation number.
+- Risk: yearly loss-ratio distribution, El Niño / neutral / La Niña toggle, stop-loss line at 150%, stress-test table.
+- Pricing lab: the "why 65%" table, plan comparison, sliders from the old back-test page.
+- Review queue: pending hours past 48 h, MOM-action forfeitures, Site Match pilot flags. A person decides. Audit log.
 
-1. 0:00 Problem: one 20-worker landscaping firm, a hot wet May, payroll due. The law already made this loss (paid rest at WBGT 32, salary on idle days). No insurance covers it.
-2. 0:45 Why us: payer, channel and trigger already exist. Show `/income`: their WIC policy, Rehat offered at renewal.
-3. 1:15 Onboarding in 60 seconds: UEN, station on map, plan, the honest sentence, teach-back, quote.
-4. 2:00 Replay 31 Oct 2025: rest fills up; receipt; PayNow.
-5. 2:45 Site Match: honest log approved, fake log caught, reasons shown.
-6. 3:20 Insurer console: cash call for 7 Dec, P90 band narrowing, stop-loss at 150%, hard cap.
-7. 4:00 Back-test and unit economics: weekly premium a worker and zero-payout years from `web/public/data/numbers.json` (one version of each number), honest limits.
-8. 4:30 Roadmap and ask: riders via platform WIC, hawkers via Stallholder; 300-firm pilot from April 2027.
+## 5. UX standards (the per-screen checklist)
 
-## 9. Risks and mitigations
-| Risk | Mitigation |
+Every screen passes all of these before it is called done:
+1. One job and one primary button. Other actions are secondary or under "Details".
+2. The first line is the answer, in plain words, with one number.
+3. Works at 390 px wide (employer and worker screens first) and at 1440 px.
+4. Every number has a unit, a period and a SourceTag (back-test, simulation, assumption, published, plan).
+5. Every counted hour has a "Why?" that opens the reading, the tier and the deductible.
+6. States carry a label and an icon, never colour alone.
+7. Empty, loading (three dots) and error states exist.
+8. Keyboard reachable, visible focus, labels on inputs, contrast 4.5:1 for text.
+9. No number or legal sentence typed into a component. Read from `product.json`.
+10. Copy follows AGENTS.md: plain, short, no em dashes, sentence case, none of the "never say" lines.
+11. Footer disclaimer present.
+
+Shared components, used everywhere: `Money`, `Hours`, `StateBadge`, `SourceTag`, `PlanCard`, `Meter`, `Ellipsis`, `PageHeader`, `WhyDrawer`, `RoleSwitcher`, `PrototypeFooter`. If two screens show the same thing differently, that is a bug.
+
+Words to use and avoid in employer screens:
+| Use | Not |
 |---|---|
-| Venue Wi-Fi or API rate limits | Offline JSON mode; cached data |
-| WBGT history too short | ERA5 rebuild with validation; show the validation honestly |
-| Numbers drift between deck and app | Freeze into CONTEXT.md; deck reads from it |
-| Judges say "AI is decorative" | Site Match does real work with measured results; liquidity forecast with coverage test |
-| Judges say "it's a bet" | Insurable interest slide: MOM makes rest paid; benefit below cost |
-| Translations wrong | Label "for native-speaker review"; ask Singapore teammates |
-| Looks like impersonation | Concept-prototype footer; no logo; fictional firms |
+| Heat reading (WBGT) | Wet bulb, WGTT |
+| Deductible (a normal month plus your buffer) | Attachment point, strike |
+| Insured hour | Trigger unit |
+| Station | Index, reference point |
+| Pays in about 1 in 2 months | 48% trigger probability |
+| Weather downtime cover | Parametric insurance |
+
+## 6. Visual system
+
+Applied consistently across the product.
+- Tokens in `web/src/styles/tokens.css`: `--income-orange #F26722`, `--income-blue #1B3A6B` (placeholders until sampled from income.com.sg), `--paper #FAF7F2`, `--ink #1A1D21`. States: triggered orange, not triggered slate, pending amber with a dashed border.
+- Ubuntu for headings, Inter for body, tabular figures for numbers.
+- Three orange dots as loader, divider and "payout on its way".
+- Cards with a 1 px border and 16 px radius. One accent colour per screen. Orange means "insured" or "act". Do not use it for decoration.
+- Motion only to explain: a meter filling, a number counting, a plan strip redrawing. Under 400 ms. Respect reduced-motion.
+- Aceternity for the landing hero, the onboarding loader and the replay only. Everything else is shadcn and 21st.dev blocks restyled to tokens.
+- Charts: one message per chart, direct labels, no legend when one series, grey for "normal", orange for "above normal".
+
+## 7. Engine changes
+
+| Module | Change |
+|---|---|
+| `product.py` (new) | Loads and validates `data/seed/product.json`. Every other module imports terms from here |
+| `rules.py` | `allowance(normal, multiple)` takes the plan's multiple (1.5, 1.25, 1.0). Add `heat_factor(work_class)`. Forfeit logic: first MOM action forfeits the month's heat payout, second cancels heat cover. Warranty flag on the policy |
+| `pricing.py` | Three deductible plans. Remove Lite and the launch credit. GST. Quote depends only on plan and declared outdoor headcount; work class changes counted heat hours, never price. |
+| `economics.py` (new) | Premium split, three-year path, pilot card, "why 65%" table, stress tests. Reproduces `product.json` to the dollar |
+| `ledger.py` | Receipt lines name the deductible. Add `would_have_paid(firm, last_12_months)` for the landing calculator, per plan |
+| `compliance_log.py` (new) | Hourly record per station: reading, source, rest owed, state. PDF and CSV export |
+| `liquidity.py` | Book is 500 firms. Otherwise unchanged |
+| `sitematch.py` | Unchanged. Flag results as "pilot rider" |
+| `api.py` | Add `GET /product`, `POST /quote` (new shape), `GET /would-have-paid`, `GET /economics`, `GET /compliance-log/{firm}/{month}` |
+| Seed data | `firms.json`: 500 fictional firms, 20 workers on average, plans 20% Essential, 60% Standard, 20% Plus, classes 80% A, 20% B. Tanjong Greenworks is firm 1 |
+| Tests | Each plan multiple, class B heat factor, forfeit escalation, the S$510 worked month, economics totals (S$4,802,375 premium, S$544,613 profit), no Lite and no launch credit anywhere |
+
+Simulated plan prices (Essential, Plus, class B) come from `product.json`, tagged simulation. If the repo's own back-test can price them, show both and say which is which. Do not silently replace a deck number.
+
+## 8. AI: in the interface, never in the payout
+
+| Use | Where | Guardrail |
+|---|---|---|
+| Read the WIC schedule and quote in minutes | Onboarding step 1 (mocked pull; optional document read) | The user sees and confirms every extracted field |
+| Explain every receipt | "Ask about this receipt" | Numbers locked and re-checked against the receipt. Falls back to a template |
+| Turn the forecast into a warning | Employer home, worker notice | Never changes a payout or a price |
+| Check data and declarations | Gap-fill for pending hours, declaration anomalies, Site Match pilot | Flags only. A person decides. AI never rejects |
+
+Say it in one line everywhere: "Rules decide the payout. AI sits in the interface."
+
+## 9. Time plan from now to the pitch
+
+It is Sunday night. The pitch is Tuesday. Work in this order and stop adding features on Monday evening.
+
+| Block | Must (do these or the demo is wrong) | Should | Could |
+|---|---|---|---|
+| Sunday night | R0 audit. R1 single source of truth. R2 engine changes with tests | | |
+| Monday morning | R3 shell and role switcher. R5 onboarding in four steps. R6 employer home and receipt | R4 landing calculator | |
+| Monday midday | Owner calls from the BCA register (product and pitch lead). R8 Income console | R7 compliance log and worker notice | |
+| Monday afternoon | R10 polish pass at 390 px and 1440 px. Offline check | R9 Labs tidy | Receipt chat, live map polish |
+| Monday evening | R11 pitch mode, numbers freeze. Code freeze | Judge pack | |
+| Tuesday morning | Two full rehearsals with a timer. Demo with Wi-Fi off | | |
+
+If time runs short, cut in this order: Labs polish, compliance log PDF, landing calculator animation, receipt chat. Never cut R1, R2, R5, R6 or the offline check.
+
+Roles:
+- Engine lead: R1 engine side, R2, exports.
+- Web lead: R3, R5, R6, R10.
+- Second web or AI lead: R4, R7, R8, R9.
+- Product and pitch lead: owner calls, `interviews.json`, deck, rehearsals, judge questions.
+
+## 10. Demo script
+
+The pitch is ten slides in 4 minutes 50 seconds (`docs/pitch-script.md`). The app appears twice.
+
+Cut A, 20 seconds, inside slide 5 ("How Rehat works"):
+1. `/replay` already open on Tanjong Greenworks. Press play. The heat meter passes the deductible and turns orange.
+2. Click "Open the receipt". Point at one line: hour, reading, station.
+3. Point at the payment line: PayNow by the 5th working day. Back to slides.
+
+Cut B, 90 seconds, for questions or a booth:
+1. Landing: type 20 workers. "It would have cost S$2,575 and paid S$x."
+2. Get cover: pick Standard, read the honest sentence aloud, answer the teach-back, confirm.
+3. Home: this month's meters, the alert, the compliance log button.
+4. Receipt: one "Why?" drawer.
+5. Role switch to Income: the target allocation and observed back-test result, the pilot card, the cash call.
+
+Rehearse both with the engine stopped.
+
+## 11. Risks
+
+| Risk | What we do |
+|---|---|
+| Numbers differ between deck, script and app | `product.json` and `make check-numbers`. Freeze on Monday evening |
+| Old plan names or the launch credit survive on some screen | R1 greps for "Lite", "launch credit", "45 minutes", "one-fourth". The check fails if any remain |
+| A judge asks about the rule and we misquote it again | Rule sentence lives in `product.json` and is shown on the landing page and worker notice |
+| "A rule is not what owners do" | Monday calls. The block renders only with real entries |
+| Venue Wi-Fi | Offline JSON mode, tested Tuesday morning |
+| The demo looks like disconnected screens | Role switcher, one firm, shared components, R10 pass |
+| "20% expenses is not realistic for a pilot" | Backup answer in CONTEXT.md section 5 and a line in the Pricing lab |
+| Looks like impersonating Income | Text wordmark, footer, fictional firms, "proposed" |
+| Translations wrong | Badge "Translations pending native-speaker review" |
+| A late refactor breaks the demo | Keep route paths. Small commits. Tag `demo-safe` after each passing offline run |

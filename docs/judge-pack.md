@@ -1,104 +1,59 @@
-# Rehat judge pack
+# Rehat decision pack
 
-Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data. Generated 15 Nov 2026 15:57 by `python -m rehat.judgepack` from the same engine outputs the app shows.
+Generated 16 Nov 2026 09:40 from the same product terms and offline engine outputs used by the app.
 
-**Rehat** is weather downtime cover for small Singapore firms with outdoor crews, sold as a tick box at the Work Injury Compensation (WIC) renewal they already do with Income. MOM's rules make heat rest paid time and idle days paid for work permit holders, so heat, heavy rain and haze cost wages without any damage. When NEA's readings at the firm's named station are worse than that station's normal month, Rehat pays S$8 a worker for each extra hour by PayNow before payroll. No claim form.
+## 1. The owner problem
 
-## The eight strong-outcome items
+At a heat reading of 32, a contractor pays for 60 minutes and gets 50. A normal month is part of the job. A hard month, we carry with you.
 
-### 1. Concept and design
-A parametric section on WIC with three meters (heat WBGT tiers that mirror MOM, clock-hour rain at a named gauge, 24-hour PSI for haze), a monthly allowance of each station's normal plus 25%, caps of 20 h a month and 60 h a year, and a fallback ladder where missing data is pending, never no event. A Site Match rider lets firms on hotter sites submit their site heat log for a checked top-up. Screens: [/](/), [/onboard](/onboard), [/employer/receipt](/employer/receipt).
+## 2. What the cover pays for
 
-### 2. Target group
-Small and medium firms with outdoor manual crews: construction subcontractors, landscapers, outdoor cleaners. About 185,400 in-scope workers (110,700 to 261,800; assumptions) in about 12,400 firms. Chosen because the payer (the employer), the channel (WIC, which Income sells) and the trigger (MOM's heat rule) already exist. Hawkers, riders and households were assessed and moved to the roadmap with reasons (CONTEXT.md section 3).
+Rehat is weather downtime cover attached to a current Work Injury Compensation (WIC) policy. It pays S$8 per declared outdoor worker for each insured hour. The firm keeps the rest of the wage cost. Payment goes by PayNow to the company UEN by the 5th working day of next month.
 
-### 3. Simple pricing logic and unit economics
-Premium = expected insured hours x benefit / 0.65. Expected insured hours 9.78 a worker a year (back-test 8.78 h + haze load 1.0 h (assumption)). Standard S$120.37 a year, S$2.31 a week before GST (S$131.20 with 9% GST); Lite S$75.23 a year. A 20-worker firm pays S$2,407 a year (S$2,624 with GST; S$1,837 after the 30% year-one credit), about 0.47% of its labour bill, against an expected payout of S$1,565 and weather downtime costing it about S$14,486 a year. Break-even 692 policies of 20 workers at S$300k fixed cost (assumption). Price depends only on plan, benefit and headcount. Screens: [/onboard](/onboard), [/backtest](/backtest).
+## 3. The three published plans
 
-### 4. Clear claim parameters and exclusions
-Heat: hourly mean of four 15-minute WBGT readings (3 of 4 needed): 31.5 to 31.9 = 5 min, 32.0 to 32.9 = 10 min, 33.0+ = 15 min. Rain: 2.5 to 9.9 mm in a clock hour = 0.5 h, 10 mm+ = 1 h. Haze: noon 24-hour PSI 101 to 200 = 1 h from the 3rd consecutive day, 201 to 300 = 3 h, above 300 = 6 h, 20 h a year. Window Mon to Sat 08:00 to 18:00 minus the meal hour. Exclusions: indoor or undeclared workers, lapsed WIC, shipyards and process plants, firms above SME size, the heat payout in any month with an MOM heat enforcement action, a 14-day wait if added mid-term. The may-not-pay sentence is shown before purchase. Every rule has a test (`engine/tests/test_rules.py`).
+| Plan | Monthly allowance | Per worker a week | Per worker a year |
+|---|---|---:|---:|
+| Essential | Normal month + 50% | S$1.76 | S$91.50 |
+| Standard | Normal month + 25% | S$2.48 | S$128.75 |
+| Plus | Normal month | S$3.61 | S$187.50 |
 
-### 5. Expected impact on financial protection and affordability
-Back-test 2000 to 2025: 0 of 26 years with no payout for the book; 46.1% of firm-months pay something; expected payout S$70.30 a worker a year; 1-in-10 year S$128.80. The payout arrives by the 5th working day, before payroll. It also makes MOM's rest rule cheaper to obey: rest that is paid for gets taken. Screens: [/replay](/replay), [/backtest](/backtest).
+The plan changes only the monthly allowance. Work class is set from the WIC job class, not selected by the customer.
 
-### 6. Market competitiveness
-No product in Singapore pays for weather downtime without damage. Rehat rides an existing compulsory purchase (WIC), so acquisition cost is a tick box. Total market about S$22.3M premium a year (S$13.3M to S$31.5M); Income's WIC slice S$2.7M; year-3 obtainable S$1.79M. Income has run parametric cover before (Droplet, 2018).
+## 4. The payout is fixed arithmetic
 
-### 7. Distribution proposal
-Offered at WIC renewal in Income's business account and by brokers who place WIC, plus trade associations and NTUC's U SME network. 60-second onboarding pulls headcount from the WIC policy. Workers get notices by QR in their language through the Migrant Workers' Centre network. Roadmap: riders via platform WIC (Platform Workers Act), hawkers via Stallholder Insurance. Screens: [/income](/income), [/onboard](/onboard), [/worker](/worker).
+Hourly NEA heat readings, rain readings and regional PSI are counted against the named station's normal month and plan allowance. Missing or partial readings stay PENDING. A person reviews any exception; a model does not reject a claim or change a payout.
 
-### 8. How AI and data are integrated
-Data: NEA WBGT, rain and PSI from data.gov.sg, MSS daily records, ERA5 reanalysis, NOAA ONI, all cached with URL and time. AI and models stay upstream of the payout and are auditable: (a) Site Match checker on 400 simulated logs over 247 real station-days flags 2% of honest logs and catches 100% of inflated and 100% of flat logs; it never rejects. (b) Liquidity forecast: P90 covered the actual month 87% of the time over 2022-01 to 2026-10. (c) Receipt explainer in six languages with numbers locked. (d) Gap-fill proposes values for pending hours for human review only. (e) Declaration flags (12 of 300 demo firms). Model cards in `docs/model-cards/`.
+## 5. What history shows
 
-## Must-haves
+Across 2000 to 2025, the Standard back-test observes S$78.27 expected payout a worker a year. At the deliberately cautious S$128.75 published annual price, that is 61% returned to firms. Standard pays in about half of months.
+The generated 500-firm station mix is kept separate as a portfolio diagnostic for capital and cash planning. It never changes this published price calibration or a customer payment.
 
-| Must-have | How |
-|---|---|
-| Offered by or with Income as the licensed insurer | Every page footer and the onboarding say 'Underwritten by Income Insurance Limited (proposed)' and 'Concept prototype'. Sold as an add-on to Income's WIC. (/income, every page footer) |
-| Triggers and pricing use independent, verifiable data | Triggers read NEA WBGT, rain gauge and PSI from data.gov.sg; every call cached with URL and time; pricing from a back-test on the same data plus MSS records. (/live, /replay, /backtest) |
-| Customer understands what they pay for and when they get paid in under a minute | Onboarding shows plan, weekly price, GST, the may-not-pay sentence and a teach-back question; a timer shows elapsed seconds. (/onboard) |
-| Collect only the personal data needed; AI decisions explainable | Only UEN, WIC policy number, outdoor headcount, wage band, site addresses, PayNow (UEN) and one contact. No worker data. Every AI check outputs a reason. (/onboard (Your data step), /employer/site-match) |
-| No new hardware for the core product | Core product uses NEA's public stations. Site Match uses logs the main contractor already keeps. (/live, /employer/site-match) |
+## 6. A 20-worker Standard example
 
-## Legal map
+Premium is S$2,575 before GST and S$2,807 with GST. The observed expected payout is S$1,565. The contractual annual cap is S$9,600. 59 normal downtime hours is a simulation estimate, not a payment promise.
 
-Full table in [/compliance](/compliance) and `web/public/data/compliance.json`.
+## 7. Portfolio economics and capital
 
-| Rule | Source | Product |
-|---|---|---|
-| WIC compulsory for manual workers and non-manual earning S$2,600 or less | Work Injury Compensation Act, MOM | Rehat needs an active WIC policy; headcount comes from the WIC declaration; lapsed WIC excludes the month. |
-| Heat-stress rest: WBGT 32+ 10 min/h, 33+ 15 min/h; paid working time; hourly monitoring | MOM heat stress framework and FAQs | Heat tiers mirror MOM (plus a 5 min near-miss tier at 31.5); hourly mean of four NEA readings; worker notices state the rule. |
-| Four measures mandatory from 1 Dec 2026: heat-stress training, cool water, cooling supplies, suitable clothing | MOM, 28 Aug 2026 | Listed for employers at renewal; renewal reward for compliance (concept). |
-| Declared salary owed on idle days | MOM Work Permit FAQ | Basis of insurable interest for rain and haze hours. |
-| Haze guidance for outdoor work | MOM haze guidelines (Oct 2026) | Haze tiers on NEA 24-hour PSI at 12:00; PSI chips on the live map. |
-| Fair dealing and disclosure | MAS Guidelines on Fair Dealing (revised May 2024) | May-not-pay sentence shown verbatim before purchase; teach-back answer recorded with explanation; plain-language receipts. |
-| Fair, explainable AI | MAS FEAT principles; Veritas | Price uses plan, benefit and headcount only; every AI check gives a reason; humans review flags; model cards; explainer cannot change numbers. |
-| Climate risk management | MAS Guidelines on Environmental Risk Management for Insurers (2020) and transition addendum (Mar 2026) | Back-test with stress cases, season view by ENSO, annual repricing from normals, climate assumptions disclosed. |
-| Personal data | PDPA | Consent and purpose screen; workers opt in to notices by QR without personal data; delete at policy end. |
-| Insurable interest | Income brief constraint | Benefit (S$8) below the idle-hour cost (about S$10.20, assumption); only firms with declared outdoor workers; one policy per UEN. |
-| GST 9% on premiums | IRAS | Premium shown before and after GST everywhere it appears. |
-| Disputes | FIDReC | Receipt explains how to dispute; disputes are data checks; FIDReC link. |
-| Platform Workers Act (from 1 Jan 2025) | MOM | Roadmap only: riders via platform WIC. |
-| No law change needed | Brief | Everything above uses existing rules. |
-| Missing data is never 'no event' | NEA researcher guidance; AGENTS.md | Fewer than 3 of 4 readings is PENDING; fallback ladder; model estimate never pays alone. |
-| Forecasts never change payouts or prices | AGENTS.md | Liquidity module is separate; a test checks payout code does not import it. |
+The approved plan split is 65% claims, 20% expenses, 5% reinsurance and 10% profit. The first-year pilot retains risk; aggregate stop-loss starts in year two. It attaches at 150%. The published 2015-style haze stress is 261%; it is a capital scenario, not a customer payout input. The observed historical series hits that attachment in 0 of 26 years, so it is a tail-risk purchase rather than evidence of normal claims cost.
 
-## Model cards
+## 8. A bounded rollout
 
-- [WBGT rebuild](model-cards/wbgt-rebuild.md)
-- [Site Match checker](model-cards/site-match.md)
-- [Liquidity forecast](model-cards/liquidity-forecast.md)
-- [Receipt explainer](model-cards/explainer.md)
-- [Gap-fill](model-cards/gapfill.md)
-- [Station suggestion](model-cards/station-suggestion.md)
-- [Declaration flags](model-cards/declaration-anomaly.md)
+The plan starts with 500 firms and 10,000 workers in April 2027. Premium is S$1,287,500; the known contractual cap is S$4,800,000. The three-year path totals S$4,802,375 of premium and S$544,613 planned profit.
 
-## Limits, stated plainly
+## 9. Cash and operations
 
-- Heat history before Feb 2025 is a rebuild from ERA5. Held-out band agreement when NEA reads 31 to 34 C is 48% (MAE 1.124 C overall). Good enough for frequencies, not for single hours; payouts never use it.
-- Rain history comes from MSS daily records through an estimator (window share 0.616, calibrated on 484 station-days where NEA 5-minute gauges and MSS daily records overlap).
-- Haze before 2025 is not in the back-test; pricing adds a 1.0 h haze load (assumption) and a 2015-like stress test.
-- Basis risk: the named station is below 31.5 C while a nearest neighbour is above in 3.6% of work hours. The may-not-pay sentence says so before purchase; Site Match narrows it for big sites.
-- Gap-fill near the thresholds agrees on the rest band only 55% of the time, so it never pays alone.
-- The Site Match rider price (S$88.13 a year) rests on two assumptions (site uplift and filing rate) and must be tested on real contractor logs.
-- Stop-loss at 150% (team decision, 2026-11-15): the back-test never reaches it, so it is cheap catastrophe protection for years worse than history, such as a severe haze year. The lowest attachment inside the 5% budget would be 100%; it was considered and not chosen.
-- Translations are drafts for native-speaker review.
+The next cash view is 2026-11: P50 S$7,992, P90 S$30,677. Forecasts help plan cash and reinsurance only. They cannot change a customer's price or payment. Offered by or with Income as the licensed insurer; Triggers and pricing use independent, verifiable data; Customer understands what they pay for and when they get paid in under a minute
 
-## What the pilot must prove (300 firms, 6,000 workers, from April 2027)
+## 10. The decision to test
 
-1. Attach rate at WIC renewal and the share of firms that understand the cover (teach-back right first time). 2. Payout timing: every month settled by the 5th working day, pending hours resolved within 14 days. 3. Real loss ratio against the 65% expected. 4. Site Match on real contractor logs: honest approval rate and fraud catch. 5. Whether rest is actually taken (worker survey through the Migrant Workers' Centre). 6. Cash forecast coverage on live months. Pilot premium S$722,220, expected claims S$469,595, hard cap S$2,880,000; Income retains all in year one.
+The first proof point is whether firms understand the named-station limit before they buy: “Rehat pays only when NEA's published readings at your named station cross the levels shown; your own site can be hotter or wetter than the station, so you can lose work time and receive nothing.” The product records the teach-back answer and warranty tick before purchase. Designed to be confirmed by Income's legal team.
 
-## Ten hardest questions
+## Limits stated plainly
 
-1. **Isn't this a bet on the weather?** No. MOM's rules make heat rest paid time and idle days paid, so the firm has a real wage loss. The benefit (S$8) sits below the idle-hour cost (about S$10.20, assumption), only declared outdoor workers count, and one policy per UEN.
-2. **My site is hotter than the station. Why would I buy?** The sentence before purchase says you can lose time and get nothing. Basis risk is 3.6% of work hours on NEA data. Big sites already keep WBGT logs, and Site Match turns them into a checked top-up.
-3. **Can firms game it by stopping work?** No. The payout depends only on NEA readings, not on whether work stopped. Headcount is capped at the WIC declaration, which also raises the WIC premium.
-4. **Will employers pocket the money and not give rest?** Workers get the rule in their language, wages may not be cut, and the heat payout is forfeited in any month with an MOM heat enforcement action.
-5. **What if a station goes down?** The hour is pending, never no event. Backup station, regional median, then after 14 days the published regional advisory level. A model estimate is only proposed for human review.
-6. **Is the price right with so little WBGT history?** It is a back-test of 26 years using NEA where it exists and a validated rebuild before that, plus a haze load. The price is reviewed every year as normals reset. The pilot is sized so Income can retain the risk.
-7. **What does Income's finance team need on day one?** The cash call for each settlement: next one 2026-12-07, P50 S$2,912, P90 S$13,914, P99 S$22,031. P90 coverage 87% on past months.
-8. **How bad can a year get?** Worst back-test year 2013 at 128% loss ratio; a 2015-like haze year added on top gives 261%. The hard cap is 60 h a worker (399%).
-9. **Where is the AI, and can it hurt a customer?** Upstream only. The payout is fixed arithmetic. AI reads site logs (and sends doubts to a person), explains receipts (numbers locked), proposes gap values (reviewed), flags declarations (flag only) and forecasts cash (never touches payouts). Every check gives a reason.
-10. **Does this need a change in the law or new hardware?** No. It sits on WIC, uses NEA's public stations and existing MOM rules, and is filed by Income as the licensed insurer.
+- The published Standard calibration's worst back-test loss ratio is 229%. The published 2015-style haze stress is 261%; it is a capital scenario. The separate geographic-mix portfolio diagnostic reaches 236% with its stated 20-hour haze stress.
+- Historical heat before NEA coverage uses a validated rebuild. It supports frequency analysis, not a single historical payment.
+- Non-English worker and receipt copy remains unavailable until native-speaker review. English is the canonical source.
+- Site-specific logs are evaluated only in Labs and do not affect the core plan price or payment rule.
 
 Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data.

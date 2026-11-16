@@ -6,12 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "600"] });
-const ubuntu = Ubuntu({ variable: "--font-ubuntu", subsets: ["latin"], weight: ["500", "700"] });
+const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500", "600", "700"], display: "swap" });
+const ubuntu = Ubuntu({ variable: "--font-ubuntu", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Rehat by Income (concept prototype)",
-  description: "Weather downtime cover for small firms with outdoor crews. Concept prototype, fictional data.",
+  title: "Rehat | Weather downtime cover",
+  description: "Weather downtime cover for small firms with outdoor crews.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

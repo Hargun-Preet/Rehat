@@ -1,7 +1,6 @@
-# Rehat (concept prototype)
+# Rehat
 
-Weather downtime cover for small Singapore firms with outdoor crews, sold next to Work Injury Compensation.
-Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data.
+Weather downtime cover for Singapore employers with outdoor crews, designed to sit alongside Work Injury Compensation.
 
 Read `AGENTS.md`, `CONTEXT.md`, `PLAN.md` and `PROMPTS.md` first.
 

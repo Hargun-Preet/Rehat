@@ -1,15 +1,12 @@
 import { loadJSON } from "@/lib/data";
-import type { Pricing } from "@/lib/types";
+import { loadProduct } from "@/lib/product.server";
 
-import Console, { type Anomaly, type Fairness, type Liquidity, type SM } from "./Console";
+import Console, { type Liquidity } from "./Console";
 
 export default async function InsurerPage() {
-  const [lq, pr, sm, fair, an] = await Promise.all([
+  const [lq, product] = await Promise.all([
     loadJSON<Liquidity>("liquidity.json"),
-    loadJSON<Pricing>("pricing.json"),
-    loadJSON<SM>("sitematch.json"),
-    loadJSON<Fairness>("fairness.json"),
-    loadJSON<Anomaly>("anomaly.json"),
+    loadProduct(),
   ]);
-  return <Console lq={lq} pr={pr} sm={sm} fair={fair} an={an} />;
+  return <Console lq={lq} product={product} />;
 }

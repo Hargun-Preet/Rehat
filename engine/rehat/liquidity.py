@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from rehat import backtest as B
+from rehat import product
 from rehat import rules
 from rehat.ingest.openmeteo import cell_id
 from rehat.ledger import demo_book
@@ -39,6 +40,7 @@ class Daily:
     rain: np.ndarray  # (groups, days)
     payrate: np.ndarray  # (groups,) sum over firms of workers x benefit (S$ per insured hour)
     workers: np.ndarray
+    allowance_multiple: np.ndarray  # (groups,) selected plan deductible
     group_station: list[str]
 
 
@@ -66,10 +68,12 @@ def daily() -> Daily:
     for f in demo_book():
         site = f.sites[0]
         st = nearest(site.lat, site.lon, pool, 1)[0][0].station_id
-        key = (st, B.mss_for_station(site.lat, site.lon))
+        # Plans differ only by their allowance multiple, so they must remain
+        # separate groups even when they share a weather station.
+        key = (st, B.mss_for_station(site.lat, site.lon), f.plan_id)
         groups.setdefault(key, []).append(f)
-    heat, rain, payrate, workers, gst = [], [], [], [], []
-    for (st, code), firms in sorted(groups.items()):
+    heat, rain, payrate, workers, multiples, gst = [], [], [], [], [], []
+    for (st, code, _plan_id), firms in sorted(groups.items()):
         mins = B.heat_minutes(X[:, cols.index(st)])
         hd = np.zeros(len(dates))
         np.add.at(hd, pos, np.nan_to_num(mins) / 60.0)
@@ -78,8 +82,17 @@ def daily() -> Daily:
         rain.append(r)
         payrate.append(sum(f.outdoor_workers * f.benefit for f in firms))
         workers.append(sum(f.outdoor_workers for f in firms))
+        multiples.append(firms[0].allowance_multiple)
         gst.append(st)
-    return Daily(dates, np.array(heat), np.array(rain), np.array(payrate, float), np.array(workers, float), gst)
+    return Daily(
+        dates,
+        np.array(heat),
+        np.array(rain),
+        np.array(payrate, float),
+        np.array(workers, float),
+        np.array(multiples, float),
+        gst,
+    )
 
 
 @lru_cache
@@ -103,7 +116,7 @@ def month_payout(heat_m: np.ndarray, rain_m: np.ndarray, month: int, ytd: np.nda
     """Book payout (S$) from month totals per group (..., groups). Applies allowance, monthly and yearly caps."""
     nh, nr = normals()
     D = daily()
-    ins = np.clip(heat_m - 1.25 * nh[:, month - 1], 0, None) + np.clip(rain_m - 1.25 * nr[:, month - 1], 0, None)
+    ins = np.clip(heat_m - D.allowance_multiple * nh[:, month - 1], 0, None) + np.clip(rain_m - D.allowance_multiple * nr[:, month - 1], 0, None)
     ins = np.minimum(np.minimum(ins, rules.MONTHLY_CAP_H), np.clip(rules.YEARLY_CAP_H - ytd, 0, None))
     return (ins * D.payrate).sum(axis=-1)
 
@@ -129,7 +142,7 @@ def ytd_insured(y: int, m: int) -> np.ndarray:
         sl = _month_slice(y, mm)
         if len(sl) == 0:
             continue
-        ins = np.clip(D.heat[:, sl].sum(axis=1) - 1.25 * nh[:, mm - 1], 0, None) + np.clip(D.rain[:, sl].sum(axis=1) - 1.25 * nr[:, mm - 1], 0, None)
+        ins = np.clip(D.heat[:, sl].sum(axis=1) - D.allowance_multiple * nh[:, mm - 1], 0, None) + np.clip(D.rain[:, sl].sum(axis=1) - D.allowance_multiple * nr[:, mm - 1], 0, None)
         ytd += np.minimum(np.minimum(ins, rules.MONTHLY_CAP_H), np.clip(rules.YEARLY_CAP_H - ytd, 0, None))
     return ytd
 
@@ -267,7 +280,7 @@ def season_view(month: int = 10) -> dict:
     years = bt["base"]["years"]
     annual_h = np.array(bt["base"]["annual_insured_h"])
     pr = json.loads((PROCESSED / "pricing.json").read_text())
-    prem = pr["plans"][0]["year"]
+    prem = next(plan["year"] for plan in pr["plans"] if plan["id"] == "standard")
     st = year_states()
     D = daily()
     monthly = {yy: actual_month(yy, month)[0] for yy in years if len(_month_slice(yy, month)) >= 28}
@@ -287,12 +300,18 @@ def season_view(month: int = 10) -> dict:
 
 def annual_view() -> dict:
     pr = json.loads((PROCESSED / "pricing.json").read_text())
-    lr = pr["loss_ratios"]
+    # This screen is a capital/cash view. Use the explicitly labelled
+    # geographic-mix diagnostic series rather than presenting it as the
+    # customer-facing published price calibration.
+    lr = pr.get("portfolio_loss_ratios", pr["loss_ratios"])
     re = pr["reinsurance"]
+    published_haze_stress = pr.get("published_haze_stress", {}).get("loss_ratio", lr["worst_plus_haze_stress"])
     D = daily()
-    prem_book = float(sum(f.outdoor_workers * (pr["plans"][0]["year"] if f.plan == "Standard" else pr["plans"][1]["year"]) for f in demo_book()))
-    return {"loss_ratio_by_year": dict(zip(lr["years"], lr["by_year"])), "expected_lr": lr["expected"], "one_in_ten_lr": lr["one_in_ten"],
-            "worst_lr": lr["worst_backtest"], "haze_stress_lr": lr["worst_plus_haze_stress"], "hard_cap_lr": lr["hard_cap"],
+    premium_by_plan = {plan["id"]: plan["year"] for plan in pr["plans"]}
+    prem_book = float(sum(f.outdoor_workers * premium_by_plan[f.plan_id] for f in demo_book()))
+    return {"scope": lr.get("scope", "Portfolio diagnostic for capital and cash planning only."),
+            "loss_ratio_by_year": dict(zip(lr["years"], lr["by_year"])), "expected_lr": lr["expected"], "one_in_ten_lr": lr["one_in_ten"],
+            "worst_lr": lr["worst_backtest"], "haze_stress_lr": published_haze_stress, "hard_cap_lr": lr["hard_cap"],
             "attach": re["chosen_attach"], "rule_suggests_attach": re["rule_suggests_attach"], "retained_worst_lr": min(lr["worst_plus_haze_stress"], re["chosen_attach"]),
             "book_premium": round(prem_book), "book_workers": int(D.workers.sum()), "book_hard_cap": round(float(D.payrate.sum() * rules.YEARLY_CAP_H))}
 
@@ -347,7 +366,7 @@ def alerts(asof: date, max_items: int = 5) -> list[dict]:
             when = "today" if day == asof else ("tomorrow" if day == asof + timedelta(days=1) else pd.Timestamp(day).strftime("%A"))
             out.append({"station": st, "station_name": s.name, "date": str(day), "from": f"{h0:02d}:00", "to": f"{h1:02d}:00",
                         "employer": f"Heat stress likely {h0:02d}:00 to {h1:02d}:00 {when} at {s.name}. Plan heavy work early.",
-                        "worker": f"Hot hours expected {h0:02d}:00 to {h1:02d}:00 {when}. Drink water. By MOM rule you get paid rest in shade. Your pay is not cut."})
+                        "worker": f"Hot hours expected {h0:02d}:00 to {h1:02d}:00 {when}. Drink water. {product.get_product().copy_text('rule_statement')}"})
     out.sort(key=lambda a: (a["date"], a["from"]))
     return out[:max_items]
 

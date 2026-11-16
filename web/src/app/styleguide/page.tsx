@@ -50,7 +50,7 @@ export default function StyleguidePage() {
             <h1 className="text-4xl font-bold">Rest that is paid for gets taken.</h1>
             <h2 className="text-2xl font-medium">Heading two in Ubuntu 500</h2>
             <p>Body copy in Inter. Plain, direct English. Short sentences.</p>
-            <p className="num text-2xl font-semibold">S$128.70 · 10.46 h · 3.19 h</p>
+            <p className="num text-2xl font-semibold">S$128.75 · 9.78 h · 3.19 h</p>
           </CardContent>
         </Card>
       </Section>
@@ -87,7 +87,7 @@ export default function StyleguidePage() {
             </CardHeader>
             <CardContent className="space-y-2">
               <p>
-                Standard premium: <Money value={128.7} withGst /> a worker a year
+                Standard premium: <Money value={128.75} withGst /> a worker a year
               </p>
               <p>
                 Idle-hour cost about <Money value={10.2} />

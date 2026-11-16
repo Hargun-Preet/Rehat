@@ -4,4 +4,4 @@
 
 **What it never does.** It never changes a price or a payout and never rejects. A flag asks a person to check the declaration. Inputs are firm-level only: no nationality, age, health, gender or worker data.
 
-**Test** on the 300-firm demo book with 8 seeded anomalies (fictional ACRA size and capital): 12 flagged, 8 true, 4 false, 0 missed (precision 67%, recall 100%).
+**Historical baseline only.** The last run used the pre-v2 300-firm demo book with 8 seeded anomalies (fictional ACRA size and capital): 12 flagged, 8 true, 4 false, 0 missed (precision 67%, recall 100%). Re-run it against the current book before showing these figures in Labs or the console.

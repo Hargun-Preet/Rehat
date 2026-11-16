@@ -1,60 +1,120 @@
-import { loadJSON } from "@/lib/data";
-import { dayName, pct, sgd } from "@/lib/format";
-import type { Backtest, Pricing } from "@/lib/types";
+import { sgd } from "@/lib/format";
+import { productPlan, type ProductSpec } from "@/lib/product";
+import { loadProduct } from "@/lib/product.server";
 
 import Pitch, { type Step } from "./Pitch";
 
-type Lq = { current: { settlement_date: string; p50: number; p90: number; p99: number }; validation: { overall_p90_coverage: number } };
+const whole = (value: number) => new Intl.NumberFormat("en-SG", { maximumFractionDigits: 0 }).format(value);
+const compactMoney = (value: number) => `S$${new Intl.NumberFormat("en-SG", { notation: "compact", maximumFractionDigits: 1 }).format(value)}`;
+const point = (text: string, source?: NonNullable<Step["kpi"]["source"]>) => source ? { text, source } : { text };
+
+function fact(product: ProductSpec, id: string) {
+  const found = product.facts.find((item) => item.id === id);
+  if (!found) throw new Error(`Missing product fact: ${id}`);
+  return found.text;
+}
 
 export default async function PitchPage() {
-  const [pr, bt, lq] = await Promise.all([loadJSON<Pricing>("pricing.json"), loadJSON<Backtest>("backtest.json"), loadJSON<Lq>("liquidity.json")]);
-  const std = pr.plans.find((p) => p.plan === "Standard")!;
-  const b = bt.base;
+  const product = await loadProduct();
+  const standard = productPlan(product);
+  const mandatoryHeatTier = product.triggers.heat.tiers.find((tier) => tier.label.includes("mandatory"));
+  const deductible = product.levers.find((lever) => lever.term === "Deductible");
+  if (!mandatoryHeatTier || !deductible) throw new Error("Product terms needed for pitch mode are missing.");
+
+  const planPrices = product.plans.map((plan) => sgd(plan.per_worker_week, 2)).join(" to ");
+  const premiumSplit = product.premium_split.map((part) => whole(part.share * 100)).join(" / ");
   const steps: Step[] = [
     {
-      at: "0:00", title: "The problem", href: "/",
+      at: "0:00", title: "The hook", href: "/",
       points: [
-        "One 20-worker landscaping firm, a hot wet May, payroll due.",
-        "The law already made this loss: rest at WBGT 32 is paid time, and work permit holders are paid on idle days.",
-        "No insurance covers weather downtime without damage.",
+        point(product.copy.hook, "published"),
+        point(product.copy.tagline),
+        point("Rehat protects weather downtime before payroll, without a claim form."),
       ],
-      kpi: { v: "S$510", l: "worked month: 3.19 h x S$8 x 20 workers" },
+      kpi: { v: sgd(product.product.benefit_per_worker_hour), l: "per outdoor worker for each insured hour", source: "plan" },
     },
     {
-      at: "0:45", title: "Why us", href: "/income",
-      points: ["The payer, the channel and the trigger already exist.", "Every small firm with manual workers must buy WIC. Income sells it.", "Rehat is a tick box at WIC renewal."],
-      kpi: { v: sgd(pr.market.income_wic_slice / 1e6, 1) + "M", l: "premium in Income's WIC slice (12% share, assumption)" },
+      at: "0:25", title: "Mr Tan's problem", href: "/employer",
+      points: [
+        point(`${product.demo_firm.owner_display} runs ${product.demo_firm.name}, a ${product.demo_firm.trade} firm with ${whole(product.demo_firm.outdoor_workers)} outdoor workers.`, "plan"),
+        point(`A firm like his carries about ${sgd(product.unit_economics_standard_per_worker.firm_loss_normal_year_20_workers.value)} of weather downtime in a normal year.`, "simulation"),
+        point("The hard months create a payroll cost without physical damage."),
+      ],
+      kpi: { v: sgd(product.unit_economics_standard_per_worker.firm_loss_normal_year_20_workers.value), l: "weather downtime in a normal year", source: "simulation" },
     },
     {
-      at: "1:15", title: "Onboarding in 60 seconds", href: "/onboard",
-      points: ["UEN, then headcount from WIC, then the named station on a map.", "Plan with GST and launch credit.", "The honest sentence, a teach-back question, PDPA consent."],
-      kpi: { v: sgd(std.week, 2), l: "a worker a week, Standard, before GST" },
+      at: "0:55", title: "The rule and reality", href: "/worker",
+      points: [
+        point(product.copy.rule_statement, "published"),
+        point(fact(product, "mom_action"), "published"),
+        point(fact(product, "rain_share"), "simulation"),
+      ],
+      kpi: { v: `${whole(mandatoryHeatTier.rest_minutes)} min`, l: `rest each hour at a heat reading of ${whole(mandatoryHeatTier.from)}`, source: "published" },
     },
     {
-      at: "2:00", title: "Replay 31 October 2025", href: "/replay?autoplay=1",
-      points: ["Real NEA readings at 15 stations, every 15 minutes.", "Rest minutes fill up station by station.", "One record day joins the month; the receipt shows what counts."],
-      kpi: { v: "35.0 C", l: "Sentosa at 12:15, inside the meal hour" },
+      at: "1:25", title: "The opportunity", href: "/insurer",
+      points: [
+        point(`${compactMoney(product.market.all_crews.premium)} of premium if all eligible crews were covered.`, "published"),
+        point(`${compactMoney(product.market.small_firms.premium)} across about ${whole(product.market.small_firms.employers)} small employers.`, "assumption"),
+        point(`Start at renewal with ${whole(product.market.reachable_first.employers)} reachable employers.`, "assumption"),
+      ],
+      kpi: { v: compactMoney(product.market.all_crews.premium), l: "annual premium across all eligible crews", source: "published" },
     },
     {
-      at: "2:45", title: "Site Match", href: "/employer/site-match?log=01_honest_contractor_log.csv", alt: { label: "Show a faked log", href: "/employer/site-match?log=08_threshold_bunched.csv" },
-      points: ["A firm on a hotter site uploads the contractor's heat log.", "Honest log: approved top-up. Faked log: sent to a person, with reasons.", "AI never rejects a claim."],
-      kpi: { v: "10 h", l: "Site Match cap a worker a year" },
+      at: "1:50", title: "How Rehat works", href: "/replay?autoplay=1", alt: { label: "Open the receipt", href: "/employer/receipt" },
+      points: [
+        point(product.copy.one_line, "plan"),
+        point("Every hour, Rehat reads independent NEA heat, rain and haze data at the named station."),
+        point("It counts downtime above the normal month, then pays before payroll. Alerts and the compliance log come with every policy."),
+      ],
+      kpi: { v: "One tick box", l: "at WIC renewal, with no claim form", source: "plan" },
     },
     {
-      at: "3:20", title: "Insurer console", href: "/insurer",
-      points: [`Cash needed on ${dayName(lq.current.settlement_date)}: P50 ${sgd(lq.current.p50)}, P90 ${sgd(lq.current.p90)}.`, "The band narrows as the month goes on.", `Stop-loss at ${pct(pr.reinsurance.chosen_attach)}, hard cap ${pct(pr.reinsurance.hard_cap_lr)}.`],
-      kpi: { v: pct(lq.validation.overall_p90_coverage), l: "of past months came in at or under the P90 forecast" },
+      at: "2:25", title: "A normal month stays with the firm", href: "/employer/receipt",
+      points: [
+        point(product.copy.human_line),
+        point(deductible.plain, "plan"),
+        point(`The benefit is ${sgd(product.product.benefit_per_worker_hour)} an hour. The yearly limit is ${whole(product.limits.insured_hours_per_year)} insured hours, or ${sgd(product.limits.max_payout_per_worker_year)} a worker.`, "plan"),
+      ],
+      kpi: { v: standard.deductible_label, l: "the Standard plan's monthly allowance", source: "plan" },
     },
     {
-      at: "4:00", title: "Back-test and unit economics", href: "/backtest",
-      points: [`${sgd(std.week, 2)} a worker a week. ${b.zero_payout_years_book} of ${b.years.length} years with no payout. ${b.pct_months_paying}% of months pay something.`, `1-in-10 loss ratio ${pct(pr.loss_ratios.one_in_ten)} at the current premium.`, "Honest limits: rebuild accuracy near the threshold, haze history, basis risk."],
-      kpi: { v: `${b.expected_insured_h} h`, l: "expected insured hours a worker a year" },
+      at: "2:55", title: "Choose your deductible", href: "/onboard",
+      points: [
+        point(`Plans run from ${planPrices} a worker a week, before GST.`, "plan"),
+        point(`${standard.name} costs ${sgd(standard.example_20_workers.premium_year)} a year for ${whole(product.demo_firm.outdoor_workers)} workers.`, "back-test"),
+        point(`The observed 26-year result returns ${sgd(standard.example_20_workers.average_payout_year)}. The capped worst year returns ${sgd(standard.example_20_workers.worst_year_payout)}.`, "back-test"),
+      ],
+      kpi: { v: sgd(standard.per_worker_week, 2), l: "a worker a week on Standard, before GST", source: "back-test" },
     },
     {
-      at: "4:30", title: "Roadmap and the ask", href: "/compliance",
-      points: ["Riders via platform WIC. Hawkers via Stallholder Insurance.", "300-firm pilot from April 2027, Income retains the risk.", "Everything uses existing law."],
-      kpi: { v: sgd(pr.pilot.premium), l: "pilot premium, 300 firms and 6,000 workers" },
+      at: "3:30", title: "Profitable from year one", href: "/insurer",
+      points: [
+        point(`${premiumSplit} is the planned split between claims, expenses, reinsurance and profit.`, "plan"),
+        point(`${sgd(product.three_year_path.total_profit)} of profit across the planned three-year path.`, "plan"),
+        point(`The ${whole(product.pilot.firms)}-firm pilot is capped at ${sgd(product.pilot.capped_worst_case)}. A MOM heat action forfeits that month's heat payout.`, "plan"),
+      ],
+      kpi: { v: premiumSplit, l: "claims / expenses / reinsurance / profit", source: "plan" },
+    },
+    {
+      at: "4:00", title: "AI sits in the interface", href: "/labs",
+      points: [
+        point("Rules decide the payout. AI reads, explains and warns."),
+        point("Every receipt explanation is checked against the calculated hours and amount."),
+        point("Anything outside a review band is sent to a person. AI never rejects a claim on its own."),
+      ],
+      kpi: { v: "Rules decide", l: "AI supports the workflow, not the payout" },
+    },
+    {
+      at: "4:25", title: "The ask", href: "/insurer",
+      points: [
+        point(`${whole(product.pilot.firms)} firms from ${product.pilot.start}, with ${whole(product.pilot.workers)} workers.`, "plan"),
+        point(`${compactMoney(product.pilot.premium)} of pilot premium and ${sgd(product.pilot.capped_worst_case)} as the known cap.`, "plan"),
+        point(product.copy.ask),
+      ],
+      kpi: { v: `${whole(product.pilot.firms)} firms`, l: `pilot from ${product.pilot.start}`, source: "plan" },
     },
   ];
+
   return <Pitch steps={steps} />;
 }

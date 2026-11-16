@@ -9,6 +9,7 @@ import { Ellipsis, PageHeader, Section, SourceNote, StateBadge } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { sgd } from "@/lib/format";
+import type { ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 
 export type ReplayData = {
@@ -35,11 +36,22 @@ export type ReplayData = {
   };
 };
 
-const rest = (v: number) => (v >= 33 ? 15 : v >= 32 ? 10 : v >= 31.5 ? 5 : 0);
-const tone = (v: number) => (v >= 33 ? "bg-[#b35300] text-white" : v >= 32 ? "bg-income-orange-700 text-white" : v >= 31.5 ? "bg-income-orange-200 text-ink" : "bg-paper text-ink");
+type HeatTier = ProductSpec["triggers"]["heat"]["tiers"][number];
+
+function rest(v: number, tiers: HeatTier[]) {
+  return [...tiers].reverse().find((tier) => v >= tier.from)?.rest_minutes ?? 0;
+}
+
+function tone(v: number, tiers: HeatTier[]) {
+  const tierIndex = tiers.findIndex((tier, index) => v >= tier.from && (tier.to === null || v <= tier.to) && index >= 0);
+  if (tierIndex === tiers.length - 1) return "bg-[#b35300] text-white";
+  if (tierIndex === tiers.length - 2) return "bg-income-orange-700 text-white";
+  if (tierIndex >= 0) return "bg-income-orange-200 text-ink";
+  return "bg-paper text-ink";
+}
 
 /** Rest owed so far: completed clock hours (hourly mean of four readings), meal hour excluded. */
-function restSoFar(vals: number[], times: string[], idx: number, meal: number) {
+function restSoFar(vals: number[], times: string[], idx: number, meal: number, tiers: HeatTier[]) {
   let total = 0;
   const done: { hour: number; mean: number; minutes: number; meal: boolean }[] = [];
   for (let h = 8; h < 18; h++) {
@@ -48,7 +60,7 @@ function restSoFar(vals: number[], times: string[], idx: number, meal: number) {
     if (!complete) continue;
     const xs = ix.map((i) => vals[i]);
     const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
-    const m = rest(mean);
+    const m = rest(mean, tiers);
     const isMeal = h === meal;
     if (!isMeal) total += m;
     done.push({ hour: h, mean, minutes: m, meal: isMeal });
@@ -66,11 +78,18 @@ function CountUp({ value, format }: { value: number; format: (v: number) => stri
   return <motion.span className="num">{text}</motion.span>;
 }
 
-export default function Replay({ d }: { d: ReplayData }) {
+export default function Replay({ d, product, deductibleLabel }: { d: ReplayData; product: ProductSpec; deductibleLabel: string }) {
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const last = d.times.length - 1;
+  const heatTiers = product.triggers.heat.tiers;
+  const replayDate = new Date(`${product.demo_clock.replay_day}T00:00:00`).toLocaleDateString("en-SG", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("autoplay")) setPlaying(true);
@@ -87,22 +106,23 @@ export default function Replay({ d }: { d: ReplayData }) {
   }, [idx, last]);
 
   const per = useMemo(
-    () => Object.fromEntries(d.stations.map((s) => [s.station_id, restSoFar(d.readings[s.station_id], d.times, idx, d.meal_hour)])),
-    [d, idx],
+    () => Object.fromEntries(d.stations.map((s) => [s.station_id, restSoFar(d.readings[s.station_id], d.times, idx, d.meal_hour, heatTiers)])),
+    [d, heatTiers, idx],
   );
-  const firm = d.firm;
-  const mine = per[firm.station];
-  const value = (mine.total / 60) * firm.benefit * firm.workers;
-  const maxRest = 65;
+  const receiptFirm = d.firm;
+  const mine = per[receiptFirm.station];
+  const value = (mine.total / 60) * product.product.benefit_per_worker_hour * product.demo_firm.outdoor_workers;
   const finished = idx >= last;
-  const oct = firm.october;
+  const oct = receiptFirm.october;
   const network = d.stations.map((s) => per[s.station_id].total);
   const mean = network.reduce((a, b) => a + b, 0) / network.length;
+  const maxRest = Math.max(1, ...network);
+  const namedStation = d.stations.find((station) => station.station_id === receiptFirm.station)?.name ?? product.demo_firm.site_area;
 
   return (
     <>
-      <PageHeader eyebrow="Record day replay" title="Friday 31 October 2025, a record heat-stress day">
-        Real NEA readings every 15 minutes at 15 stations. Watch mandated rest build up hour by hour. Peak: 35.0 C at Sentosa at 12:15, inside the meal hour.
+      <PageHeader eyebrow="Record day replay" title={`${replayDate}: a record heat-stress day`}>
+        Real NEA heat reading (WBGT) data builds the rest owed hour by hour for {product.demo_firm.name}. The monthly allowance decides whether any benefit is due.
       </PageHeader>
       <Section>
         <div className="sticky top-16 z-20 mb-6 rounded-2xl border border-line bg-surface/95 p-4 backdrop-blur">
@@ -133,12 +153,12 @@ export default function Replay({ d }: { d: ReplayData }) {
             {d.stations.map((s) => {
               const v = d.readings[s.station_id][idx];
               const r = per[s.station_id];
-              const isFirm = s.station_id === firm.station;
+              const isFirm = s.station_id === receiptFirm.station;
               return (
                 <div key={s.station_id} className={cn("rounded-2xl border bg-surface p-3", isFirm ? "border-2 border-income-orange" : "border-line")}>
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-medium leading-tight">{s.name}</p>
-                    <span className={cn("num rounded-lg px-2 py-0.5 text-sm font-semibold", tone(v))}>{v.toFixed(1)}</span>
+                    <span className={cn("num rounded-lg px-2 py-0.5 text-sm font-semibold", tone(v, heatTiers))}>{v.toFixed(1)}</span>
                   </div>
                   <p className="mt-2 text-[11px] text-muted-foreground">Rest owed so far</p>
                   <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-paper" role="meter" aria-valuemin={0} aria-valuemax={maxRest} aria-valuenow={r.total} aria-label={`${s.name} rest minutes`}>
@@ -146,7 +166,7 @@ export default function Replay({ d }: { d: ReplayData }) {
                   </div>
                   <p className="num mt-1 text-xs">
                     <span className="font-semibold">{r.total} min</span>
-                    {isFirm ? <span className="ml-1 text-income-orange-700">· {firm.name.split(" ")[0]}</span> : null}
+                    {isFirm ? <span className="ml-1 text-income-orange-700">· {product.demo_firm.name.split(" ")[0]}</span> : null}
                   </p>
                 </div>
               );
@@ -156,13 +176,13 @@ export default function Replay({ d }: { d: ReplayData }) {
           <div className="space-y-4">
             <div className="rounded-2xl border-2 border-income-orange bg-surface p-5 shadow-[var(--shadow-raised)]">
               <p className="text-sm text-muted-foreground">
-                {firm.name}, {firm.workers} outdoor workers, named station Jurong West
+                {product.demo_firm.name}, {product.demo_firm.outdoor_workers} outdoor workers, named station {namedStation}
               </p>
-              <p className="mt-3 text-xs text-muted-foreground">Paid rest owed today, a worker</p>
+              <p className="mt-3 text-xs text-muted-foreground">Rest owed today, a worker</p>
               <p className="font-heading text-4xl font-bold">
                 <CountUp value={mine.total} format={(v) => `${Math.round(v)} min`} />
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">Wages for that rest across the crew, at S${firm.benefit} an hour</p>
+              <p className="mt-2 text-xs text-muted-foreground">Benefit before the monthly allowance, at S${product.product.benefit_per_worker_hour} an hour</p>
               <p className="font-heading text-2xl font-bold text-income-orange-700">
                 <CountUp value={value} format={(v) => sgd(v, 2)} />
               </p>
@@ -187,7 +207,7 @@ export default function Replay({ d }: { d: ReplayData }) {
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-line bg-surface p-5">
                 <p className="text-sm font-semibold">How this day reaches the October receipt</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Today&apos;s {mine.total} minutes join every other counted hour in October at Jurong West. Rehat pays only the hours above the station&apos;s normal October plus 25%.
+                  Today&apos;s {mine.total} minutes join every other counted hour in October at {namedStation}. Rehat pays only the hours above the station&apos;s monthly allowance.
                 </p>
                 <table className="mt-3 w-full text-sm">
                   <tbody>
@@ -196,7 +216,7 @@ export default function Replay({ d }: { d: ReplayData }) {
                       <td className="num py-1 text-right">{oct.perils.heat.counted_h.toFixed(2)} h</td>
                     </tr>
                     <tr className="border-b border-line-soft">
-                      <td className="py-1">Normal plus 25%</td>
+                      <td className="py-1">{deductibleLabel}</td>
                       <td className="num py-1 text-right">{oct.perils.heat.allowance_h.toFixed(2)} h</td>
                     </tr>
                     <tr className="border-b border-line-soft">
@@ -217,17 +237,20 @@ export default function Replay({ d }: { d: ReplayData }) {
                     : "One record day is not a bad month. If October stays within normal at your station, nothing is paid, and the receipt says why."}
                 </p>
                 <Button asChild variant="secondary" size="sm" className="mt-3">
-                  <Link href="/employer/receipt">Open the receipt</Link>
+                  <Link href={`/employer/receipt?month=${product.demo_clock.replay_receipt_month}`}>Open the receipt</Link>
                 </Button>
               </motion.div>
             ) : null}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-paper ring-1 ring-line" /> below 31.5</span>
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-income-orange-200" /> 31.5 to 31.9: 5 min</span>
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-income-orange" /> 32 to 32.9: 10 min</span>
-          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-[#b35300]" /> 33 and above: 15 min</span>
+          <span className="flex items-center gap-1"><span className="h-3 w-3 rounded bg-paper ring-1 ring-line" /> below {heatTiers[0].from}</span>
+          {heatTiers.map((tier, index) => (
+            <span key={tier.from} className="flex items-center gap-1">
+              <span className={cn("h-3 w-3 rounded", index === heatTiers.length - 1 ? "bg-[#b35300]" : index === heatTiers.length - 2 ? "bg-income-orange" : "bg-income-orange-200")} />
+              {tier.to === null ? `${tier.from} and above` : `${tier.from} to ${tier.to}`}: {tier.rest_minutes} min
+            </span>
+          ))}
           <span>Badges show the current 15-minute reading; rest is set on each completed hour&apos;s mean.</span>
         </div>
         <SourceNote>{d.source}</SourceNote>

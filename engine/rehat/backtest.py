@@ -9,7 +9,8 @@ Data:
 - Haze: NEA 24-hour PSI where pulled (2025 onward; earlier PSI is patchy). Haze before that is NOT in the back-test,
   so the back-test understates haze years (1997, 2006, 2013, 2015, 2019). Stated in docs/backtest.md.
 
-Representative firm: 1 worker, Standard (S$8/h), premium S$128.70 (CONTEXT.md section 4).
+Representative firm: 1 worker on the published Standard plan. Its benefit and
+premium are read from the versioned product specification.
 """
 from __future__ import annotations
 
@@ -22,16 +23,49 @@ import numpy as np
 import pandas as pd
 
 from rehat import rules
+from rehat import product as product_source
 from rehat.ledger import demo_book
 from rehat.paths import DOCS, PROCESSED, SEED, WEB_DATA
 from rehat.stations import haversine_km, nearest, psi_region_for, wbgt_stations
 
-PREMIUM_STANDARD = 128.70
-BENEFIT = 8.0
+PREMIUM_STANDARD = product_source.get_product().default_plan.per_worker_year
+BENEFIT = product_source.get_product().product.benefit_per_worker_hour
 FIRST_YEAR, LAST_YEAR = 2000, 2025  # complete years
 BASELINE = (2000, 2024)  # normals
 DEFAULT_RAIN_SHARE = 0.55
 MSS_CODES = ["S24", "S06", "S43", "S109", "S44", "S50", "S60", "S117", "S81", "S64", "S107"]  # with gauge coordinates
+
+
+def published_calibration() -> dict[str, object]:
+    """Return the approved Standard calibration without recalculating it from the pilot mix.
+
+    The fictitious pilot book is useful for geographic portfolio diagnostics,
+    but its changing station mix is not a customer price input.  The published
+    calibration therefore remains a product decision with its own cited basis.
+    """
+    raw = product_source.product_dict()
+    economics = raw["unit_economics_standard_per_worker"]
+    if not isinstance(economics, dict):
+        raise ValueError("product.json unit_economics_standard_per_worker must be an object")
+    expected_hours = economics["expected_insured_hours_year"]
+    expected_payout = economics["expected_payout_year"]
+    one_in_ten = economics["one_in_ten_year_payout"]
+    worst = economics["worst_backtest_year_payout"]
+    if not all(isinstance(item, dict) for item in (expected_hours, expected_payout, one_in_ten, worst)):
+        raise ValueError("product.json Standard unit-economics entries must be objects")
+    return {
+        "scope": "Published Standard pricing calibration. It is not recalculated from the fictional pilot-book geographic mix.",
+        "expected_insured_h": float(expected_hours["value"]),
+        "expected_payout": float(expected_payout["value"]),
+        "standard_price": PREMIUM_STANDARD,
+        "observed_loss_ratio": round(float(expected_payout["value"]) / PREMIUM_STANDARD, 3),
+        "one_in_ten_payout": float(one_in_ten["value"]),
+        "one_in_ten_loss_ratio": float(one_in_ten["loss_ratio"]),
+        "worst_payout": float(worst["value"]),
+        "worst_loss_ratio": float(worst["loss_ratio"]),
+        "source": expected_payout.get("source"),
+        "basis": expected_payout.get("basis"),
+    }
 
 
 # ---------------------------------------------------------------- heat
@@ -357,7 +391,15 @@ def changi_long_view(first: int = 1983, last: int = 2018) -> dict:
 
 
 # ---------------------------------------------------------------- run everything
-BASE = dict(rule="nearest", delta=0.0, nearmiss=True, allow=1.25, mcap=20.0, ycap=60.0, haze_days=3)
+BASE = dict(
+    rule="nearest",
+    delta=0.0,
+    nearmiss=True,
+    allow=product_source.get_product().default_plan.allowance_multiple,
+    mcap=rules.MONTHLY_CAP_H,
+    ycap=rules.YEARLY_CAP_H,
+    haze_days=3,
+)
 
 
 def run_case(**kw) -> dict:
@@ -420,7 +462,8 @@ def grid() -> dict:
                     "zf": s["zero_payout_years_avg_firm"], "m": s["pct_months_paying"], "y": s["annual_insured_h"],
                 }
     return {"dims": {"rule": rules_, "delta": deltas, "nearmiss": [1, 0], "allow": allows, "mcap": mcaps, "ycap": ycaps},
-            "note": "delta = estimation error minus threshold shift. Payout = hours x benefit. LR at the premium for that benefit (S$128.70 x benefit / 8).",
+            "scope": "Geographic-mix portfolio sensitivity. It does not replace the published Standard pricing calibration.",
+            "note": f"delta = estimation error minus threshold shift. Payout = hours x benefit. Loss ratio uses the published Standard annual price (S${PREMIUM_STANDARD:.2f}) and product benefit (S${BENEFIT:g}).",
             "cells": out}
 
 
@@ -431,6 +474,7 @@ def run() -> dict:
     stations = station_table()
     write_normals(stations, share_basis)
     base = run_case()
+    base["scope"] = "Fictional pilot-book geographic-mix portfolio diagnostic. It is not the published Standard pricing calibration."
     tornado_cases = {
         "No near-miss tier (31.5 to 31.9 pays nothing)": dict(nearmiss=False),
         "Heat thresholds +0.5 C (32.5 / 33.5)": dict(delta=-0.5),
@@ -453,7 +497,13 @@ def run() -> dict:
     changi = changi_long_view()
     _, haze_cov = haze_monthly("central")
     result = {
+        "published_calibration": published_calibration(),
         "base": base,
+        "portfolio_diagnostic": {
+            "scope": "Fictional pilot-book geographic mix used for portfolio, capital and cash diagnostics only.",
+            "firms": len(demo_book()),
+            "station_groups": len(groups()),
+        },
         "rain_window_share": share,
         "rain_window_share_basis": share_basis,
         "haze_months_covered": int(haze_cov.sum()),
@@ -462,8 +512,6 @@ def run() -> dict:
         "basis_risk": br,
         "changi_long_view": changi,
         "groups": len(groups()),
-        "proxy_in_context": {"expected_insured_h": 10.46, "zero_payout_years": "0 of 36", "pct_months_paying": 55, "rain_days_10mm_mean": 61.4,
-                              "loss_ratio_1in10": 1.24},
     }
     (PROCESSED / "backtest.json").write_text(json.dumps(result, indent=1))
     WEB_DATA.mkdir(parents=True, exist_ok=True)
@@ -475,29 +523,38 @@ def run() -> dict:
 
 def write_doc(r: dict) -> None:
     b, c = r["base"], r["changi_long_view"]
-    p = r["proxy_in_context"]
+    published = r["published_calibration"]
+    portfolio = r["portfolio_diagnostic"]
     lines = [
         "# Product back-test",
         "",
         "Generated by `python -m rehat.backtest`. Exact product rules (`rules.py`) on history: heat from NEA WBGT where observed and corrected ERA5 rebuild elsewhere; rain from MSS daily records; haze from NEA PSI where pulled.",
-        f"Representative firm: 1 worker, Standard S$8/h, premium S${PREMIUM_STANDARD}. Book weighted by the 300-firm demo book ({r['groups']} station groups). Years {FIRST_YEAR} to {LAST_YEAR}. Normals: {BASELINE[0]} to {BASELINE[1]}.",
+        f"Representative firm: 1 worker on the Standard plan, S${BENEFIT:g} benefit an insured hour and S${PREMIUM_STANDARD:.2f} annual price. Years {FIRST_YEAR} to {LAST_YEAR}. Normals: {BASELINE[0]} to {BASELINE[1]}.",
         "",
-        "## Headline numbers",
+        "## Published Standard calibration",
         "",
-        "| Number | Back-test | Proxy in CONTEXT.md (before) |",
-        "|---|---|---|",
-        f"| Expected insured hours a worker a year | {b['expected_insured_h']} | {p['expected_insured_h']} |",
-        f"| Expected payout a worker a year | S${b['expected_payout']} | S$84 |",
-        f"| Zero-payout years (book) | {b['zero_payout_years_book']} of {len(b['years'])} | {p['zero_payout_years']} |",
-        f"| Zero-payout years (average firm) | {b['zero_payout_years_avg_firm']} of {len(b['years'])} | |",
-        f"| Months paying something | {b['pct_months_paying']}% | {p['pct_months_paying']}% |",
-        f"| 1-in-10 loss ratio | {b['loss_ratio_1in10']:.0%} | {p['loss_ratio_1in10']:.0%} |",
-        f"| Worst year | {b['worst_year']}: S${b['worst_payout']} ({b['worst_loss_ratio']:.0%}) | 1997-like S$295 (229%) |",
-        f"| Firm-years hitting the 60 h cap | {b['cap_hit_station_years_pct']}% | |",
+        f"{published['scope']} Expected insured hours are {published['expected_insured_h']:.2f}; expected payout is S${published['expected_payout']:.2f}; observed loss ratio at the published price is {published['observed_loss_ratio']:.0%}. Basis: {published['basis']}",
+        "",
+        "## Pilot geographic-mix portfolio diagnostic",
+        "",
+        f"{portfolio['scope']} This run weights the {portfolio['firms']}-firm pilot book across {portfolio['station_groups']} station groups. It supports portfolio and cash analysis only; it does not replace the published calibration above.",
+        "",
+        "## Pilot geographic-mix diagnostic numbers",
+        "",
+        "| Number | Back-test |",
+        "|---|---|",
+        f"| Expected insured hours a worker a year | {b['expected_insured_h']} |",
+        f"| Expected payout a worker a year | S${b['expected_payout']} |",
+        f"| Zero-payout years (book) | {b['zero_payout_years_book']} of {len(b['years'])} |",
+        f"| Zero-payout years (average firm) | {b['zero_payout_years_avg_firm']} of {len(b['years'])} |",
+        f"| Months paying something | {b['pct_months_paying']}% |",
+        f"| 1-in-10 loss ratio | {b['loss_ratio_1in10']:.0%} |",
+        f"| Worst year | {b['worst_year']}: S${b['worst_payout']} ({b['worst_loss_ratio']:.0%}) |",
+        f"| Firm-years hitting the 60 h cap | {b['cap_hit_station_years_pct']}% |",
         "",
         "## MSS Changi long view (rain only, 1983 to 2018)",
         "",
-        f"- Rain days of 10 mm or more: mean {c['rain_days_10mm_mean']} a year (min {c['rain_days_10mm_min'][1]} in {c['rain_days_10mm_min'][0]}, max {c['rain_days_10mm_max'][1]} in {c['rain_days_10mm_max'][0]}). Proxy said 61.4 (32 in 1997, 81 in 2013).",
+        f"- Rain days of 10 mm or more: mean {c['rain_days_10mm_mean']} a year (min {c['rain_days_10mm_min'][1]} in {c['rain_days_10mm_min'][0]}, max {c['rain_days_10mm_max'][1]} in {c['rain_days_10mm_max'][0]}).",
         f"- Rain-only expected insured hours: {c['rain_only_expected_insured_h']} a year; zero-payout years {c['rain_only_zero_payout_years']}; months paying {c['rain_only_pct_months_paying']}%.",
         f"- MSS publishes the highest 60-minute rainfall only from 2020. Before that it is imputed from the daily total (median ratio by size of day, measured 2020 onward): {c['missing_max60_days_pct']}% of these days are imputed.",
         "",
@@ -515,9 +572,9 @@ def write_doc(r: dict) -> None:
         "|---|---|---|---|",
         *[f"| {x['station_id']} {x['name']} | {x['basis_risk_pct']} | {x['station_triggered_pct']} | {', '.join(x['neighbours'])} |" for x in r["basis_risk"]["by_station"]],
         "",
-        "## Why the numbers differ from the proxy",
+        "## Limits of the historical test",
         "",
-        f"- Rain hours come from MSS daily records with an estimator (wettest hour by tier plus 0.5 h per further 5 mm), scaled by the window share {r['rain_window_share']} ({r['rain_window_share_basis']}). The proxy counted rain days, not hours.",
+        f"- Rain hours come from MSS daily records with an estimator (wettest hour by tier plus 0.5 h per further 5 mm), scaled by the window share {r['rain_window_share']} ({r['rain_window_share_basis']}).",
         "- Heat comes from a WBGT rebuild whose band agreement near the threshold is limited (see docs/wbgt-validation.md). Heat frequencies are estimates.",
         f"- Haze: PSI is only in the back-test where NEA data was pulled ({r['haze_months_covered']} region-months). Haze years before 2025 (1997, 2006, 2013, 2015, 2019) are missing, so the back-test UNDERSTATES haze. Pricing adds a haze load (docs/pricing.md).",
         "- The allowance is relative to each station's own normal, so a uniformly hotter station does not pay more; only months worse than that station's normal pay.",

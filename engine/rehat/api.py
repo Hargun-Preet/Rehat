@@ -11,16 +11,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from rehat import ledger as L
+from rehat import product as product_source
 from rehat.paths import PROCESSED
 from rehat.stations import rain_gauges, wbgt_stations
 
-app = FastAPI(title="Rehat engine (concept prototype)", version="0.1.0")
+app = FastAPI(title="Rehat engine", version="2.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/product")
+def get_product() -> dict[str, object]:
+    """Canonical, validated product terms and verbatim copy for online clients."""
+    return product_source.product_dict()
 
 
 @app.get("/stations")
@@ -62,19 +69,36 @@ def get_receipt(uen: str, month: str) -> dict[str, Any]:
 
 
 class QuoteIn(BaseModel):
-    """Only plan, benefit (from plan) and headcount. No personal data."""
+    """Only the selected v2 plan and declared outdoor headcount. No personal data."""
 
     workers: int = Field(gt=0, le=500)
-    plan: Literal["Lite", "Standard"] = "Standard"
-    site_match: bool = False
+    plan: Literal["essential", "standard", "plus"] = "standard"
 
 
 @app.post("/quote")
 def post_quote(q: QuoteIn) -> dict[str, Any]:
-    from rehat import pricing
+    """Return a quote from the versioned product terms, including 9% GST.
 
-    p = json.loads((PROCESSED / "pricing.json").read_text())
-    return pricing.quote(q.workers, q.plan, p["expected_insured_h"], q.site_match, p["site_match_rider"]["week"])
+    This does not depend on the historical pricing calibration file. That file
+    remains a diagnostic input for the Labs back-test, while a live quote must
+    use the published plan terms in ``product.json``.
+    """
+    spec = product_source.get_product()
+    plan = spec.plan_by_id(q.plan)
+    before_gst = round(q.workers * plan.per_worker_year, 2)
+    gst = round(before_gst * spec.product.gst_rate, 2)
+    return {
+        "inputs_used": list(spec.price_inputs_allowed),
+        "plan": {"id": plan.id, "name": plan.name, "deductible_label": plan.deductible_label, "source": plan.source},
+        "benefit_per_hour": spec.product.benefit_per_worker_hour,
+        "workers": q.workers,
+        "per_worker_year": plan.per_worker_year,
+        "per_worker_week": plan.per_worker_week,
+        "premium_before_gst": before_gst,
+        "gst_rate": spec.product.gst_rate,
+        "gst": gst,
+        "premium_with_gst": round(before_gst + gst, 2),
+    }
 
 
 @app.get("/backtest")

@@ -2,23 +2,30 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
-from rehat import explain, rules
+from rehat import explain, product, rules
 from rehat.ledger import FirmMonthLedger, demo_book, firm_by_uen, policy_year_ledgers
 from rehat.paths import PROCESSED, SEED, WEB_DATA
 from rehat.stations import psi_regions, rain_gauges, region_of_station, suggest_station, wbgt_stations
 
 FLAGSHIP = "T99DM0001B"  # Tanjong Greenworks, Jurong West
-BISHAN = "T99DM0002C"  # Lim Landscaping, Bishan
 
 
 def _w(name: str, obj) -> None:
     (WEB_DATA / name).write_text(json.dumps(obj, default=str))
+
+
+def product_data() -> None:
+    """Copy the canonical product source exactly so the web app can work offline."""
+    source = product.product_path()
+    product.load_product(source)
+    shutil.copyfile(source, WEB_DATA / "product.json")
 
 
 def stations() -> None:
@@ -39,10 +46,10 @@ def _months_with_payout(uen: str, months: list[str]) -> list[str]:
 
 
 def receipts() -> list[dict]:
-    """Receipts with explanations for the demo firms. Picks recent months, plus the worked-month firm."""
+    """Receipts for the one fictional demo firm used throughout the walkthrough."""
     months = [p.strftime("%Y-%m") for p in pd.period_range("2025-03", "2026-10", freq="M")]
     out_index = []
-    for uen in (FLAGSHIP, BISHAN):
+    for uen in (FLAGSHIP,):
         f = firm_by_uen(uen)
         leds = policy_year_ledgers(f, [m for m in months if m.startswith("2025")]) + policy_year_ledgers(f, [m for m in months if m.startswith("2026")])
         for led in leds:
@@ -119,38 +126,43 @@ def live() -> None:
 
 
 def worker() -> None:
-    _w("worker.json", {"notices": explain.WORKER_NOTICE, "langs": {k: v for k, v in explain.LANGS.items()}, "note": explain.REVIEW_NOTE})
+    _w("worker.json", {
+        "notices": explain.WORKER_NOTICE,
+        "notice_status": explain.WORKER_NOTICE_STATUS,
+        "langs": dict(explain.LANGS),
+        "note": explain.REVIEW_NOTE,
+    })
 
 
 def onboarding() -> None:
+    spec = product.get_product()
     f = firm_by_uen(FLAGSHIP)
     s = f.sites[0]
     try:
         sug = suggest_station(s.lat, s.lon)
     except Exception:  # noqa: BLE001
         sug = None
-    pr = json.loads((PROCESSED / "pricing.json").read_text())
     _w("onboarding.json", {
         "firm": {"uen": f.uen, "name": f.name, "trade": f.trade, "outdoor_workers": f.outdoor_workers, "wage_band": f.wage_band,
                  "wic_policy_no": f.wic_policy_no, "site": asdict(s), "primary_station": f.primary_station, "backup_station": f.backup_station,
                  "rain_gauge": f.rain_gauge, "psi_region": f.psi_region, "meal_hour": f.meal_hour},
         "station_reason": next(x["station_reason"] for x in json.loads((SEED / "firms.json").read_text()) if x["uen"] == f.uen),
         "suggestion": sug,
-        "prices": {"plans": pr["plans"], "rider": pr["site_match_rider"], "gst": pr["gst"], "launch_credit": pr["launch_credit"], "launch_credit_ends": pr["launch_credit_ends"],
-                   "expected_insured_h": pr["expected_insured_h"], "basis": pr["expected_insured_h_basis"]},
-        "may_not_pay": "Rehat pays only when NEA's published readings at your named station cross the levels shown; your own site can be hotter or wetter than the station, so you can lose work time and receive nothing.",
-        "sms": "Rehat: if NEA's Bishan station shows heat (WBGT 32+), heavy rain or haze in work hours beyond a normal month, we pay $8/worker/hr. Station only, not your site.",
+        "plans": [plan.model_dump(mode="json") for plan in spec.plans],
+        "gst_rate": spec.product.gst_rate,
+        "may_not_pay": spec.copy_text("may_not_pay"),
+        "sms": spec.copy_text("employer_sms"),
     })
 
 
 def book() -> None:
-    rows = [{"uen": f.uen, "name": f.name, "trade": f.trade, "workers": f.outdoor_workers, "plan": f.plan, "site_match": f.site_match,
+    rows = [{"uen": f.uen, "name": f.name, "trade": f.trade, "workers": f.outdoor_workers, "plan": f.plan_id,
              "station": f.primary_station, "region": f.psi_region, "lat": f.sites[0].lat, "lon": f.sites[0].lon} for f in demo_book()]
     _w("book.json", rows)
 
 
 def fairness() -> None:
-    """Payout rate by region and firm size from the back-test station groups (price inputs: plan, benefit, headcount)."""
+    """Payout rate by region and firm size from the back-test station groups."""
     bt = json.loads((PROCESSED / "backtest.json").read_text())
     st = {s["station_id"]: s for s in bt["stations"]}
     rows = []
@@ -162,7 +174,7 @@ def fairness() -> None:
         rows.append({"region": f.psi_region, "size": size, "h": s["expected_insured_h"], "months": s["pct_months_paying"]})
     df = pd.DataFrame(rows)
     _w("fairness.json", {
-        "price_inputs": ["Plan (Lite or Standard)", "Benefit per hour", "Declared outdoor headcount"],
+        "price_inputs": list(product.get_product().price_inputs_allowed),
         "never_used": ["Nationality", "Age", "Health", "Gender", "Any worker personal data", "Firm location (price is the same across Singapore)"],
         "by_region": df.groupby("region").agg(expected_insured_h=("h", "mean"), pct_months_paying=("months", "mean"), firms=("h", "size")).round(2).reset_index().to_dict(orient="records"),
         "by_size": df.groupby("size").agg(expected_insured_h=("h", "mean"), pct_months_paying=("months", "mean"), firms=("h", "size")).round(2).reset_index().to_dict(orient="records"),
@@ -171,19 +183,19 @@ def fairness() -> None:
 
 COMPLIANCE = [
     # (requirement, source, what the product does, screen, code)
-    ("Offered by or with Income as the licensed insurer", "Brief must-have; Insurance Act, MAS", "Every page footer and the onboarding say 'Underwritten by Income Insurance Limited (proposed)' and 'Concept prototype'. Sold as an add-on to Income's WIC.", "/income, every page footer", "web/src/components/brand/PrototypeFooter.tsx"),
+    ("Offered by or with Income as the licensed insurer", "Brief must-have; Insurance Act, MAS", "The required footer identifies fictional demo data and proposed underwriting. Rehat is shown as an add-on to Income's WIC.", "/income, every page footer", "shared page footer"),
     ("Triggers and pricing use independent, verifiable data", "Brief must-have", "Triggers read NEA WBGT, rain gauge and PSI from data.gov.sg; every call cached with URL and time; pricing from a back-test on the same data plus MSS records.", "/live, /replay, /backtest", "engine/rehat/ingest/datagov.py, engine/rehat/rules.py"),
-    ("Customer understands what they pay for and when they get paid in under a minute", "Brief must-have", "Onboarding shows plan, weekly price, GST, the may-not-pay sentence and a teach-back question; a timer shows elapsed seconds.", "/onboard", "web/src/app/onboard/Onboard.tsx"),
+    ("Customer understands what they pay for and when they get paid in under a minute", "Brief must-have", "Four-step onboarding keeps the renewal estimate visible while it shows the plan, weekly price, GST, may-not-pay sentence and teach-back. Confirmation stays blocked until the correct answer and consent.", "/onboard", "web/src/app/onboard/Onboard.tsx"),
     ("Business identity checked against an official source", "ACRA register (data.gov.sg)", "The UEN typed at onboarding is checked for format, then looked up on ACRA's public register (name, entity type, status). Fictional demo UENs are never sent. Production route: Corppass with Myinfo Business.", "/onboard", "engine/rehat/uen.py, GET /uen/{uen}"),
-    ("Collect only the personal data needed; AI decisions explainable", "Brief must-have; PDPA", "Only UEN, WIC policy number, outdoor headcount, wage band, site addresses, PayNow (UEN) and one contact. No worker data. Every AI check outputs a reason.", "/onboard (Your data step), /employer/site-match", "web/src/app/onboard/Onboard.tsx (PDPA), engine/rehat/sitematch.py"),
-    ("No new hardware for the core product", "Brief must-have", "Core product uses NEA's public stations. Site Match uses logs the main contractor already keeps.", "/live, /employer/site-match", "engine/rehat/rules.py"),
+    ("Collect only the personal data needed; AI decisions explainable", "Brief must-have; PDPA", "Only UEN, WIC policy number, outdoor headcount, wage band, site addresses, PayNow (UEN) and one contact. No worker data. Every AI check outputs a reason.", "/onboard (Confirm step), /labs", "web/src/app/onboard/Onboard.tsx (PDPA), engine/rehat/sitematch.py"),
+    ("No new hardware for the core product", "Brief must-have", "Core product uses NEA's public stations. The Labs pilot can review logs the main contractor already keeps.", "/live, /labs", "engine/rehat/rules.py"),
     ("WIC compulsory for manual workers and non-manual earning S$2,600 or less", "Work Injury Compensation Act, MOM", "Rehat needs an active WIC policy; headcount comes from the WIC declaration; lapsed WIC excludes the month.", "/income, /onboard", "engine/rehat/rules.py exclusions(WIC_LAPSED)"),
-    ("Heat-stress rest: WBGT 32+ 10 min/h, 33+ 15 min/h; paid working time; hourly monitoring", "MOM heat stress framework and FAQs", "Heat tiers mirror MOM (plus a 5 min near-miss tier at 31.5); hourly mean of four NEA readings; worker notices state the rule.", "/replay, /worker", "engine/rehat/rules.py heat_rest_minutes"),
-    ("Four measures mandatory from 1 Dec 2026: heat-stress training, cool water, cooling supplies, suitable clothing", "MOM, 28 Aug 2026", "Listed for employers at renewal; renewal reward for compliance (concept).", "/compliance", "this table"),
+    ("Heat-stress rest: WBGT 32+ 10 min/h, 33+ 15 min/h; hourly monitoring", "MOM heat stress framework and FAQs", "Heat tiers mirror MOM (plus a 5 min near-miss tier at 31.5); worker notices use the published English wording. Other languages wait for native-speaker review.", "/replay, /worker", "engine/rehat/rules.py heat_rest_minutes"),
+    ("Four measures mandatory from 1 Dec 2026: heat-stress training, cool water, cooling supplies, suitable clothing", "MOM, 28 Aug 2026", "Listed for employers at renewal; the optional renewal discount remains a pilot assumption.", "/compliance", "this table"),
     ("Declared salary owed on idle days", "MOM Work Permit FAQ", "Basis of insurable interest for rain and haze hours.", "/ (landing)", "engine/rehat/rules.py rain_hours, haze_hours"),
     ("Haze guidance for outdoor work", "MOM haze guidelines (Oct 2026)", "Haze tiers on NEA 24-hour PSI at 12:00; PSI chips on the live map.", "/live", "engine/rehat/rules.py haze_hours"),
     ("Fair dealing and disclosure", "MAS Guidelines on Fair Dealing (revised May 2024)", "May-not-pay sentence shown verbatim before purchase; teach-back answer recorded with explanation; plain-language receipts.", "/onboard, /employer/receipt", "web/src/app/onboard/Onboard.tsx"),
-    ("Fair, explainable AI", "MAS FEAT principles; Veritas", "Price uses plan, benefit and headcount only; every AI check gives a reason; humans review flags; model cards; explainer cannot change numbers.", "/insurer (Fairness), /employer/receipt", "engine/rehat/pricing.py quote(), engine/rehat/explain.py, docs/model-cards/"),
+    ("Fair, explainable AI", "MAS FEAT principles; Veritas", "Price uses plan and declared outdoor headcount only; every AI check gives a reason; humans review flags; model cards; explainer cannot change numbers.", "/insurer (Fairness), /employer/receipt", "engine/rehat/pricing.py quote(), engine/rehat/explain.py, docs/model-cards/"),
     ("Climate risk management", "MAS Guidelines on Environmental Risk Management for Insurers (2020) and transition addendum (Mar 2026)", "Back-test with stress cases, season view by ENSO, annual repricing from normals, climate assumptions disclosed.", "/backtest, /insurer", "engine/rehat/backtest.py, engine/rehat/liquidity.py"),
     ("Personal data", "PDPA", "Consent and purpose screen; workers opt in to notices by QR without personal data; delete at policy end.", "/onboard, /worker", "web/src/app/worker/Worker.tsx"),
     ("Insurable interest", "Income brief constraint", "Benefit (S$8) below the idle-hour cost (about S$10.20, assumption); only firms with declared outdoor workers; one policy per UEN.", "/onboard", "engine/rehat/pricing.py ASSUMPTIONS"),
@@ -204,7 +216,7 @@ def main() -> None:
     WEB_DATA.mkdir(parents=True, exist_ok=True)
     from rehat import numbers
 
-    steps = [stations, receipts, replay, live, worker, onboarding, book, fairness, compliance]
+    steps = [product_data, stations, receipts, replay, live, worker, onboarding, book, fairness, compliance]
     done = []
     for step in steps:
         step()

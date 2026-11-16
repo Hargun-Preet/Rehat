@@ -1,4 +1,4 @@
-"""Generate the fictional demo book: data/seed/firms.json (300 firms). Deterministic (seed 7).
+"""Generate the fictional pilot book from product.json. Deterministic (seed 7).
 
 All firms, UENs, policy numbers and addresses are fictional. UENs use the "T99DM" prefix, which no real entity has.
 """
@@ -8,6 +8,7 @@ import json
 
 import numpy as np
 
+from rehat import product
 from rehat.paths import SEED
 from rehat.stations import assign
 
@@ -33,8 +34,7 @@ WAGE_BANDS = ["S$1,600 to S$2,000", "S$2,000 to S$2,400", "S$2,400 to S$2,600"]
 
 
 def make_firm(i: int, rng: np.random.Generator, name: str | None = None, town: str | None = None, workers: int | None = None,
-              plan: str | None = None, sector: str | None = None, site_match: bool | None = None,
-              at: tuple[float, float] | None = None) -> dict:
+              plan: str | None = None, sector: str | None = None, at: tuple[float, float] | None = None) -> dict:
     sector = sector or rng.choice(["construction"] * 6 + ["landscaping"] * 2 + ["cleaning"] * 2)
     if town:
         t = next(x for x in TOWNS if x[0] == town)
@@ -48,7 +48,7 @@ def make_firm(i: int, rng: np.random.Generator, name: str | None = None, town: s
         name = f"{WORDS_A[rng.integers(len(WORDS_A))]} {TRADES[sector][rng.integers(len(TRADES[sector]))]} Pte Ltd"
     if plan is None:
         u = rng.random()
-        plan, site_match = ("Standard", False) if u < 0.6 else (("Lite", False) if u < 0.9 else ("Standard", True))
+        plan = "essential" if u < 0.25 else ("standard" if u < 0.75 else "plus")
     workers = workers or int(np.clip(round(rng.lognormal(2.7, 0.55)), 5, 60))
     a = assign(lat, lon)
     return {
@@ -66,7 +66,6 @@ def make_firm(i: int, rng: np.random.Generator, name: str | None = None, town: s
         "psi_region": a["psi_region"],
         "station_reason": a["reason"],
         "plan": plan,
-        "site_match": bool(site_match),
         "meal_hour": 12,
         "wic_policy_no": f"WIC-DEMO-{100000 + i}",
         "wic_active": True,
@@ -80,13 +79,17 @@ def make_firm(i: int, rng: np.random.Generator, name: str | None = None, town: s
 def main() -> None:
     rng = np.random.default_rng(7)
     firms = [
-        make_firm(1, rng, "Tanjong Greenworks Pte Ltd", "Jurong West", 20, "Standard", "landscaping", False, at=(1.3366, 103.6972)),
-        make_firm(2, rng, "Lim Landscaping Pte Ltd", "Bishan", 20, "Standard", "landscaping", False, at=(1.3560, 103.8505)),
-        make_firm(3, rng, "Straits Scaffolding Pte Ltd", "Tuas", 35, "Standard", "construction", True),
+        make_firm(1, rng, "Tanjong Greenworks Pte Ltd", "Jurong West", 20, "standard", "landscaping", at=(1.3366, 103.6972)),
+        make_firm(2, rng, "Lim Landscaping Pte Ltd", "Bishan", 20, "standard", "landscaping", at=(1.3560, 103.8505)),
+        make_firm(3, rng, "Straits Scaffolding Pte Ltd", "Tuas", 35, "plus", "construction"),
     ]
     seen = {f["name"] for f in firms}
     i = 4
-    while len(firms) < 300:
+    raw_product = product.product_dict()
+    pilot = raw_product.get("pilot")
+    if not isinstance(pilot, dict) or not isinstance(pilot.get("firms"), int):
+        raise ValueError("product.json pilot.firms must be an integer")
+    while len(firms) < pilot["firms"]:
         f = make_firm(i, rng)
         if f["name"] in seen:
             f["name"] = f["name"].replace(" Pte Ltd", f" ({f['sites'][0]['address'].split(', ')[1].split(' (')[0]}) Pte Ltd")
@@ -96,8 +99,8 @@ def main() -> None:
         firms.append(f)
         i += 1
     (SEED / "firms.json").write_text(json.dumps(firms, indent=1))
-    plans = {p: sum(1 for f in firms if f["plan"] == p and not f["site_match"]) for p in ("Standard", "Lite")}
-    print(f"{len(firms)} firms, {sum(f['outdoor_workers'] for f in firms)} workers, plans {plans}, site match {sum(f['site_match'] for f in firms)}")
+    plans = {plan.id: sum(1 for f in firms if f["plan"] == plan.id) for plan in product.get_product().plans}
+    print(f"{len(firms)} firms, {sum(f['outdoor_workers'] for f in firms)} workers, plans {plans}")
     print(firms[0]["station_reason"])
 
 

@@ -1,49 +1,53 @@
-"""Pricing, unit economics, expense model, reinsurance and market sizing.
+"""Version 2 pricing, unit economics and aggregate stop-loss views.
 
-Premium = expected insured hours x benefit / target loss ratio (CONTEXT.md section 5). Price depends only on plan,
-benefit and headcount (AGENTS.md). Inputs that are assumptions are listed in ASSUMPTIONS and tagged in the UI.
+Published plan terms are owned by ``data/seed/product.json``.  This module
+uses the historical back-test only to describe the observed result and to
+plan capital; it does not calculate a customer price from worker data or
+change a payout rule.
 """
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
+from typing import Any
 
 import numpy as np
 
+from rehat import product, rules
 from rehat.paths import DOCS, PROCESSED, WEB_DATA
 
-GST = 0.09
-TARGET_LR = 0.65
-LAUNCH_CREDIT = 0.30
-LAUNCH_CREDIT_ENDS = "2027-12-31"
-SPLIT = {"claims": 0.65, "variable_expenses": 0.12, "reinsurance_and_capital": 0.05, "fixed_cost_and_margin": 0.18}
 WEEKS_PER_YEAR = 52
 MONTHS_PER_YEAR = 12
-CAP_HOURS_YEAR = 60.0
-
-ASSUMPTIONS = {
-    "haze_load_h": (1.0, "About 5 haze episodes in 30 years (1997, 2006, 2013, 2015, 2019), roughly 5 to 20 insured haze hours each. Added because NEA PSI before 2025 is not in the back-test."),
-    "working_days_per_year": (302, "Mon to Sat (312 days) minus about 10 public holidays on working days."),
-    "fixed_cost_sgd": (300_000.0, "Income's fixed cost to add and run a section on an existing WIC policy (question for Income's mentor)."),
-    "variable_expense_ratio": (0.12, "Commission, payments and servicing, from the CONTEXT.md premium split."),
-    "policy_workers": (20, "Workers per policy for break-even and the firm sheet (the 20-worker example firm)."),
-    "reinsurer_load": (1.75, "Reinsurer price as a multiple of expected recovery for an aggregate stop-loss."),
-    "reinsurance_budget": (0.05, "Share of premium set aside for reinsurance and capital in the split."),
-    "idle_hour_cost_sgd": (10.20, "Declared salary plus levy spread over working hours for a work permit holder."),
-    "monthly_labour_cost_sgd": (2145.0, "Salary, levy and housing a work permit holder a month; sets premium as a share of the labour bill."),
-    "site_match_rider_week": (0.50, "Rider price until real site logs are tested (replaced by the Site Match simulation in P8)."),
-    "pilot_firms": (300, "Pilot size from CONTEXT.md section 5."),
-    "pilot_workers": (6000, "Pilot size from CONTEXT.md section 5."),
-}
+WORKING_DAYS_PER_YEAR = 302
+HAZE_LOAD_H = 1.0
+FIXED_OPERATING_COST_SGD = 250_000.0
 
 
-def a(name: str) -> float:
-    return ASSUMPTIONS[name][0]
+def _raw() -> dict[str, Any]:
+    """Return the complete validated specification, including typed extras."""
+    return product.get_product().model_dump(mode="json", by_alias=True)
 
 
-@dataclass
+def _number(value: Any, label: str) -> float:
+    """Read a numeric product value with a useful failure if the spec changes."""
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"product.json {label} must be numeric") from exc
+
+
+def _plan(plan_id: str) -> product.Plan:
+    return product.get_product().plan_by_id(plan_id.strip().lower())
+
+
+@dataclass(frozen=True)
 class PlanPrice:
+    """Published plan price rendered into convenient periods for exports."""
+
+    id: str
     plan: str
+    deductible_label: str
+    allowance_multiple: float
     benefit: float
     year: float
     month: float
@@ -51,230 +55,427 @@ class PlanPrice:
     working_day: float
     year_gst: float
     week_gst: float
-    year_after_credit: float
-    year_after_credit_gst: float
+    source: str
 
 
-def premium_per_worker_year(expected_insured_h: float, benefit: float, target_lr: float = TARGET_LR) -> float:
-    """Premium = expected insured hours x benefit / target loss ratio."""
-    return expected_insured_h * benefit / target_lr
+def plan_price(plan: str) -> PlanPrice:
+    """Return a published plan price.
 
-
-def plan_price(plan: str, benefit: float, expected_insured_h: float) -> PlanPrice:
-    y = premium_per_worker_year(expected_insured_h, benefit)
+    The customer-facing quote accepts only a plan and headcount.  There is no
+    expected-hours, rider, credit, job-history or personal-data input here.
+    """
+    selected = _plan(plan)
+    terms = product.get_product().product
+    year = selected.per_worker_year
     return PlanPrice(
-        plan, benefit, round(y, 2), round(y / MONTHS_PER_YEAR, 2), round(y / WEEKS_PER_YEAR, 2), round(y / a("working_days_per_year"), 3),
-        round(y * (1 + GST), 2), round(y / WEEKS_PER_YEAR * (1 + GST), 2), round(y * (1 - LAUNCH_CREDIT), 2), round(y * (1 - LAUNCH_CREDIT) * (1 + GST), 2),
+        id=selected.id,
+        plan=selected.name,
+        deductible_label=selected.deductible_label,
+        allowance_multiple=selected.allowance_multiple,
+        benefit=terms.benefit_per_worker_hour,
+        year=year,
+        month=round(year / MONTHS_PER_YEAR, 2),
+        week=selected.per_worker_week,
+        working_day=round(year / WORKING_DAYS_PER_YEAR, 3),
+        year_gst=round(year * (1 + terms.gst_rate), 2),
+        week_gst=round(selected.per_worker_week * (1 + terms.gst_rate), 2),
+        source=selected.source,
     )
 
 
-def quote(workers: int, plan: str, expected_insured_h: float, site_match: bool = False, rider_week: float | None = None) -> dict:
-    """Quote for a firm. Inputs: plan, benefit (from plan) and headcount only."""
-    benefit = {"Lite": 5.0, "Standard": 8.0}[plan]
-    p = plan_price(plan, benefit, expected_insured_h)
-    rider_y = (rider_week if rider_week is not None else a("site_match_rider_week")) * WEEKS_PER_YEAR if site_match else 0.0
-    before = round(workers * (p.year + rider_y), 2)
-    credit = round(before * LAUNCH_CREDIT, 2)
-    after_credit = round(before - credit, 2)
+def quote(workers: int, plan: str) -> dict[str, Any]:
+    """Quote the published plan for a declared outdoor headcount only."""
+    if workers <= 0:
+        raise ValueError("workers must be positive")
+    spec = product.get_product()
+    selected = plan_price(plan)
+    before_gst = round(workers * selected.year, 2)
+    gst = round(before_gst * spec.product.gst_rate, 2)
     return {
-        "inputs_used": ["plan", "benefit", "outdoor headcount"],
-        "plan": plan, "benefit_per_hour": benefit, "workers": workers, "site_match": site_match,
-        "per_worker_year": p.year, "per_worker_week": p.week, "rider_per_worker_year": round(rider_y, 2),
-        "premium_before_gst": before, "launch_credit": credit, "launch_credit_ends": LAUNCH_CREDIT_ENDS,
-        "premium_after_credit": after_credit, "gst": round(after_credit * GST, 2), "premium_after_credit_gst": round(after_credit * (1 + GST), 2),
-        "premium_before_gst_no_credit_gst": round(before * (1 + GST), 2),
-        "cap_hours_year": CAP_HOURS_YEAR, "max_payout_year": round(workers * benefit * CAP_HOURS_YEAR, 2),
+        "inputs_used": list(spec.price_inputs_allowed),
+        "plan": selected.id,
+        "plan_name": selected.plan,
+        "deductible_label": selected.deductible_label,
+        "benefit_per_hour": spec.product.benefit_per_worker_hour,
+        "workers": workers,
+        "per_worker_year": selected.year,
+        "per_worker_week": selected.week,
+        "premium_before_gst": before_gst,
+        "gst_rate": spec.product.gst_rate,
+        "gst": gst,
+        "premium_with_gst": round(before_gst + gst, 2),
+        "max_payout_year": round(workers * spec.product.benefit_per_worker_hour * rules.YEARLY_CAP_H, 2),
     }
 
 
-# ---------------------------------------------------------------- expenses
-def expense_model(premium_per_policy: float, fixed: float | None = None, var: float | None = None) -> dict:
-    fixed = a("fixed_cost_sgd") if fixed is None else fixed
-    var = a("variable_expense_ratio") if var is None else var
-    margin = 1 - SPLIT["claims"] - var - SPLIT["reinsurance_and_capital"]
-    breakeven = fixed / (margin * premium_per_policy)
-    er_at_be = var + fixed / (breakeven * premium_per_policy)
-    n20 = fixed / ((0.20 - var) * premium_per_policy)
-    curve = [{"policies": n, "expense_ratio": round(var + fixed / (n * premium_per_policy), 4)} for n in (100, 200, 300, 500, 647, 750, 1000, 1456, 2000, 3000, 5000)]
-    return {"premium_per_policy": round(premium_per_policy, 2), "fixed_cost": fixed, "variable_ratio": var, "margin_ratio": round(margin, 3),
-            "breakeven_policies": int(round(breakeven)), "expense_ratio_at_breakeven": round(er_at_be, 3), "policies_for_20pct_expense_ratio": int(round(n20)), "curve": curve}
+def _split() -> dict[str, float]:
+    return {row.id: row.share for row in product.get_product().premium_split}
+
+
+def expense_model(premium_per_policy: float, fixed_cost: float = FIXED_OPERATING_COST_SGD) -> dict[str, Any]:
+    """Show the stated expense ceiling without inventing a separate price rule."""
+    if premium_per_policy <= 0:
+        raise ValueError("premium_per_policy must be positive")
+    split = _split()
+    expense_ratio = split["expenses"]
+    profit_ratio = split["profit"]
+    policies_at_expense_ceiling = int(np.ceil(fixed_cost / (expense_ratio * premium_per_policy)))
+    policies_at_expense_and_profit = int(np.ceil(fixed_cost / ((expense_ratio + profit_ratio) * premium_per_policy)))
+    points = (100, 250, 500, 750, 1_000, 1_250, 1_500, 2_000)
+    return {
+        "premium_per_policy": round(premium_per_policy, 2),
+        "fixed_cost_assumption": fixed_cost,
+        "expense_budget_ratio": expense_ratio,
+        "profit_plan_ratio": profit_ratio,
+        "policies_at_expense_ceiling": policies_at_expense_ceiling,
+        "policies_at_expense_and_profit": policies_at_expense_and_profit,
+        "curve": [
+            {
+                "policies": count,
+                "fixed_cost_ratio": round(fixed_cost / (count * premium_per_policy), 4),
+                "within_expense_ceiling": fixed_cost / (count * premium_per_policy) <= expense_ratio,
+            }
+            for count in points
+        ],
+    }
 
 
 # ---------------------------------------------------------------- reinsurance
-def stop_loss(lrs: np.ndarray, attach: float, cap_lr: float) -> dict:
-    rec = np.clip(lrs - attach, 0, cap_lr - attach)
-    return {"attach": attach, "expected_recovery_pct": round(100 * float(rec.mean()), 2), "years_hit": int((lrs > attach).sum()), "years": int(len(lrs))}
+def stop_loss(lrs: np.ndarray, attach: float, cap_lr: float) -> dict[str, Any]:
+    """Calculate the historical aggregate recovery above an attachment."""
+    recovery = np.clip(lrs - attach, 0, cap_lr - attach)
+    return {
+        "attach": attach,
+        "expected_recovery_pct": round(100 * float(recovery.mean()), 2),
+        "years_hit": int((lrs > attach).sum()),
+        "years": int(len(lrs)),
+    }
 
 
-DECIDED_ATTACH = 1.50  # CONTEXT.md section 5 "Reinsurance and capital (decided)"
+def reinsurance(lrs: np.ndarray, cap_lr: float) -> dict[str, Any]:
+    """Return the decided product attachment and its observed history.
 
-
-def reinsurance(lrs: np.ndarray, cap_lr: float, load: float | None = None, budget: float | None = None) -> dict:
-    load = a("reinsurer_load") if load is None else load
-    budget = a("reinsurance_budget") if budget is None else budget
-    rows = []
-    for att in (1.00, 1.10, 1.25, 1.50, 1.75):
-        r = stop_loss(lrs, att, cap_lr)
-        r["cost_pct"] = round(r["expected_recovery_pct"] * load, 2)
-        r["inside_budget"] = r["cost_pct"] <= 100 * budget
-        r["retained_worst_lr"] = round(float(min(lrs.max(), att)), 3)
-        rows.append(r)
-    inside = [r for r in rows if r["inside_budget"]]
-    chosen = min(inside, key=lambda r: r["attach"]) if inside else rows[-1]
-    decided = next(r for r in rows if r["attach"] == DECIDED_ATTACH)
-    return {"load": load, "budget_pct": 100 * budget, "table": rows, "rule_suggests_attach": chosen["attach"], "rule_suggests": chosen,
-            "chosen_attach": DECIDED_ATTACH, "chosen": decided, "hard_cap_lr": round(cap_lr, 3),
-            "note": f"Attachment {DECIDED_ATTACH:.0%}, decided and confirmed by the team on 2026-11-15. The cheaper alternative inside the 5% budget would be {chosen['attach']:.0%}; 150% was kept as catastrophe protection that costs almost nothing while the back-test never reaches it."}
+    The product's simulation-based planning estimate is preserved separately
+    from this 26-year observed series.  It is not used to alter a payout.
+    """
+    raw = _raw()["reinsurance"]
+    if not isinstance(raw, dict):
+        raise ValueError("product.json reinsurance must be an object")
+    load = _number(raw["reinsurer_load"]["value"], "reinsurance.reinsurer_load.value")
+    budget = _number(raw["budget_share"], "reinsurance.budget_share")
+    chosen_attach = _number(raw["attachment_loss_ratio"], "reinsurance.attachment_loss_ratio")
+    rows: list[dict[str, Any]] = []
+    for attach in (1.00, 1.10, 1.25, chosen_attach, 1.75):
+        row = stop_loss(lrs, attach, cap_lr)
+        row["cost_pct"] = round(row["expected_recovery_pct"] * load, 2)
+        row["inside_budget"] = row["cost_pct"] <= 100 * budget
+        row["retained_worst_lr"] = round(float(min(lrs.max(), attach)), 3)
+        rows.append(row)
+    chosen = next(row for row in rows if np.isclose(row["attach"], chosen_attach))
+    expected_recovery = raw.get("expected_recovery_share", {})
+    haze_stress = raw.get("haze_stress_scenario")
+    if not isinstance(haze_stress, dict):
+        raise ValueError("product.json reinsurance.haze_stress_scenario must be an object")
+    published_haze_stress = {
+        "label": str(haze_stress["label"]),
+        "loss_ratio": _number(haze_stress["loss_ratio"], "reinsurance.haze_stress_scenario.loss_ratio"),
+        "source": str(haze_stress["source"]),
+        "basis": str(haze_stress["basis"]),
+    }
+    return {
+        "scope": (
+            "Fictional pilot-book geographic-mix diagnostic for capital planning. "
+            "It is not the published Standard pricing calibration and never changes a payout."
+        ),
+        "type": raw.get("type", "Aggregate stop-loss"),
+        "load": load,
+        "budget_pct": round(100 * budget, 2),
+        "table": rows,
+        "chosen_attach": chosen_attach,
+        "chosen": chosen,
+        # Kept for the capital-console contract. The published attachment is
+        # the decision; this does not infer a different attachment from a
+        # changing pilot geography.
+        "rule_suggests_attach": chosen_attach,
+        "hard_cap_lr": round(cap_lr, 3),
+        "simulation_expected_recovery_share": expected_recovery.get("simulation"),
+        "backtest_plan_recovery_share": expected_recovery.get("back-test"),
+        "starts_year": raw.get("starts_year"),
+        "published_haze_stress": published_haze_stress,
+        "note": (
+            f"The plan attaches at {chosen_attach:.0%}. It is a tail-risk purchase: "
+            f"the observed series reaches it in {chosen['years_hit']} of {chosen['years']} years. "
+            "Simulation recovery is a capital-planning estimate, not a payout input."
+        ),
+    }
 
 
 # ---------------------------------------------------------------- market
-MARKET = {
-    "in_scope_workers": {"low": 110_700, "mid": 185_400, "high": 261_800},
-    "workers_per_firm": 15,
-    "income_share_of_wic": 0.12,
-    "year3_workers": 14_900,
-    "year3_firms": 745,
-}
-
-
-def market(premium_year: float, m: dict | None = None) -> dict:
-    m = m or MARKET
-    w = m["in_scope_workers"]
+def market() -> dict[str, Any]:
+    """Return market numbers exactly as approved in the product specification."""
+    raw = _raw()["market"]
+    if not isinstance(raw, dict):
+        raise ValueError("product.json market must be an object")
+    small = raw["small_firms"]
+    year_three = raw["year_3_target"]
     return {
-        "in_scope_workers": w,
-        "firms_mid": int(round(w["mid"] / m["workers_per_firm"], -2)),
-        "total_premium": {k: round(v * premium_year) for k, v in w.items()},
-        "income_wic_slice": round(w["mid"] * premium_year * m["income_share_of_wic"]),
-        "year3_obtainable_premium": round(m["year3_workers"] * premium_year),
-        "year3_firms": m["year3_firms"],
-        "year3_workers": m["year3_workers"],
-        "basis": "185,400 in-scope workers = 75% construction x 60% SME x 70% outdoor of MOM work permit holders + 10,800 landscape + 20,000 outdoor cleaners (assumptions). Income share 12% (assumption). Year 3 = 40% attach on Income book + 6,000 via associations.",
+        **raw,
+        # Compatibility fields make historical offline data consumers explicit
+        # without re-deriving market values from a retired price.
+        "firms_mid": int(small["employers"]),
+        "total_premium": {
+            "low": small["premium_low"],
+            "mid": small["premium"],
+            "high": small["premium_high"],
+        },
+        "year3_obtainable_premium": year_three["premium"],
+        "year3_firms": year_three["employers"],
+        "year3_workers": year_three["workers"],
     }
+
+
+def _plan_rows() -> list[PlanPrice]:
+    return [plan_price(plan.id) for plan in product.get_product().plans]
+
+
+def _standard_economics() -> dict[str, Any]:
+    raw = _raw()["unit_economics_standard_per_worker"]
+    if not isinstance(raw, dict):
+        raise ValueError("product.json unit_economics_standard_per_worker must be an object")
+    return raw
+
+
+def _value(row: dict[str, Any], key: str) -> float:
+    value = row[key]
+    return _number(value["value"] if isinstance(value, dict) and "value" in value else value, key)
 
 
 # ---------------------------------------------------------------- run
-def run(expected_insured_h: float | None = None) -> dict:
+def run() -> dict[str, Any]:
+    """Generate offline pricing data from approved terms plus the back-test."""
+    spec = product.get_product()
     bt = json.loads((PROCESSED / "backtest.json").read_text())
-    b = bt["base"]
-    haze_load = a("haze_load_h")
-    exp_h = expected_insured_h if expected_insured_h is not None else round(b["expected_insured_h"] + haze_load, 2)
-    std = plan_price("Standard", 8.0, exp_h)
-    lite = plan_price("Lite", 5.0, exp_h)
-    rider_y = a("site_match_rider_week") * WEEKS_PER_YEAR
-    sm_path = PROCESSED / "sitematch.json"
-    rider_basis = ASSUMPTIONS["site_match_rider_week"][1]
-    if sm_path.exists():
-        sm = json.loads(sm_path.read_text())
-        if "rider_price_year" in sm.get("headline", {}):
-            rider_y = float(sm["headline"]["rider_price_year"])
-            rider_basis = sm["headline"].get("rider_basis", "Site Match simulation (P8)")
+    base = bt["base"]
+    standard = plan_price(spec.default_plan.id)
+    economics = _standard_economics()
+    expected_h = _value(economics, "expected_insured_hours_year")
+    expected_payout = _value(economics, "expected_payout_year")
+    annual_h = np.array(base["annual_insured_h"], dtype=float)
+    historical_payout = annual_h * spec.product.benefit_per_worker_hour
+    historical_lrs = historical_payout / standard.year
+    cap_lr = rules.YEARLY_CAP_H * spec.product.benefit_per_worker_hour / standard.year
+    haze_stress_lr = (float(historical_payout.max()) + rules.HAZE_YEARLY_LIMIT_H * spec.product.benefit_per_worker_hour) / standard.year
+    observed_lr = expected_payout / standard.year
+    one_in_ten_payout = _value(economics, "one_in_ten_year_payout")
+    one_in_ten_lr = _number(economics["one_in_ten_year_payout"]["loss_ratio"], "one_in_ten_year_payout.loss_ratio")
+    worst_payout = _value(economics, "worst_backtest_year_payout")
+    worst_lr = _number(economics["worst_backtest_year_payout"]["loss_ratio"], "worst_backtest_year_payout.loss_ratio")
+    portfolio_loss_ratios = {
+        "scope": (
+            "Fictional 500-firm geographic-mix portfolio diagnostic. It supports capital and cash planning only; "
+            "it does not replace the published Standard calibration."
+        ),
+        "expected": round(float(historical_lrs.mean()), 3),
+        "one_in_ten": round(float(np.quantile(historical_lrs, 0.9)), 3),
+        "worst_backtest": round(float(historical_lrs.max()), 3),
+        "worst_plus_haze_stress": round(float(haze_stress_lr), 3),
+        "hard_cap": round(float(cap_lr), 3),
+        "by_year": [round(float(value), 3) for value in historical_lrs],
+        "years": base["years"],
+    }
 
-    # book annual payouts per worker (S$8) from the back-test, plus haze load spread evenly as expected value only
-    annual_h = np.array(b["annual_insured_h"])
-    payout_y = annual_h * 8.0
-    lrs = payout_y / std.year
-    cap_lr = CAP_HOURS_YEAR * 8.0 / std.year
-    haze_stress = (annual_h.max() + 20.0) * 8.0 / std.year  # worst back-test year plus a 2015-like 20 h haze year
-    w = int(a("policy_workers"))
+    firm_workers = spec.demo_firm.outdoor_workers
+    firm_quote = quote(firm_workers, standard.id)
     firm = {
-        "workers": w,
-        "premium_before_gst": round(w * std.year, 2),
-        "premium_with_gst": round(w * std.year * (1 + GST), 2),
-        "premium_after_launch_credit_with_gst": round(w * std.year * (1 - LAUNCH_CREDIT) * (1 + GST), 2),
-        "expected_payout": round(w * float(payout_y.mean() + haze_load * 8.0), 2),
-        "payout_1in10": round(w * float(np.quantile(payout_y, 0.9)), 2),
-        "worst_backtest_year_payout": round(w * float(payout_y.max()), 2),
-        "worst_backtest_year": b["worst_year"],
-        "worst_capped": round(w * CAP_HOURS_YEAR * 8.0, 2),
-        "labour_bill_year": round(w * a("monthly_labour_cost_sgd") * 12, 2),
+        "workers": firm_workers,
+        "premium_before_gst": firm_quote["premium_before_gst"],
+        "premium_with_gst": firm_quote["premium_with_gst"],
+        "expected_payout": round(firm_workers * expected_payout, 2),
+        "expected_payout_source": economics["expected_payout_year"].get("source"),
+        "worst_capped": round(firm_workers * rules.YEARLY_CAP_H * spec.product.benefit_per_worker_hour, 2),
+        "average_payout_product_example": spec.default_plan.example_20_workers.average_payout_year,
     }
-    firm["premium_share_of_labour_bill_pct"] = round(100 * firm["premium_before_gst"] / firm["labour_bill_year"], 2)
-    counted = float(np.mean([s["heat_counted_h"] + s["rain_counted_h"] for s in bt["stations"]]))
-    firm["counted_downtime_h_per_worker"] = round(counted, 1)
-    firm["weather_downtime_cost_year"] = round(w * counted * a("idle_hour_cost_sgd"), 2)
-
-    pilot_w = int(a("pilot_workers"))
+    split = _split()
+    expense = expense_model(float(firm["premium_before_gst"]))
+    pilot_raw = _raw()["pilot"]
+    if not isinstance(pilot_raw, dict):
+        raise ValueError("product.json pilot must be an object")
     pilot = {
-        "firms": int(a("pilot_firms")), "workers": pilot_w,
-        "premium": round(pilot_w * std.year), "expected_claims": round(pilot_w * (float(payout_y.mean()) + haze_load * 8.0)),
-        "claims_1in10": round(pilot_w * float(np.quantile(payout_y, 0.9))), "worst_backtest_year_claims": round(pilot_w * float(payout_y.max())),
-        "hard_cap": round(pilot_w * CAP_HOURS_YEAR * 8.0),
+        **pilot_raw,
+        "observed_expected_claims": round(_number(pilot_raw["workers"], "pilot.workers") * expected_payout, 2),
+        "observed_expected_loss_ratio": round(observed_lr, 3),
     }
-    re = reinsurance(lrs, cap_lr)
-    exp = expense_model(w * std.year)
-    mk = market(std.year)
-    loss_ratio_expected = (float(payout_y.mean()) + haze_load * 8.0) / std.year
-
-    out = {
-        "expected_insured_h": exp_h,
-        "expected_insured_h_basis": f"back-test {b['expected_insured_h']} h + haze load {haze_load} h (assumption)",
-        "target_loss_ratio": TARGET_LR,
-        "plans": [asdict(std), asdict(lite)],
-        "site_match_rider": {"year": round(rider_y, 2), "week": round(rider_y / WEEKS_PER_YEAR, 2), "cap_hours_year": 10, "basis": rider_basis},
-        "gst": GST, "launch_credit": LAUNCH_CREDIT, "launch_credit_ends": LAUNCH_CREDIT_ENDS,
-        "split": SPLIT,
+    reinsurance_view = reinsurance(historical_lrs, cap_lr)
+    published_haze_stress = reinsurance_view["published_haze_stress"]
+    market_view = market()
+    assumptions = {
+        "historical_haze_load_hours": {
+            "value": HAZE_LOAD_H,
+            "basis": "Added to the observed WBGT and rain back-test because earlier PSI history is incomplete.",
+            "source": "assumption",
+        },
+        "fixed_operating_cost": {
+            "value": FIXED_OPERATING_COST_SGD,
+            "basis": "Dedicated pilot-team sensitivity, not a customer price input.",
+            "source": "assumption",
+        },
+    }
+    output: dict[str, Any] = {
+        "version": spec.version,
+        "price_inputs": list(spec.price_inputs_allowed),
+        "plans": [asdict(row) for row in _plan_rows()],
+        "gst": spec.product.gst_rate,
+        "split": split,
+        "expected_insured_h": expected_h,
+        "expected_insured_h_basis": economics["expected_insured_hours_year"].get("basis"),
+        "observed_calibration": {
+            "scope": (
+                "Published Standard pricing calibration. It remains fixed when the fictional pilot-book geography changes."
+            ),
+            "expected_insured_hours_per_worker": expected_h,
+            "expected_payout_per_worker": expected_payout,
+            "premium_per_worker": standard.year,
+            "observed_loss_ratio": round(observed_lr, 3),
+            "one_in_ten_payout_per_worker": one_in_ten_payout,
+            "one_in_ten_loss_ratio": one_in_ten_lr,
+            "worst_payout_per_worker": worst_payout,
+            "worst_loss_ratio": worst_lr,
+            "source": economics["expected_payout_year"].get("source"),
+            "basis": economics["expected_payout_year"].get("basis"),
+        },
         "firm_20": firm,
-        "loss_ratios": {"expected": round(loss_ratio_expected, 3), "one_in_ten": round(float(np.quantile(lrs, 0.9)), 3), "worst_backtest": round(float(lrs.max()), 3),
-                         "worst_plus_haze_stress": round(float(haze_stress), 3), "hard_cap": round(cap_lr, 3), "by_year": [round(float(x), 3) for x in lrs], "years": b["years"]},
-        "expense": exp,
-        "reinsurance": re,
+        "loss_ratios": {
+            "scope": "Published Standard calibration at the approved S$2.48 weekly price.",
+            "expected": round(observed_lr, 3),
+            "one_in_ten": one_in_ten_lr,
+            "worst_backtest": worst_lr,
+            "hard_cap": round(float(cap_lr), 3),
+        },
+        "portfolio_loss_ratios": portfolio_loss_ratios,
+        "portfolio_diagnostic": {
+            "scope": bt.get("portfolio_diagnostic", {}).get(
+                "scope",
+                "Fictional pilot-book geographic mix used for portfolio, capital and cash diagnostics only.",
+            ),
+            "firms": bt.get("portfolio_diagnostic", {}).get("firms"),
+            "station_groups": bt.get("portfolio_diagnostic", {}).get("station_groups"),
+            "expected_insured_h_per_worker": base["expected_insured_h"],
+            "expected_payout_per_worker": base["expected_payout"],
+            "loss_ratio_at_published_standard_price": base["loss_ratio_mean"],
+        },
+        "expense": expense,
+        "reinsurance": reinsurance_view,
+        "published_haze_stress": published_haze_stress,
         "pilot": pilot,
-        "market": mk,
-        "assumptions": {k: {"value": v[0], "basis": v[1]} for k, v in ASSUMPTIONS.items()},
+        "market": market_view,
+        "assumptions": assumptions,
     }
-    out["headline"] = {
-        "Expected insured hours (pricing)": f"{exp_h} a worker a year ({out['expected_insured_h_basis']})",
-        "Standard premium": f"S${std.year:.2f} a year, S${std.week:.2f} a week, before GST (S${std.year_gst:.2f} with GST)",
-        "Lite premium": f"S${lite.year:.2f} a year, S${lite.week:.2f} a week, before GST",
-        "Site Match rider": f"S${rider_y:.2f} a year, S${rider_y / 52:.2f} a week ({rider_basis})",
-        "Expected payout a worker": f"S${payout_y.mean() + haze_load * 8:.2f} a year (loss ratio {loss_ratio_expected:.0%})",
-        "1-in-10 payout a worker": f"S${np.quantile(payout_y, 0.9):.2f} ({np.quantile(lrs, 0.9):.0%} loss ratio)",
-        "Worst back-test year": f"{b['worst_year']}: S${payout_y.max():.2f} ({lrs.max():.0%}); plus a 2015-like haze year {haze_stress:.0%}",
-        "Hard cap": f"S$480 a worker ({cap_lr:.0%} loss ratio)",
-        "20-worker firm": f"premium S${firm['premium_before_gst']:,.0f} (S${firm['premium_with_gst']:,.0f} with GST; S${firm['premium_after_launch_credit_with_gst']:,.0f} with GST after 30% launch credit); expected payout S${firm['expected_payout']:,.0f}; worst capped S${firm['worst_capped']:,.0f}; premium {firm['premium_share_of_labour_bill_pct']}% of labour bill; weather downtime costs about S${firm['weather_downtime_cost_year']:,.0f} a year",
-        "Break-even": f"{exp['breakeven_policies']} policies of 20 workers at S$300k fixed cost; expense ratio {exp['expense_ratio_at_breakeven']:.0%} at break-even; 20% at {exp['policies_for_20pct_expense_ratio']:,} policies",
-        "Pilot (300 firms, 6,000 workers)": f"premium S${pilot['premium']:,}; expected claims S${pilot['expected_claims']:,}; worst back-test year S${pilot['worst_backtest_year_claims']:,}; hard cap S${pilot['hard_cap']:,}",
-        "Stop-loss (decided 150%)": f"attach {re['chosen_attach']:.0%}: expected recovery {re['chosen']['expected_recovery_pct']}% of premium, cost {re['chosen']['cost_pct']}% at {re['load']}x load, hit {re['chosen']['years_hit']} of {re['chosen']['years']} years",
-        "Stop-loss (alternative considered)": f"lowest attachment inside the 5% budget would be {re['rule_suggests_attach']:.0%} (cost {re['rule_suggests']['cost_pct']}%, hit {re['rule_suggests']['years_hit']} of {re['rule_suggests']['years']} years). Team kept 150% (decision 2026-11-15).",
-        "Total market (premium)": f"S${mk['total_premium']['mid'] / 1e6:.1f}M (S${mk['total_premium']['low'] / 1e6:.1f}M to S${mk['total_premium']['high'] / 1e6:.1f}M); Income WIC slice S${mk['income_wic_slice'] / 1e6:.1f}M; year-3 obtainable S${mk['year3_obtainable_premium'] / 1e6:.2f}M",
+    output["headline"] = {
+        "Published Standard price": (
+            f"S${standard.year:.2f} a worker a year, S${standard.week:.2f} a week before GST "
+            f"(S${standard.year_gst:.2f} with GST)"
+        ),
+        "Observed 26-year Standard result": (
+            f"S${expected_payout:.2f} expected payout a worker a year, "
+            f"{observed_lr:.0%} of the cautious published price"
+        ),
+        "Published calibration basis": (
+            f"{expected_h:.2f} insured hours and S${expected_payout:.2f} per worker; "
+            "not recalculated from the pilot's station mix"
+        ),
+        "500-firm geographic-mix diagnostic": (
+            f"S${base['expected_payout']:.2f} a worker a year in this generated mix; "
+            "capital and cash only, not a price input"
+        ),
+        "20-worker Standard example": (
+            f"S${firm['premium_before_gst']:,.0f} before GST, S${firm['premium_with_gst']:,.0f} with GST; "
+            f"observed expected payout S${firm['expected_payout']:,.0f}"
+        ),
+        "Plan split": "65% claims, 20% expenses, 5% reinsurance and 10% profit (plan)",
+        "2015-style haze capital stress": (
+            f"{published_haze_stress['loss_ratio']:.0%} loss ratio ({published_haze_stress['source']}; "
+            "capital planning only, never a customer payout input)"
+        ),
+        "Aggregate stop-loss": (
+            f"Attaches at {reinsurance_view['chosen_attach']:.0%}; observed recovery is "
+            f"{reinsurance_view['chosen']['expected_recovery_pct']}% over {reinsurance_view['chosen']['years']} years."
+        ),
+        "Market": (
+            f"S${market_view['total_premium']['mid'] / 1e6:.1f}M small-firm premium at the midpoint; "
+            f"year-three plan S${market_view['year3_obtainable_premium'] / 1e6:.2f}M"
+        ),
     }
-    (PROCESSED / "pricing.json").write_text(json.dumps(out, indent=1))
+    (PROCESSED / "pricing.json").write_text(json.dumps(output, indent=1))
     WEB_DATA.mkdir(parents=True, exist_ok=True)
-    (WEB_DATA / "pricing.json").write_text(json.dumps(out))
-    write_doc(out)
-    return out
+    (WEB_DATA / "pricing.json").write_text(json.dumps(output))
+    write_doc(output)
+    return output
 
 
-def write_doc(o: dict) -> None:
-    re = o["reinsurance"]
+def write_doc(output: dict[str, Any]) -> None:
+    """Write a compact audit note from the same data shipped offline."""
+    reinsurance_view = output["reinsurance"]
+    observed = output["observed_calibration"]
+    portfolio = output["portfolio_diagnostic"]
+    portfolio_lrs = output["portfolio_loss_ratios"]
+    published_haze_stress = output["published_haze_stress"]
     lines = [
         "# Pricing, unit economics and reinsurance",
         "",
-        "Generated by `python -m rehat.pricing` from `data/processed/backtest.json`.",
+        "Generated by `python -m rehat.pricing` from the approved product terms and `data/processed/backtest.json`.",
         "",
         "## Headline",
         "",
         "| Item | Value |",
         "|---|---|",
-        *[f"| {k} | {v} |" for k, v in o["headline"].items()],
+        *[f"| {key} | {value} |" for key, value in output["headline"].items()],
         "",
-        "## Rule",
+        "## Pricing boundary",
         "",
-        "Premium a worker a year = expected insured hours x benefit / 0.65 target loss ratio. Price depends only on plan, benefit and headcount. GST 9% on top. Year-one launch credit 30%, ends 31 Dec 2027.",
+        "Customer prices use only the selected plan and declared headcount. The benefit and deductible are published plan terms. GST is shown separately.",
         "",
-        "## Stop-loss table (book loss ratio by year from the back-test)",
+        "## Published calibration and portfolio diagnostic",
         "",
-        "| Attachment | Expected recovery % of premium | Cost % at load | Years hit | Inside 5% budget | Retained worst LR |",
+        (
+            f"The approved Standard calibration is {observed['expected_insured_hours_per_worker']:.2f} insured hours and "
+            f"S${observed['expected_payout_per_worker']:.2f} expected payout a worker a year, or "
+            f"{observed['observed_loss_ratio']:.0%} of the S${observed['premium_per_worker']:.2f} published annual price. "
+            "This is the customer and pitch calibration."
+        ),
+        (
+            f"The regenerated {portfolio.get('firms') or 'pilot'}-firm geographic mix gives "
+            f"{portfolio['expected_insured_h_per_worker']:.2f} insured hours and "
+            f"S${portfolio['expected_payout_per_worker']:.2f} a worker a year. "
+            "It is a portfolio diagnostic for capital and cash planning, not a replacement price calibration."
+        ),
+        (
+            f"The published {published_haze_stress['label']} is "
+            f"{published_haze_stress['loss_ratio']:.0%} loss ratio. {published_haze_stress['basis']}"
+        ),
+        "",
+        "## Stop-loss table (portfolio diagnostic history)",
+        "",
+        "| Attachment | Expected recovery % of premium | Cost % at load | Years hit | Within 5% budget | Retained worst loss ratio |",
         "|---|---|---|---|---|---|",
-        *[f"| {r['attach']:.0%} | {r['expected_recovery_pct']} | {r['cost_pct']} | {r['years_hit']} of {r['years']} | {'yes' if r['inside_budget'] else 'no'} | {r['retained_worst_lr']:.0%} |" for r in re["table"]],
+        *[
+            f"| {row['attach']:.0%} | {row['expected_recovery_pct']} | {row['cost_pct']} | "
+            f"{row['years_hit']} of {row['years']} | {'yes' if row['inside_budget'] else 'no'} | {row['retained_worst_lr']:.0%} |"
+            for row in reinsurance_view["table"]
+        ],
         "",
-        f"{re['note']} The back-test has only {re['table'][0]['years']} years and no pre-2025 haze, so the tail is thin; the 2015-like haze stress gives {o['loss_ratios']['worst_plus_haze_stress']:.0%}. Hard cap {o['loss_ratios']['hard_cap']:.0%}.",
+        reinsurance_view["note"],
+        "",
+        (
+            f"The diagnostic series has a {portfolio_lrs['worst_backtest']:.0%} worst observed loss ratio and "
+            f"{portfolio_lrs['worst_plus_haze_stress']:.0%} with the stated 20-hour haze stress. "
+            "Those figures are not substituted into the published Standard calibration."
+        ),
         "",
         "## Assumptions",
         "",
         "| Name | Value | Basis |",
         "|---|---|---|",
-        *[f"| {k} | {v['value']} | {v['basis']} |" for k, v in o["assumptions"].items()],
+        *[f"| {key} | {value['value']} | {value['basis']} |" for key, value in output["assumptions"].items()],
     ]
     (DOCS / "pricing.md").write_text("\n".join(lines) + "\n")
 

@@ -17,8 +17,6 @@ export type Pricing = {
   plans: Plan[];
   site_match_rider: { year: number; week: number; cap_hours_year: number; basis: string };
   gst: number;
-  launch_credit: number;
-  launch_credit_ends: string;
   firm_20: Record<string, number>;
   loss_ratios: { expected: number; one_in_ten: number; worst_backtest: number; worst_plus_haze_stress: number; hard_cap: number; by_year: number[]; years: number[] };
   expense: {

@@ -15,8 +15,12 @@
   --color-income-blue: var(--income-blue);
   --color-income-blue-600: var(--income-blue-600);
   --color-income-blue-100: var(--income-blue-100);
+  --color-income-blue-50: var(--income-blue-50);
+  --color-income-blue-900: var(--income-blue-900);
   --color-paper: var(--paper);
   --color-surface: var(--surface);
+  --color-surface-warm: var(--surface-warm);
+  --color-surface-blue: var(--surface-blue);
   --color-ink: var(--ink);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
@@ -95,13 +99,47 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-heading);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
+  h1 { line-height: 1.08; }
+  h2, h3, h4 { line-height: 1.18; }
   .num, table td, table th {
     font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background: var(--income-orange-200);
+    color: var(--ink);
+  }
+}
+
+@layer components {
+  .product-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .surface-inset {
+    border-radius: 12px;
+    background: var(--surface-warm);
+  }
+
+  .eyebrow {
+    color: var(--income-orange-700);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .font-worker {
+    font-family: var(--font-inter), "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Myanmar", ui-sans-serif, system-ui, sans-serif;
   }
 }
 

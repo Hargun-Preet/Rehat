@@ -1,15 +1,14 @@
 "use client";
 
-import { BadgeCheck, Banknote, CalendarClock, Flag, ShieldHalf, Users } from "lucide-react";
+import Link from "next/link";
+import { Banknote, CalendarClock, CircleDollarSign, ShieldHalf, Users } from "lucide-react";
 import { useState } from "react";
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
-import { AssumptionTag, PageHeader, Section, SourceNote, StateBadge } from "@/components/brand";
-import { Button } from "@/components/ui/button";
+import { AssumptionTag, PageHeader, Section, SourceNote } from "@/components/brand";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dayName, monthName, pct, sgd } from "@/lib/format";
-import type { Pricing } from "@/lib/types";
-import { ENGINE_URL } from "@/lib/useJSON";
+import { productPlan, type ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 
 type FanPt = { day: number; p10: number; p50: number; p90: number; p99: number; accrued: number };
@@ -26,20 +25,15 @@ export type Liquidity = {
   validation: { overall_p90_coverage: number; overall_p99_coverage: number; overall_mae_p50: number; period: string[]; by_asof_day: { asof_day: number; months: number; p90_coverage: number }[] };
   alerts: { station_name: string; date: string; from: string; to: string; employer: string }[];
 };
-type Claim = { claim_id: string; firm: string; day: string; status: string; checks: { code: string; passed: boolean; text: string }[]; topup_minutes_per_worker: number; benefit: number; workers: number; audit: { at: string; by: string; event: string; detail: string }[] };
-export type SM = { samples: { file: string; label: string; claim: Claim }[] };
-export type Fairness = { price_inputs: string[]; never_used: string[]; by_region: { region: string; expected_insured_h: number; pct_months_paying: number; firms: number }[]; by_size: { size: string; expected_insured_h: number; pct_months_paying: number; firms: number }[] };
-export type Anomaly = { flagged: number; firms: number; precision: number; recall: number; flags: { uen: string; name: string; sector: string; outdoor: number; total_employees: number; reasons: string[] }[]; note: string };
-
 const ORANGE = "#f57100";
 const BLUE = "#00467a";
 
-export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: Pricing; sm: SM; fair: Fairness; an: Anomaly }) {
-  const c = lq.current;
-  const re = pr.reinsurance;
-  const ytdMonths = lq.recent_months.filter((m) => m.month.startsWith(String(lq.asof.slice(0, 4))));
-  const ytdPaid = ytdMonths.reduce((a, m) => a + m.actual, 0);
-  const ytdLr = ytdPaid / (lq.annual.book_premium * (ytdMonths.length / 12));
+export default function Console({ lq, product }: { lq: Liquidity; product: ProductSpec }) {
+  const standard = productPlan(product);
+  const claimsShare = product.premium_split.find((part) => part.id === "claims")!.share;
+  const observedLossRatio = standard.example_20_workers.average_payout_year / standard.example_20_workers.premium_year;
+  const reinsurance = product.reinsurance;
+  const hazeStress = reinsurance.haze_stress_scenario;
   const [state, setState] = useState(lq.season.latest_state);
   const season = lq.season.states.find((s) => s.state === state) ?? lq.season.states[0];
   const lrYears = Object.entries(lq.annual.loss_ratio_by_year).map(([y, v]) => ({ year: y, lr: Math.round(v * 100) }));
@@ -48,48 +42,49 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
 
   return (
     <>
-      <PageHeader eyebrow="Insurer console (Income ops and finance)" title="Cash, reinsurance and claims">
-        Forecasts plan Income&apos;s cash and reinsurance only. They never change a customer&apos;s payout or price.
+      <PageHeader eyebrow="Income / portfolio console" title={`${sgd(product.pilot.capped_worst_case)} is the pilot’s stated maximum payout`}>
+        The pilot plan covers {product.pilot.firms.toLocaleString()} firms from {product.pilot.start}. Forecasts plan cash and reinsurance only. They never change a customer&apos;s payout or price.
       </PageHeader>
       <Section>
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border-2 border-income-orange bg-surface p-6 shadow-[var(--shadow-raised)] lg:col-span-2">
             <p className="flex items-center gap-2 text-sm font-semibold text-income-orange-700">
-              <CalendarClock className="h-4 w-4" /> Cash needed on {dayName(c.settlement_date)} for {monthName(c.month)}
+              <CalendarClock className="h-4 w-4" /> Pilot plan from {product.pilot.start}
             </p>
             <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Big label="P50" v={sgd(c.p50)} />
-              <Big label="P90" v={sgd(c.p90)} strong />
-              <Big label="P99" v={sgd(c.p99)} />
-              <Big label="Hold as buffer (P99 - P50)" v={sgd(c.buffer_p99_minus_p50)} />
+              <Big label="Premium plan" v={sgd(product.pilot.premium)} />
+              <Big label="Expected profit" v={sgd(product.pilot.expected_profit)} strong />
+              <Big label="Workers" v={product.pilot.workers.toLocaleString()} />
+              <Big label="One-in-100 claims" v={sgd(product.pilot.one_in_100_year_claims.value)} />
             </div>
             <p className="mt-3 text-xs text-muted-foreground">
-              As of {dayName(c.asof)}: {c.days_known} days known, next {c.forecast_days_used} days from the forecast, rest of the month from {lq.season.states.reduce((a, s) => a + s.n, 0)} past years of {monthName(c.month).split(" ")[0]}. Insured if the month ended today: {sgd(c.insured_if_month_ended_today)}.
+              Plan source: product schedule. The maximum is known on day one because the annual benefit is capped.
             </p>
           </div>
           <div className="rounded-2xl border border-line bg-surface p-6">
             <p className="flex items-center gap-2 text-sm font-semibold">
               <ShieldHalf className="h-4 w-4 text-income-blue" /> Reinsurance
             </p>
-            <p className="mt-2 font-heading text-2xl font-bold">Stop-loss at {pct(re.chosen_attach)}</p>
-            <p className="text-sm text-muted-foreground">Aggregate, from year 2, up to the {pct(re.hard_cap_lr)} hard cap. Decided.</p>
+            <p className="mt-2 font-heading text-2xl font-bold">Stop-loss at {pct(reinsurance.attachment_loss_ratio)}</p>
+            <p className="text-sm text-muted-foreground">Aggregate cover starts in year {reinsurance.starts_year}, inside a {pct(reinsurance.budget_share)} plan budget.</p>
             <p className="mt-3 rounded-xl bg-paper p-3 text-xs text-muted-foreground">
-              Kept at {pct(re.chosen_attach)} on 15 Nov 2026. No back-test year reaches it, so it guards against years worse than history. A {pct(re.rule_suggests_attach)} attachment would also fit the 5% budget; it was considered and not chosen.
+              A {pct(hazeStress.loss_ratio)} {hazeStress.label} is why this layer exists. It is a capital and cash safeguard, not a change to what a customer receives.
+              <AssumptionTag basis={hazeStress.basis} label="capital stress" />
             </p>
           </div>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi Icon={Users} label="Book (demo)" v={`${lq.book.firms} firms`} sub={`${lq.book.workers.toLocaleString()} outdoor workers, premium ${sgd(lq.annual.book_premium)}`} />
-          <Kpi Icon={Banknote} label={`Paid so far in ${lq.asof.slice(0, 4)}`} v={sgd(ytdPaid)} sub={`year-to-date loss ratio ${pct(ytdLr)} (${ytdMonths.length} months)`} />
-          <Kpi Icon={BadgeCheck} label="Forecast check (P90 coverage)" v={pct(lq.validation.overall_p90_coverage)} sub={`actual payout at or under P90, ${lq.validation.period[0]} to ${lq.validation.period[1]}; target about 90%`} />
-          <Kpi Icon={ShieldHalf} label="Hard cap on the book" v={sgd(lq.annual.book_hard_cap)} sub="60 h a year x benefit x workers" />
+          <Kpi Icon={Users} label="Pilot firms" v={product.pilot.firms.toLocaleString()} sub={`${product.pilot.workers.toLocaleString()} outdoor workers · plan`} />
+          <Kpi Icon={CircleDollarSign} label="Standard plan" v={sgd(standard.per_worker_week, 2)} sub={`a worker a week before GST · ${standard.source}`} />
+          <Kpi Icon={Banknote} label="Claims target" v={pct(claimsShare)} sub={`${pct(observedLossRatio)} observed in the 26-year Standard result`} />
+          <Kpi Icon={ShieldHalf} label="Forecast validation" v={pct(lq.validation.overall_p90_coverage)} sub={`P90 coverage in the offline validation archive`} />
         </div>
       </Section>
 
       <Section>
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card title={`How the band narrowed: ${monthName(lq.fan_last_month.month)}`} sub={`Forecast of the month's payout made on each day. Actual: ${sgd(lq.fan_last_month.actual)}, paid ${dayName(lq.fan_last_month.settlement_date)}.`}>
+          <Card title={`Forecast validation archive: ${monthName(lq.fan_last_month.month)}`} sub={`A historical cash forecast made each day of the month. Actual: ${sgd(lq.fan_last_month.actual)}, settled ${dayName(lq.fan_last_month.settlement_date)}. This validates the forecast process; it does not set a policy amount.`}>
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={fan} margin={{ left: 4, right: 8, top: 8 }}>
                 <CartesianGrid vertical={false} stroke="#efebe4" />
@@ -105,7 +100,7 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
               </ComposedChart>
             </ResponsiveContainer>
           </Card>
-          <Card title={`This month so far: ${monthName(lq.fan_current_month.month)}`} sub="Same forecast, run each day up to today.">
+          <Card title={`Forecast path: ${monthName(lq.fan_current_month.month)}`} sub="The same offline method, shown day by day. Customer cover stays on the published station readings and plan terms.">
             <ResponsiveContainer width="100%" height={260}>
               <ComposedChart data={cur} margin={{ left: 4, right: 8, top: 8 }}>
                 <CartesianGrid vertical={false} stroke="#efebe4" />
@@ -124,15 +119,15 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
 
       <Section>
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card title="Annual loss ratio by back-test year" sub={`Stop-loss at ${pct(lq.annual.attach)}; hard cap ${pct(lq.annual.hard_cap_lr)}. Expected ${pct(lq.annual.expected_lr)}, 1-in-10 ${pct(lq.annual.one_in_ten_lr)}, 2015-like haze stress ${pct(lq.annual.haze_stress_lr)}.`}>
+          <Card title="Annual loss ratio by back-test year" sub={`Published target ${pct(claimsShare)}. The plan’s stop-loss attaches at ${pct(reinsurance.attachment_loss_ratio)}; haze stress is why the reserve exists.`}>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={lrYears} margin={{ left: 4, right: 8, top: 16 }}>
                 <CartesianGrid vertical={false} stroke="#efebe4" />
                 <XAxis dataKey="year" tick={{ fontSize: 10 }} interval={2} />
-                <YAxis tick={{ fontSize: 11 }} unit="%" width={44} domain={[0, Math.max(160, Math.round(lq.annual.attach * 100) + 10)]} />
+                <YAxis tick={{ fontSize: 11 }} unit="%" width={44} domain={[0, Math.max(160, Math.round(reinsurance.attachment_loss_ratio * 100) + 10)]} />
                 <Tooltip formatter={(v: number) => `${v}%`} />
-                <ReferenceLine y={Math.round(lq.annual.attach * 100)} stroke={BLUE} strokeDasharray="4 4" label={{ value: `stop-loss ${pct(lq.annual.attach)}`, fontSize: 10, fill: BLUE, position: "insideTopRight" }} />
-                <ReferenceLine y={65} stroke="#8b8d8e" strokeDasharray="2 4" label={{ value: "target 65%", fontSize: 10, position: "insideTopLeft" }} />
+                <ReferenceLine y={Math.round(reinsurance.attachment_loss_ratio * 100)} stroke={BLUE} strokeDasharray="4 4" label={{ value: `stop-loss ${pct(reinsurance.attachment_loss_ratio)}`, fontSize: 10, fill: BLUE, position: "insideTopRight" }} />
+                <ReferenceLine y={Math.round(claimsShare * 100)} stroke="#8b8d8e" strokeDasharray="2 4" label={{ value: `target ${pct(claimsShare)}`, fontSize: 10, position: "insideTopLeft" }} />
                 <Bar dataKey="lr" name="loss ratio" radius={[3, 3, 0, 0]}>
                   {lrYears.map((y) => (
                     <Cell key={y.year} fill={y.lr > 100 ? "#b35300" : ORANGE} />
@@ -140,30 +135,15 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <table className="mt-3 w-full text-xs">
-              <thead className="text-muted-foreground">
-                <tr>
-                  <th className="text-left">Attach</th>
-                  <th className="text-right">Expected recovery</th>
-                  <th className="text-right">Cost at {re.load}x</th>
-                  <th className="text-right">Years hit</th>
-                  <th className="text-right">In 5% budget</th>
-                </tr>
-              </thead>
-              <tbody>
-                {re.table.map((r) => (
-                  <tr key={r.attach} className={cn("border-t border-line-soft", r.attach === re.chosen_attach && "font-semibold")}>
-                    <td className="num py-1">{pct(r.attach)}</td>
-                    <td className="num text-right">{r.expected_recovery_pct}%</td>
-                    <td className="num text-right">{r.cost_pct}%</td>
-                    <td className="num text-right">
-                      {r.years_hit} of {r.years}
-                    </td>
-                    <td className="text-right">{r.inside_budget ? "yes" : "no"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              {product.premium_split.map((part) => (
+                <div key={part.id} className="rounded-xl bg-paper p-3">
+                  <p className="text-muted-foreground">{part.label}</p>
+                  <p className="num mt-1 font-heading text-lg font-bold">{pct(part.share)}</p>
+                  {part.note ? <p className="mt-1 text-[11px] text-muted-foreground">{part.note}</p> : null}
+                </div>
+              ))}
+            </div>
           </Card>
           <Card title="Season view: plan reinsurance before the haze and monsoon seasons" sub={lq.season.note}>
             <Tabs value={state} onValueChange={setState}>
@@ -190,126 +170,32 @@ export default function Console({ lq, pr, sm, fair, an }: { lq: Liquidity; pr: P
 
       <Section>
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <ClaimsQueue claims={sm.samples.map((s) => s.claim).filter((c) => c.status === "REVIEW")} />
-          </div>
-          <div className="space-y-6">
-            <Card title="Fairness" sub="Price inputs, and what is never used">
-              <ul className="space-y-1 text-sm">
-                {fair.price_inputs.map((p) => (
-                  <li key={p} className="flex items-center gap-2">
-                    <BadgeCheck className="h-4 w-4 text-state-ok" /> {p}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-xs font-semibold text-muted-foreground">Never used</p>
-              <p className="text-xs text-muted-foreground">{fair.never_used.join(" · ")}</p>
-              <p className="mt-3 text-xs font-semibold text-muted-foreground">Expected insured hours a worker, by region</p>
-              <MiniBars rows={fair.by_region.map((r) => ({ k: r.region, v: r.expected_insured_h, n: r.firms }))} />
-              <p className="mt-3 text-xs font-semibold text-muted-foreground">By firm size (outdoor workers)</p>
-              <MiniBars rows={fair.by_size.map((r) => ({ k: r.size, v: r.expected_insured_h, n: r.firms }))} />
-              <p className="mt-2 text-xs text-muted-foreground">Payout differs by station weather, not by who the workers are. Same price everywhere.</p>
-            </Card>
-            <Card title="Declaration flags" sub={`${an.flagged} of ${an.firms} firms flagged for a person to check. ${an.note}`}>
-              <ul className="space-y-2 text-xs">
-                {an.flags.slice(0, 5).map((f) => (
-                  <li key={f.uen} className="rounded-lg bg-paper p-2">
-                    <p className="flex items-center gap-1 font-medium">
-                      <Flag className="h-3 w-3 text-state-pending" /> {f.name}
-                    </p>
-                    <p className="text-muted-foreground">{f.reasons[0]}</p>
-                  </li>
-                ))}
-              </ul>
-              <AssumptionTag basis="Firm size and paid-up capital are fictional stand-ins for an ACRA lookup; 8 anomalies were seeded to test the flags." label="test data" />
-            </Card>
-          </div>
+          <Card title="Published pricing boundary" sub="The plan terms decide the amount. Forecasts and checks do not.">
+            <ul className="divide-y divide-line-soft text-sm">
+              {product.plans.map((plan) => (
+                <li key={plan.id} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <span>
+                    <span className="block font-semibold">{plan.name}</span>
+                    <span className="block text-xs text-muted-foreground">{plan.deductible_label}</span>
+                  </span>
+                  <span className="num text-right font-semibold">{sgd(plan.per_worker_week, 2)}<span className="block text-[11px] font-normal text-muted-foreground">a worker / week</span></span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 rounded-xl bg-paper p-3 text-xs leading-relaxed text-muted-foreground">Price uses the selected plan and declared outdoor headcount. It never uses nationality, age, health, gender or worker personal data.</p>
+          </Card>
+          <Card title="Human review boundary" sub="A checker explains a reason. It does not reject a claim.">
+            <p className="text-sm leading-relaxed text-muted-foreground">Site Match is an optional Labs pilot rider, not part of core cover. A log outside its published band is sent to a person with the reason shown.</p>
+            <Link href="/employer/site-match" className="mt-4 inline-flex font-semibold text-income-blue underline underline-offset-2">Open the Site Match pilot</Link>
+          </Card>
+          <Card title="Data boundary" sub="Only the fields needed to run the cover are collected.">
+            <p className="text-sm leading-relaxed text-muted-foreground">{product.pdpa_fields_collected.join(", ")}. Workers scan a notice and do not need an account.</p>
+            <p className="mt-4 rounded-xl bg-paper p-3 text-xs leading-relaxed text-muted-foreground">Missing station data stays pending. It is never converted into a zero result.</p>
+          </Card>
         </div>
-        <SourceNote>Rehat engine: liquidity Monte Carlo (docs/liquidity-validation.md), pricing and stop-loss (docs/pricing.md), Site Match (docs/model-cards/site-match.md).</SourceNote>
+        <SourceNote>Product terms from product.json. Forecast calibration from the offline engine archive in docs/liquidity-validation.md.</SourceNote>
       </Section>
     </>
-  );
-}
-
-function ClaimsQueue({ claims }: { claims: Claim[] }) {
-  const [items, setItems] = useState(claims.map((c) => ({ ...c, decision: null as null | "approve" | "decline", reason: "" })));
-  const decide = async (id: string, decision: "approve" | "decline") => {
-    const reason = decision === "approve" ? "Site conditions explain the log (reviewer note)" : "Log does not match site conditions (reviewer note)";
-    const at = new Date().toISOString().slice(0, 19);
-    setItems((xs) => xs.map((x) => (x.claim_id === id ? { ...x, decision, reason, audit: [...x.audit, { at, by: "Reviewer (Income claims)", event: `HUMAN_${decision.toUpperCase()}`, detail: reason }] } : x)));
-    try {
-      await fetch(`${ENGINE_URL}/sitematch/decide`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ claim_id: id, decision, reviewer: "Reviewer (Income claims)", reason }) });
-    } catch {
-      /* offline demo: decision kept on this page */
-    }
-  };
-  return (
-    <Card title="Site Match review queue" sub="The checker never rejects. A person decides, with a reason, and it goes in the audit log.">
-      <ul className="divide-y divide-line-soft">
-        {items.map((c) => (
-          <li key={c.claim_id} className="py-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">
-                  {c.claim_id} · {c.firm} · {c.day}
-                </p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {c.checks.filter((x) => !x.passed).map((x) => (
-                    <span key={x.code} className="rounded-full border border-state-review/30 bg-state-review-bg px-2 py-0.5 text-[11px] text-state-review">
-                      {x.text}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">Top-up if approved: {c.topup_minutes_per_worker} min a worker, {sgd(Math.round((c.topup_minutes_per_worker / 60) * c.benefit * c.workers))}</p>
-              </div>
-              {c.decision === "approve" ? (
-                <StateBadge state="APPROVED" />
-              ) : c.decision === "decline" ? (
-                <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-xs font-medium text-ink">Declined by a person</span>
-              ) : (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => decide(c.claim_id, "approve")}>
-                    Approve
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => decide(c.claim_id, "decline")}>
-                    Decline
-                  </Button>
-                </div>
-              )}
-            </div>
-            <details className="mt-2 text-xs text-muted-foreground">
-              <summary className="cursor-pointer">Audit log ({c.audit.length})</summary>
-              <ul className="mt-1 space-y-0.5">
-                {c.audit.map((a, i) => (
-                  <li key={i} className="num">
-                    {a.at} · {a.by} · {a.event}: {a.detail}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
-function MiniBars({ rows }: { rows: { k: string; v: number; n: number }[] }) {
-  const max = Math.max(...rows.map((r) => r.v), 1);
-  return (
-    <ul className="mt-1 space-y-1">
-      {rows.map((r) => (
-        <li key={r.k} className="grid grid-cols-[80px_1fr_70px] items-center gap-2 text-xs">
-          <span className="capitalize">{r.k}</span>
-          <span className="h-2 rounded-full bg-paper">
-            <span className="block h-2 rounded-full bg-income-blue" style={{ width: `${(r.v / max) * 100}%` }} />
-          </span>
-          <span className="num text-right text-muted-foreground">
-            {r.v.toFixed(1)} h · {r.n}
-          </span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

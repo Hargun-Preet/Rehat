@@ -1,0 +1,303 @@
+{
+  "_readme": "Machine-readable copy of CONTEXT.md sections 4, 5 and the verbatim copy. The engine and the web app read from this file. No screen or module hard-codes a number or a legal sentence. If this file and CONTEXT.md disagree, fix one of them and note it in the worklog. source values: published, back-test, simulation, assumption, contract, formula, plan.",
+  "version": "2.0",
+  "frozen_at": "2026-11-15T21:30:00+08:00",
+  "matches_deck": "Rehat_pitch_deck_v6.pptx",
+
+  "product": {
+    "name": "Rehat",
+    "descriptor": "Weather downtime cover",
+    "underwriter_line": "Underwritten by Income Insurance Limited (proposed)",
+    "host_policy": "Work Injury Compensation (WIC)",
+    "benefit_per_worker_hour": 8.0,
+    "idle_hour_cost": { "value": 10.2, "source": "assumption", "basis": "S$2,450 a month over 240 hours" },
+    "coinsurance_share_kept_by_firm": 0.22,
+    "target_loss_ratio": 0.65,
+    "gst_rate": 0.09,
+    "term_months": 12,
+    "mid_term_wait_days": 14,
+    "payment": "PayNow to the company UEN by the 5th working day of next month",
+    "window": { "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], "start": "08:00", "end": "18:00", "meal_hour_default": ["12:00", "13:00"] }
+  },
+
+  "triggers": {
+    "heat": {
+      "meter": "Hourly mean of the four 15-minute WBGT readings at the named station",
+      "min_valid_readings": 3,
+      "tiers": [
+        { "from": 31.5, "to": 31.99, "rest_minutes": 5, "label": "Near-miss tier" },
+        { "from": 32.0, "to": 32.99, "rest_minutes": 10, "label": "MOM: at least 10 minutes rest an hour for heavy work (mandatory)" },
+        { "from": 33.0, "to": null, "rest_minutes": 15, "label": "MOM framework sets 15 minutes an hour" }
+      ],
+      "has_allowance": true
+    },
+    "rain": {
+      "meter": "Clock-hour rainfall total at the named rain gauge",
+      "tiers": [
+        { "from_mm": 2.5, "to_mm": 9.9, "hours": 0.5 },
+        { "from_mm": 10.0, "to_mm": null, "hours": 1.0 }
+      ],
+      "has_allowance": true
+    },
+    "haze": {
+      "meter": "NEA 24-hour PSI for the region at 12:00",
+      "tiers": [
+        { "from_psi": 101, "to_psi": 200, "hours": 1, "from_consecutive_day": 3 },
+        { "from_psi": 201, "to_psi": 300, "hours": 3, "from_consecutive_day": 1 },
+        { "from_psi": 301, "to_psi": null, "hours": 6, "from_consecutive_day": 1 }
+      ],
+      "has_allowance": false,
+      "annual_limit_hours": 20
+    }
+  },
+
+  "limits": {
+    "insured_hours_per_month": 20,
+    "insured_hours_per_year": 60,
+    "max_payout_per_worker_year": 480,
+    "haze_hours_per_year": 20
+  },
+
+  "hour_states": ["TRIGGERED", "NOT_TRIGGERED", "PENDING"],
+  "fallback_ladder": [
+    "Primary station (3 of 4 readings valid)",
+    "Backup station",
+    "Regional median",
+    "Labelled model estimate, sent for review",
+    "After 14 days: settle at the published regional advisory level"
+  ],
+
+  "plans": [
+    {
+      "id": "essential", "name": "Essential", "allowance_multiple": 1.5, "deductible_label": "Normal month + 50%",
+      "per_worker_week": 1.76, "per_worker_year": 91.5,
+      "example_20_workers": { "premium_year": 1830, "average_payout_year": 1190, "worst_year_payout": 9600 },
+      "months_that_pay": "1 in 3", "source": "simulation", "default": false
+    },
+    {
+      "id": "standard", "name": "Standard", "allowance_multiple": 1.25, "deductible_label": "Normal month + 25%",
+      "per_worker_week": 2.48, "per_worker_year": 128.75,
+      "example_20_workers": { "premium_year": 2575, "premium_year_with_gst": 2807, "average_payout_year": 1565, "worst_year_payout": 9600, "observed_loss_ratio": 0.608 },
+      "months_that_pay": "1 in 2", "months_that_pay_share": { "simulation": 0.48, "back-test": 0.55 },
+      "source": "back-test", "default": true
+    },
+    {
+      "id": "plus", "name": "Plus", "allowance_multiple": 1.0, "deductible_label": "Normal month",
+      "per_worker_week": 3.61, "per_worker_year": 187.5,
+      "example_20_workers": { "premium_year": 3750, "average_payout_year": 2440, "worst_year_payout": 9600 },
+      "months_that_pay": "2 in 3", "source": "simulation", "default": false
+    }
+  ],
+  "retired": ["Lite plan (S$5 benefit)", "30% launch credit", "Site Match as a core plan option"],
+
+  "work_classes": [
+    { "id": "A", "name": "Heavy work", "trades": ["Construction", "Civil works", "Landscaping"], "heat_factor": 1.0, "rain_factor": 1.0, "haze_factor": 1.0 },
+    { "id": "B", "name": "Moderate work", "trades": ["Outdoor cleaning", "Conservancy", "Pest control"], "heat_factor": 0.5, "rain_factor": 1.0, "haze_factor": 1.0 }
+  ],
+  "price_inputs_allowed": ["plan", "headcount"],
+
+  "levers": [
+    { "term": "Deductible", "plain": "The monthly allowance. A normal month, plus a buffer, stays with the firm." },
+    { "term": "Co-insurance", "plain": "We pay S$8 against a cost of about S$10.20 an hour, so the firm keeps about a fifth." },
+    { "term": "Limit", "plain": "60 insured hours a year, S$480 a worker." }
+  ],
+
+  "included": {
+    "heat_alert": true,
+    "compliance_log": true,
+    "break_log": { "optional": true, "condition_of_payout": false }
+  },
+  "retention": {
+    "rate_lock_years": { "value": 2, "source": "assumption", "note": "The lock itself is not priced yet" },
+    "renewal_discount": { "value": 0.05, "source": "assumption", "note": "For a full-year break log and no MOM heat action. To be tested in the pilot" }
+  },
+  "misuse_conditions": {
+    "warranty": true,
+    "mom_action_first": "Forfeits that month's heat payout",
+    "mom_action_second": "Cancels the heat cover",
+    "worker_notice": true
+  },
+  "site_match_pilot_rider": {
+    "status": "labs",
+    "top_up_cap_hours_year": 10,
+    "price_per_worker_week": { "value": 0.5, "source": "assumption" },
+    "band": { "uplift_min_c": -1.0, "uplift_max_c": 2.0, "min_correlation": 0.7, "min_std_of_differences": 0.05, "max_share_just_above_threshold": 0.35 }
+  },
+
+  "unit_economics_standard_per_worker": {
+    "normal_downtime_hours_year": { "total": 59, "heat": 16, "rain": 40, "haze": 2.5, "source": "simulation" },
+    "expected_insured_hours_year": { "value": 9.78, "source": "back-test", "basis": "26-year observed back-test (8.78 h) plus 1.0 h haze load assumption" },
+    "expected_payout_year": { "value": 78.27, "source": "back-test", "basis": "Observed pricing back-test with haze load assumption" },
+    "one_in_ten_year_payout": { "value": 159, "loss_ratio": 1.24, "source": "back-test" },
+    "worst_backtest_year_payout": { "value": 295, "loss_ratio": 2.29, "source": "back-test" },
+    "firm_loss_normal_year_20_workers": { "value": 12000, "source": "simulation" },
+    "premium_share_of_labour_bill": { "value": 0.005, "source": "assumption" }
+  },
+
+  "premium_split": [
+    { "id": "claims", "label": "Back to firms as claims", "share": 0.65 },
+    { "id": "expenses", "label": "Expenses", "share": 0.20, "note": "The ceiling in Income's brief" },
+    { "id": "reinsurance", "label": "Reinsurance", "share": 0.05, "note": "From year 2. Income keeps the pilot's risk" },
+    { "id": "profit", "label": "Profit", "share": 0.10, "note": "15% in the pilot year, because no reinsurance is bought" }
+  ],
+
+  "three_year_path": {
+    "source": "plan",
+    "years": [
+      { "year": 1, "label": "Pilot", "firms": 500, "workers": 10000, "premium": 1287500, "claims": 836875, "expenses": 257500, "reinsurance": 0, "profit": 193125 },
+      { "year": 2, "label": "Year 2", "firms": 620, "workers": 12400, "premium": 1596500, "claims": 1037725, "expenses": 319300, "reinsurance": 79825, "profit": 159650 },
+      { "year": 3, "label": "Year 3", "firms": 745, "workers": 14900, "premium": 1918375, "claims": 1246944, "expenses": 383675, "reinsurance": 95919, "profit": 191838 }
+    ],
+    "total_premium": 4802375,
+    "total_profit": 544613,
+    "note": "Year 2 profit dips because reinsurance starts"
+  },
+
+  "pilot": {
+    "firms": 500, "workers": 10000, "start": "April 2027",
+    "premium": 1287500, "expected_profit": 193125, "capped_worst_case": 4800000,
+    "one_in_100_year_claims": { "value": 2600000, "source": "simulation" },
+    "risk_retained_by": "Income"
+  },
+
+  "reinsurance": {
+    "type": "Aggregate stop-loss",
+    "attachment_loss_ratio": 1.5,
+    "expected_recovery_share": { "simulation": 0.020, "back-test": 0.022 },
+    "reinsurer_load": { "value": 1.75, "source": "assumption" },
+    "cost_share": 0.039,
+    "budget_share": 0.05,
+    "starts_year": 2,
+    "haze_stress_scenario": {
+      "label": "2015-style haze stress",
+      "loss_ratio": 2.61,
+      "source": "simulation",
+      "basis": "Published capital-stress scenario for a severe 2015-style haze year. It is not an observed recovery result and never changes a customer payout or price."
+    }
+  },
+
+  "probabilities": {
+    "months_paying_standard": { "simulation": 0.48, "back-test": 0.55, "say": "about half" },
+    "years_with_no_payout": { "simulation": 0.001, "back-test": "0 of 36", "say": "almost never" },
+    "years_firm_gets_back_more_than_paid": { "value": 0.2, "say": "about 1 in 5", "source": "simulation" },
+    "years_income_profits_after_all_expenses": { "value": 0.69, "say": "about 7 in 10", "source": "simulation" },
+    "loss_ratio_above": { "110": 0.16, "125": 0.12, "150": 0.07, "source": "simulation" },
+    "mean_loss_ratio_by_enso": { "el_nino": 1.03, "neutral": 0.50, "la_nina": 0.56, "source": "simulation" }
+  },
+
+  "loss_ratio_choice": [
+    { "target": 0.55, "price_week": 2.93, "profit_margin": 0.20, "years_in_profit": 0.77 },
+    { "target": 0.60, "price_week": 2.69, "profit_margin": 0.15, "years_in_profit": 0.73 },
+    { "target": 0.65, "price_week": 2.48, "profit_margin": 0.10, "years_in_profit": 0.69, "chosen": true },
+    { "target": 0.70, "price_week": 2.30, "profit_margin": 0.05, "years_in_profit": 0.66 },
+    { "target": 0.75, "price_week": 2.15, "profit_margin": 0.00, "years_in_profit": 0.62 }
+  ],
+
+  "stress_tests": [
+    { "stress": "Base", "loss_ratio": 0.65 },
+    { "stress": "Haze 60% more frequent", "loss_ratio": 0.75 },
+    { "stress": "Haze twice as frequent", "loss_ratio": 0.80 },
+    { "stress": "Heat up 30%, normals not reset", "loss_ratio": 0.83 },
+    { "stress": "Heat up 30%, rain up 10%, normals not reset", "loss_ratio": 0.96 }
+  ],
+
+  "market": {
+    "all_crews": { "workers": 490700, "premium": 63000000, "source": "published", "note": "MOM work permit holders in construction, shipyard and process, Jun 2026, x S$129. Includes large firms, which are later" },
+    "small_firms": { "employers": 12400, "workers": 185400, "workers_low": 110700, "workers_high": 261800, "premium": 23900000, "premium_low": 14300000, "premium_high": 33700000, "source": "assumption" },
+    "reachable_first": { "employers": 3100, "workers": 46400, "premium": 6000000, "source": "assumption", "note": "25% of small firms. Open question 1 in CONTEXT.md" },
+    "year_3_target": { "employers": 745, "workers": 14900, "premium": 1918375, "source": "plan" },
+    "wic_line": { "premium": 490000000, "one_percent": 4900000, "source": "published", "note": "GIA, via a secondary summary" }
+  },
+
+  "facts": [
+    { "id": "heat_days", "text": "Days of high heat stress: 37 in 2023, 21 in 2024, 29 in 2025", "source": "NEA annual climate assessments" },
+    { "id": "mom_action", "text": "MOM has taken enforcement action against 213 employers", "source": "MOM press reply, 8 Apr 2026" },
+    { "id": "inspections", "text": "About a third of 250 workplaces inspected in the hotter months of 2024 breached heat rules", "source": "The Straits Times" },
+    { "id": "dec_2026", "text": "Four more heat measures are mandatory from 1 Dec 2026", "source": "MOM" },
+    { "id": "salary", "text": "Work permit holders must be paid the declared salary even when there is no work", "source": "MOM FAQ" },
+    { "id": "stations", "text": "20 WBGT stations as of March 2026", "source": "NEA" },
+    { "id": "rain_share", "text": "About two-thirds of normal downtime hours are heavy rain", "source": "simulation" }
+  ],
+
+  "worked_month": {
+    "firm": "test fixture, 20 workers", "month": "2026-05", "station": "Bishan", "plan": "standard",
+    "heat": { "counted_hours": 1.69, "allowance_hours": 1.25, "insured_hours": 0.44 },
+    "rain": { "counted_hours": 9.0, "allowance_hours": 6.25, "insured_hours": 2.75 },
+    "insured_hours": 3.19, "payout": 510,
+    "note": "Heat from real sampled readings. Rain and normals are assumptions. The engine test for this month must produce S$510."
+  },
+
+  "demo_clock": {
+    "today": "2026-05-29",
+    "month": "2026-05",
+    "replay_day": "2025-10-31",
+    "replay_receipt_month": "2025-10",
+    "note": "Offline demo mode pins one date so every screen agrees. Default is May 2026. The S$510 worked month is a Bishan test fixture; the demo firm's own figure comes from the engine. If the repo already pins another month with a payout, keep the repo's month and write it here and in CONTEXT.md section 17."
+  },
+
+  "demo_firm": {
+    "name": "Tanjong Greenworks Pte Ltd",
+    "uen": "202012345K",
+    "owner_display": "Mr Tan",
+    "trade": "Landscaping",
+    "work_class": "A",
+    "outdoor_workers": 20,
+    "site_area": "Jurong West",
+    "plan": "standard",
+    "wic_policy_no": "WIC-DEMO-000123",
+    "fictional": true
+  },
+
+  "copy": {
+    "tagline": "Rest that is paid for gets taken.",
+    "hook": "At a heat reading of 32, a contractor pays for 60 minutes and gets 50.",
+    "human_line": "A normal month is part of the job. A hard month, we carry with you.",
+    "one_line": "One tick box on the work injury policy. No claim form.",
+    "may_not_pay": "Rehat pays only when NEA's published readings at your named station cross the levels shown; your own site can be hotter or wetter than the station, so you can lose work time and receive nothing.",
+    "employer_sms": "Rehat pays $8/worker/hr when NEA heat (WBGT 32+), heavy rain or haze at your station runs above a normal month. Station only: you may lose time and get $0.",
+    "warranty": "We give the rest breaks MOM requires and do not cut pay for them.",
+    "worker_notice_en": "WBGT is 32 now. You get 10 minutes of rest in shade every hour. Your pay is not cut. No break? Scan to tell us.",
+    "worker_notice_languages": ["Bengali", "Tamil", "Mandarin", "Burmese", "Malay"],
+    "translation_badge": "Translations pending native-speaker review",
+    "heat_alert": "Heat reading is 32 at {station}. Ten-minute breaks start now.",
+    "forecast_alert": "Heat stress likely {from} to {to} tomorrow at {station}. Plan heavy work early.",
+    "rule_statement": "At a heat reading (WBGT) of 32 or more, MOM requires at least 10 minutes of rest every hour for heavy work. MOM's framework sets 15 minutes at 33.",
+    "teach_back_question": "When does Rehat pay you?",
+    "teach_back_options": [
+      { "text": "When NEA's readings at my named station run above a normal month", "correct": true },
+      { "text": "Whenever my own site is too hot or too wet to work", "correct": false },
+      { "text": "Whenever I send in a claim form", "correct": false }
+    ],
+    "teach_back_explain": "Rehat reads NEA's station, not your site, and there is no claim form. If the station's month is normal, Rehat pays nothing.",
+    "footer": "Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data.",
+    "header_wordmark": "Rehat",
+    "legal_status": "Designed to be confirmed by Income's legal team",
+    "ask": "Would you pilot this? And if not, what would have to be true?",
+    "never_say": [
+      "Work must stop at 33",
+      "The employer pays one-fourth of the wage",
+      "We don't insure the summer",
+      "Compliant with MAS",
+      "30 WBGT stations",
+      "19% margin",
+      "Haze stops work by law"
+    ]
+  },
+
+  "pdpa_fields_collected": ["UEN", "WIC policy number", "Outdoor headcount", "Job class", "Wage band", "Site addresses", "PayNow (UEN)", "One contact person"],
+
+  "glossary": [
+    { "term": "Heat reading (WBGT)", "plain": "Wet bulb globe temperature. NEA's measure of heat stress. It combines temperature, humidity, wind and sun." },
+    { "term": "Station", "plain": "The NEA weather station named on your policy. Rehat pays on its readings, not on your site." },
+    { "term": "Normal month", "plain": "The downtime your station usually sees in that calendar month. It is reset every year." },
+    { "term": "Deductible", "plain": "The part you carry: a normal month plus your plan's buffer." },
+    { "term": "Insured hour", "plain": "An hour of downtime above your deductible. Rehat pays S$8 per outdoor worker for it." },
+    { "term": "Co-insurance", "plain": "Rehat pays S$8 of an hour that costs you about S$10.20. You keep the rest." },
+    { "term": "Limit", "plain": "The most Rehat pays: 20 insured hours a month and 60 a year, S$480 a worker." },
+    { "term": "Pending", "plain": "NEA's data for that hour is missing or late. We wait for it. We never count missing data as zero." },
+    { "term": "Compliance log", "plain": "An hourly record of the heat reading and the rest owed. You can show it to an MOM inspector." },
+    { "term": "Loss ratio", "plain": "The share of premium paid back to customers as claims. Rehat targets 65%." },
+    { "term": "Stop-loss", "plain": "Reinsurance that pays Income when a year's claims pass 150% of premium." },
+    { "term": "PSI", "plain": "NEA's 24-hour air quality index. Above 100 is unhealthy." }
+  ]
+}

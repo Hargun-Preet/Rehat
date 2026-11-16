@@ -15,7 +15,7 @@ from sklearn.ensemble import IsolationForest
 from rehat.ledger import demo_book
 from rehat.paths import PROCESSED, WEB_DATA
 
-SSIC = {"construction": "43", "landscaping": "81300", "cleaning": "81291"}  # fictional mapping for the prototype
+SSIC = {"construction": "43", "landscaping": "81300", "cleaning": "81291"}  # fictional mapping for the demo dataset
 WAGE_IDX = {"S$1,600 to S$2,000": 0, "S$2,000 to S$2,400": 1, "S$2,400 to S$2,600": 2}
 SEEDED = {  # index in demo book -> what was seeded
     10: "outdoor headcount above total employees",

@@ -27,14 +27,24 @@ def collect() -> dict[str, Any]:
     bt = _load("backtest")
     if bt:
         b = bt["base"]
+        # The generated pilot book is intentionally a geographic-mix
+        # diagnostic. Keep customer/pitch headline numbers on the approved
+        # Standard calibration, while retaining diagnostic fields separately.
+        published = bt.get("published_calibration")
+        if not isinstance(published, dict):
+            published = b
+        portfolio = bt.get("portfolio_diagnostic")
+        if not isinstance(portfolio, dict):
+            portfolio = {}
         out["backtest"] = {
-            "expected_insured_h": b["expected_insured_h"],
-            "expected_payout_standard": b["expected_payout"],
-            "loss_ratio_mean_at_128_70": b["loss_ratio_mean"],
-            "loss_ratio_1in10_at_128_70": b["loss_ratio_1in10"],
-            "payout_1in10": b["payout_1in10"],
+            "scope": published.get("scope", "Published Standard pricing calibration."),
+            "expected_insured_h": published["expected_insured_h"],
+            "expected_payout_standard": published["expected_payout"],
+            "loss_ratio_mean_at_standard_price": published.get("observed_loss_ratio", b["loss_ratio_mean"]),
+            "loss_ratio_1in10_at_standard_price": published.get("one_in_ten_loss_ratio", b["loss_ratio_1in10"]),
+            "payout_1in10": published.get("one_in_ten_payout", b["payout_1in10"]),
             "worst_year": b["worst_year"],
-            "worst_payout": b["worst_payout"],
+            "worst_payout": published.get("worst_payout", b["worst_payout"]),
             "zero_payout_years_book": b["zero_payout_years_book"],
             "zero_payout_years_avg_firm": b["zero_payout_years_avg_firm"],
             "years": len(b["years"]),
@@ -45,8 +55,17 @@ def collect() -> dict[str, Any]:
             "rain_window_share": bt["rain_window_share"],
             "rain_window_share_basis": bt["rain_window_share_basis"],
             "changi_rain_days_10mm_mean": bt["changi_long_view"]["rain_days_10mm_mean"],
+            "portfolio_diagnostic": {
+                "scope": portfolio.get("scope", "Geographic-mix portfolio diagnostic."),
+                "firms": portfolio.get("firms"),
+                "expected_insured_h": b["expected_insured_h"],
+                "expected_payout_standard": b["expected_payout"],
+                "loss_ratio_mean_at_standard_price": b["loss_ratio_mean"],
+            },
         }
-    for name in ("pricing", "liquidity", "sitematch"):
+    # The Site Match analysis is intentionally contained within Labs. It does
+    # not belong in the core product's headline-number feed.
+    for name in ("pricing", "liquidity"):
         d = _load(name)
         if d and "headline" in d:
             out[name] = d["headline"]
@@ -58,22 +77,31 @@ def _md(n: dict[str, Any]) -> str:
     if "backtest" in n:
         b = n["backtest"]
         lines += [
-            f"**Back-test ({b['first_year']} to {b['last_year']}, demo book weighted, 1 worker, Standard)**",
+            f"**Published Standard calibration ({b['first_year']} to {b['last_year']}, 1 worker)**",
             "",
             "| Item | Value | Basis |",
             "|---|---|---|",
-            f"| Expected insured hours | {b['expected_insured_h']} a worker a year | rules.py on NEA WBGT (observed) + corrected ERA5 rebuild, MSS daily rain, NEA PSI where pulled |",
+            f"| Expected insured hours | {b['expected_insured_h']} a worker a year | approved pricing calibration; see product.json basis |",
             f"| Expected payout | S${b['expected_payout_standard']} a worker a year | insured hours x S$8 |",
-            f"| 1-in-10 payout | S${b['payout_1in10']} a worker | 90th percentile of {b['years']} book years; loss ratios at the current premium are under Pricing |",
-            f"| Worst year | {b['worst_year']}: S${b['worst_payout']} | |",
+            f"| 1-in-10 payout | S${b['payout_1in10']} a worker | published Standard calibration |",
+            f"| Worst back-test payout | S${b['worst_payout']} | published Standard calibration |",
             f"| Zero-payout years | {b['zero_payout_years_book']} of {b['years']} (book); {b['zero_payout_years_avg_firm']} for the average firm | |",
             f"| Months paying something | {b['pct_months_paying']}% | |",
             f"| Basis risk | {b['basis_risk_pct']}% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |",
             f"| Rain hours in window share | {b['rain_window_share']} | {b['rain_window_share_basis']} |",
             f"| Changi rain days 10 mm+ | {b['changi_rain_days_10mm_mean']} a year (1983 to 2018) | MSS daily, matches proxy 61.4 |",
             "",
+            "**Pilot geographic-mix diagnostic (capital and cash only, not a price calibration)**",
+            "",
+            "| Item | Value |",
+            "|---|---|",
+            f"| Scope | {b['portfolio_diagnostic']['scope']} |",
+            f"| Generated pilot firms | {b['portfolio_diagnostic']['firms']} |",
+            f"| Expected insured hours | {b['portfolio_diagnostic']['expected_insured_h']} a worker a year |",
+            f"| Expected payout | S${b['portfolio_diagnostic']['expected_payout_standard']} a worker a year |",
+            "",
         ]
-    for name, title in (("pricing", "Pricing"), ("liquidity", "Liquidity"), ("sitematch", "Site Match")):
+    for name, title in (("pricing", "Pricing"), ("liquidity", "Liquidity")):
         if name in n:
             lines += [f"**{title}**", "", "| Item | Value |", "|---|---|"]
             lines += [f"| {k} | {v} |" for k, v in n[name].items()]

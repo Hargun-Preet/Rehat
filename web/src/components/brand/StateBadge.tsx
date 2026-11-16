@@ -13,8 +13,9 @@ const styles: Record<HourState, { label: string; cls: string; Icon: typeof Flame
 };
 
 /** State badge: label, colour and icon together. Never colour alone. */
-export function StateBadge({ state, className, compact }: { state: HourState; className?: string; compact?: boolean }) {
+export function StateBadge({ state, className, compact, label }: { state: HourState; className?: string; compact?: boolean; label?: string }) {
   const s = styles[state];
+  const displayLabel = label ?? s.label;
   return (
     <span
       className={cn(
@@ -24,7 +25,7 @@ export function StateBadge({ state, className, compact }: { state: HourState; cl
       )}
     >
       <s.Icon className="h-3.5 w-3.5" aria-hidden />
-      {compact ? <span className="sr-only">{s.label}</span> : s.label}
+      {compact ? <span className="sr-only">{displayLabel}</span> : displayLabel}
     </span>
   );
 }

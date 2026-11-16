@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Ellipsis } from "./Ellipsis";
 
 export const FOOTER_TEXT =
@@ -8,10 +10,13 @@ export function PrototypeFooter() {
     <footer className="mt-16 border-t border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>{FOOTER_TEXT}</p>
-        <p className="flex items-center gap-2">
-          <Ellipsis size="sm" />
-          <span>Underwritten by Income Insurance Limited (proposed)</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link href="/glossary" className="text-income-blue underline underline-offset-2 hover:text-income-blue-600">Terms glossary</Link>
+          <p className="flex items-center gap-2">
+            <Ellipsis size="sm" />
+            <span>Underwritten by Income Insurance Limited (proposed)</span>
+          </p>
+        </div>
       </div>
     </footer>
   );

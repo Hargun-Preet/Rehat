@@ -10,22 +10,36 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Iterable, Literal, Sequence
 
+from rehat import product
+
 State = Literal["TRIGGERED", "NOT_TRIGGERED", "PENDING"]
 TRIGGERED: State = "TRIGGERED"
 NOT_TRIGGERED: State = "NOT_TRIGGERED"
 PENDING: State = "PENDING"
 
-# ---------------------------------------------------------------- plan terms (CONTEXT.md section 4)
-BENEFIT = {"Lite": 5.0, "Standard": 8.0}
-ALLOWANCE_MULTIPLE = 1.25
-MONTHLY_CAP_H = 20.0
-YEARLY_CAP_H = 60.0
-HAZE_YEARLY_LIMIT_H = 20.0
-SITE_MATCH_YEARLY_CAP_H = 10.0
-WINDOW_START_H = 8
-WINDOW_END_H = 18
-DEFAULT_MEAL_HOUR = 12
-WAITING_DAYS_MIDTERM = 14
+# ---------------------------------------------------------------- plan terms (data/seed/product.json)
+_PRODUCT = product.get_product()
+_PRODUCT_DATA = _PRODUCT.model_dump(mode="python")
+_LIMITS = _PRODUCT_DATA["limits"]
+_WINDOW = _PRODUCT_DATA["product"]["window"]
+_SITE_MATCH = _PRODUCT_DATA["site_match_pilot_rider"]
+
+# Keep display-name aliases for historical tests and imports. All v2 plans use
+# the same product benefit; their allowance multiple is the only plan lever.
+BENEFIT = {
+    alias: _PRODUCT.product.benefit_per_worker_hour
+    for plan in _PRODUCT.plans
+    for alias in (plan.id, plan.name)
+}
+ALLOWANCE_MULTIPLE = _PRODUCT.default_plan.allowance_multiple
+MONTHLY_CAP_H = float(_LIMITS["insured_hours_per_month"])
+YEARLY_CAP_H = float(_LIMITS["insured_hours_per_year"])
+HAZE_YEARLY_LIMIT_H = float(_LIMITS["haze_hours_per_year"])
+SITE_MATCH_YEARLY_CAP_H = float(_SITE_MATCH["top_up_cap_hours_year"])
+WINDOW_START_H = int(str(_WINDOW["start"]).split(":")[0])
+WINDOW_END_H = int(str(_WINDOW["end"]).split(":")[0])
+DEFAULT_MEAL_HOUR = int(str(_WINDOW["meal_hour_default"][0]).split(":")[0])
+WAITING_DAYS_MIDTERM = _PRODUCT.product.mid_term_wait_days
 FALLBACK_REVIEW_AFTER_DAYS = 2   # "pending hours wait up to 48 h for a backup station"
 FALLBACK_SETTLE_AFTER_DAYS = 14  # "after 14 days settle at published regional advisory level"
 RAIN_MIN_VALID_5MIN = 9          # decision: 9 of 12 five-minute totals, mirrors heat's 3 of 4

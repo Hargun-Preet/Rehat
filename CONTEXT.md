@@ -1,24 +1,34 @@
-# CONTEXT.md: Rehat by Income (prototype)
+# CONTEXT.md: Rehat, version 2
 
-Read this whole file at the start of every coding session. Update the "Status" and "Worklog" sections at the end of every session. This file is the single source of truth for the project. If code and this file disagree, raise it in the worklog and fix one of them.
+Read this whole file at the start of every coding session. Update section 13 (Status) and section 15 (Worklog) at the end of every session. This file is the single source of truth. If code and this file disagree, raise it in the worklog and fix one of them.
+
+Version 2, written Sun 15 Nov 2026, 21:30 SGT. It replaces the first CONTEXT.md. Sections 1 to 15 keep their old numbers so existing habits still work. Sections 16 to 19 are new. Section 16 lists every decision that changed. Read it first if you knew version 1.
+
+The repo already exists. This version is about making the product cohesive, correct and easy to use, not about building from zero.
 
 ---
 
 ## 1. One-paragraph summary
 
-Rehat is weather downtime cover for small Singapore firms with outdoor crews (construction subcontractors, landscapers, outdoor cleaners). It is sold as an optional add-on next to the Work Injury Compensation (WIC) insurance these employers must already buy, which Income Insurance sells. MOM's heat-stress rules make rest breaks paid working time, and work permit holders must be paid their declared salary even on idle days, so heat, heavy rain and haze cost the employer money without damaging anything. No insurance in Singapore covers this today. Rehat reads public NEA data (heat stress WBGT, rainfall, 24-hour PSI) at a station named on the policy, counts "downtime hours", and when a month is worse than that station's normal, pays S$8 per outdoor worker per extra hour by PayNow before payroll. No claim form. A second, AI-checked "Site Match" claim lets firms on hotter sites submit their site heat log for a capped top-up. Forecasting tells Income how much cash it needs for each monthly payout run and when to lean on reinsurance.
+Rehat is weather downtime cover for small Singapore firms with outdoor crews (construction subcontractors, landscapers, outdoor cleaners). It is one tick box on the Work Injury Compensation (WIC) policy these employers must already buy, which Income Insurance sells. MOM requires rest breaks for heavy work in high heat, and work permit holders must be paid their declared salary even when there is no work, so heat, heavy rain and haze cost the employer money without damaging anything. No insurance in Singapore covers this today. Rehat reads public NEA data (heat stress WBGT, rainfall, 24-hour PSI) every hour at a station named on the policy, counts downtime hours, and when a month runs worse than that station's normal, pays S$8 per outdoor worker for each extra hour, automatically, before payroll. No claim form. The firm chooses its deductible. Every policy includes a free hourly heat alert and a compliance log. Forecasting tells Income how much cash each monthly payout run needs.
 
-Name: Rehat is Malay for "rest"; close to Hindi "raahat", relief. Tagline: "Rest that is paid for gets taken."
+Name: Rehat is Malay for "rest"; close to Hindi "raahat", relief. Team: Chai-Kopi.
 
-## 2. The hackathon
+Lines to use verbatim:
+- Tagline: "Rest that is paid for gets taken."
+- Hook: "At a heat reading of 32, a contractor pays for 60 minutes and gets 50."
+- The human line: "A normal month is part of the job. A hard month, we carry with you."
+- Do not use the old line "We don't insure the summer. We insure the bad month."
 
-- Event: Singapore-India Hackathon 2026, SMU, 15 to 17 Nov 2026, 36 hours. Track: FinTech/InsurTech, problem set by Income Insurance Limited.
+## 2. The launch brief
+
+- Product brief: FinTech/InsurTech, prepared with Income Insurance Limited. The presentation is five minutes, then questions.
 - Income's challenge question: "How might we reimagine insurance, powered by data and AI, so that climate risk protection becomes affordable, accessible and actionable for every vulnerable household and SME in Singapore?"
 - Income's open question (SmartBiz 360 case study): extend a simple, low-cost package to cover climate-related income loss for SMEs (heat, haze, flash floods), using public data and AI to price and trigger, while keeping premiums affordable.
-- The organisers want a product proposal with a strong proof of concept (POC), not just code.
+- The brief calls for a product that can be tested in a real workflow, not just code.
 
-### What judges score ("strong outcome after 36 hours")
-1. Concept/design
+### What the review panel scores
+1. Product and experience design
 2. Target group
 3. Simple pricing logic and unit economics
 4. Clear claim parameters and exclusions
@@ -27,304 +37,424 @@ Name: Rehat is Malay for "rest"; close to Hindi "raahat", relief. Tagline: "Rest
 7. Distribution proposal
 8. How AI/data is integrated
 
-### Must-haves (hard requirements)
+### Must-haves
 - Offered by or with Income as the licensed insurer.
 - Triggers and pricing inputs use independent, verifiable data.
 - Target user understands what they pay for and when they get paid in under a minute.
 - Collect only the personal data needed; any AI decision must be explainable.
 - No new hardware for the core product.
+- Brief also says: expenses should sit within about 20% of premium. We budget exactly that (section 5).
 
-### Out of scope (do not build towards these)
-Large corporates and industrial risks; reinsurance or cat bonds AS the solution (budgeting for reinsurance is in scope); national infrastructure; climate ideas with no insurance element; hardware or sensors as the core; crypto or tokens; anything needing a change in the law.
+### Out of scope
+Large corporates and industrial risks; reinsurance or cat bonds as the solution (budgeting for reinsurance is in scope); national infrastructure; climate ideas with no insurance element; hardware or sensors as the core; crypto or tokens; anything needing a change in the law.
 
-### Judges to design for
-Income: Dhiren Amin (Chief Customer Officer), David Tan (Chief Data Officer), Shannen Fong (Chief Sustainability Officer). Others include a former SEBI chair, Tata, Microsoft, Singtel and SMU faculty. Income mentor: Zhao Yiliang (VP, AI Centre of Excellence).
-- CCO hears: no claim form, one SMS, money before payday, sold at a renewal the customer already does.
-- CDO hears: deterministic payout on NEA data, fallback ladder, missing data never read as zero, AI kept upstream and auditable, back-test and forecast validation.
-- CSO hears: makes MOM's rest rule cheaper to obey, worker notices in their language, reprices against NEA's V3 climate scenarios.
+### Review panel to design for
+Income: Chief Customer Officer, Chief Data Officer, Chief Sustainability Officer. Others include a former SEBI chair, Tata, Microsoft, Singtel and SMU faculty.
+- CCO hears: one tick box, no claim form, money before payday, sold at a renewal the customer already does, a free compliance log.
+- CDO hears: deterministic payout on NEA data, fallback ladder, missing data never read as zero, AI kept in the interface and auditable, back-test and forecast validation.
+- CSO hears: makes MOM's rest rule cheaper to obey, worker notices in their language, normals reset yearly against the climate.
+- Finance hears: 65 / 20 / 5 / 10, profitable from the pilot year, worst case capped in the contract.
 
 ## 3. Why this user group (and not others)
 
 Chosen: small and medium firms with outdoor manual crews.
-1. The payer and channel already exist. WIC insurance is compulsory for all manual workers and non-manual staff earning S$2,600 or less a month; Income sells it. Every failed scheme in Income's brief died on "nobody would carry the premium" or distribution (KB Insurance, Korea: zero subscribers).
-2. The trigger is already in the law. MOM: at WBGT 32°C or more, heavy work needs at least 10 min rest an hour; at 33°C or more, 15 min. Rest breaks count as paid working hours. On-site WBGT meters are mandatory only for construction sites with contract sum S$5M or more, shipyards and process plants; other workplaces "can refer to" NEA's myENV app. Every employer must monitor WBGT hourly.
+1. The payer and channel already exist. WIC insurance is compulsory for all manual workers and non-manual staff earning S$2,600 or less a month; Income sells it. Earlier schemes died on "nobody would carry the premium" or on distribution (KB Insurance, Korea: zero subscribers).
+2. The trigger is already in the rules. MOM: at WBGT 32°C or more, heavy physical work needs an hourly rest break of at least 10 minutes. This is mandatory. MOM's framework also lists at least 15 minutes at 33°C or more; two compliance guides say that figure is recommended, not required, and we have not confirmed it on MOM's FAQ page. Every employer must monitor WBGT hourly. On-site WBGT meters are mandatory only for construction sites with contract sum S$5M or more, shipyards and process plants; other workplaces use NEA's myENV app.
 3. The loss is a formula: rest minutes x outdoor headcount x hourly cost. Headcount and wages are already declared for WIC, so there is nothing new to lie about.
 4. It is business interruption without physical damage: Income's own open question.
-5. Scale: 490,700 work permit holders in construction, marine shipyard and process (MOM, Jun 2026).
+5. Heat is the hook, rain is the bulk. About two-thirds of normal downtime hours in our model are heavy rain (40 of 59), and no boss can order the rain to stop.
 
-Rejected, with reasons (say these if asked):
+### Wording rules (the team got these wrong in front of three mentors)
+- Never say "work must stop at 33". MOM requires rest breaks. Work continues.
+- Never say "the employer pays one-fourth of the wage". Say: the firm pays for 60 minutes and gets 50.
+- Say "heat reading (WBGT)" on first use, then "heat reading". Never "WGTT" or "bulbs".
+- Say "ten minutes of rest an hour at 32 is mandatory, and MOM's framework sets fifteen at 33."
+- Never claim haze stops work by law. MOM's haze guidance is advisory.
+- Count employers, not workers, when talking market size.
+
+Rejected groups, with reasons (say these if asked):
 | Group | Why not |
 |---|---|
-| Hawkers (about 6,500 cooked-food stalls) | Centres are roofed, so rain is weak; haze under a 3-day rule pays in about 3 of 12 years; pool near S$1.2M. Roadmap phase 3 via Stallholder Insurance. |
-| Delivery riders (15,300, MOM 2024) | Rain raises surge pay, so the loss is unclear; no payer without a platform deal; login gaming; many teams will pick them. Roadmap phase 2 via platform WIC (Income is a designated insurer). |
+| Hawkers | Centres are roofed, so rain is weak; haze under a 3-day rule pays rarely. Roadmap via Stallholder Insurance. |
+| Delivery riders | Rain raises surge pay, so the loss is unclear; no payer without a platform deal. Roadmap via platform WIC. |
 | Taxi and private-hire drivers | Air-conditioned; rain raises demand. |
-| Lower-income households | PUB flood-prone area now under 25 hectares; weak income link; home insurance covers flood. |
+| Lower-income households | Weak income link; home insurance covers flood. |
+| Large contractors | Out of scope in the brief. Shown only as "later" in market sizing. |
 
-## 4. Product specification (Rehat Standard)
+## 4. Product specification
 
 | Term | Value |
 |---|---|
 | Insured | ACRA-registered SME with a current WIC policy and declared outdoor manual workers |
-| Benefit | S$8 per outdoor worker per insured hour (Lite: S$5). Never above the firm's own idle-hour cost (about S$10.20, assumption) |
+| Benefit | S$8 per outdoor worker per insured hour, on every plan. Below the firm's own idle-hour cost (about S$10.20, assumption), so the firm keeps about 22% of every insured hour |
 | Window | Mon to Sat, 08:00 to 18:00, minus the declared unpaid meal hour (default 12:00 to 13:00) |
-| Heat meter | Hourly mean of the four 15-min WBGT readings (needs 3 of 4 valid, else pending). 31.5 to 31.9: 5 min (near-miss tier). 32.0 to 32.9: 10 min. 33.0+: 15 min |
+| Heat meter | Hourly mean of the four 15-min WBGT readings (needs 3 of 4 valid, else pending). 31.5 to 31.9: 5 min (near-miss tier, because worksites run hotter than stations). 32.0 to 32.9: 10 min. 33.0+: 15 min |
 | Rain meter | Clock-hour total at the named rain gauge. 2.5 to 9.9 mm: 0.5 h. 10 mm+: 1 h |
 | Haze meter | NEA 24-hour PSI for the region at 12:00. 101 to 200: 1 h, from the 3rd consecutive day. 201 to 300: 3 h. 300+: 6 h. Haze limit 20 h a year. No allowance for haze |
-| Allowance | Heat and rain each: station's normal for that calendar month x 1.25. Only hours above it are insured |
-| Caps | 20 insured hours a month, 60 a year (S$480 per worker on Standard) |
+| Deductible (monthly allowance) | Heat and rain each: station's normal for that calendar month x the plan's multiple. Only hours above it are insured. Normals reset every year |
+| Limit | 20 insured hours a month, 60 a year (S$480 per worker) |
 | Payment | PayNow to the company UEN by the 5th working day of next month. No claim form |
-| Term | 1 year, aligned to WIC renewal. 14-day wait if added mid-term |
-| Station | One named primary and one backup, printed on the schedule. Default nearest; a representativeness check may suggest another, with reason shown. No correction factor applied |
+| Term | 1 year, aligned to WIC renewal. 14-day wait if added mid-term. Optional two-year rate lock |
+| Station | One named primary and one backup, printed on the schedule. Default nearest; a representativeness check may suggest another, with reason shown. One national price: each station is measured against its own normal |
 | Fallback ladder | Primary (3 of 4 readings) > backup station > regional median > labelled model estimate > after 14 days settle at published regional advisory level |
-| Day/hour states | TRIGGERED, NOT_TRIGGERED, PENDING. Missing data is NEVER "no event" |
-| Exclusions | Indoor workers; hours outside window; workers not on the WIC declaration; lapsed WIC; shipyards, process plants, firms above SME limit; the heat payout for any month with an MOM heat enforcement action; actual losses above the benefit |
+| Hour states | TRIGGERED, NOT_TRIGGERED, PENDING. Missing data is NEVER "no event" |
+| Exclusions | Indoor workers; hours outside window; workers not on the WIC declaration; lapsed WIC; shipyards, process plants, firms above SME limit; actual losses above the benefit |
 
-### Site Match claim (the innovation, hybrid parametric)
-- For firms whose site is hotter than the station (typically subcontractors on big sites that must keep on-site WBGT logs).
-- Firm uploads the main contractor's hourly WBGT log (photo, PDF or CSV).
-- AI extracts readings, then a checker scores plausibility against the station network: uplift within -1 to +2°C of station, daily shape correlates with station (r >= 0.7), no flat or copied values, no bunching just above 32.0 or 33.0.
-- Inside the band: auto-approved top-up = extra rest minutes implied by the log over the station's. Outside: sent to a person. AI never rejects a claim on its own.
-- Cap: 10 top-up hours a year. Optional rider priced from the Site Match simulation (generated: see "Pricing" and "Site Match" in the section 5 block; assumptions in docs/model-cards/site-match.md).
-- Kit prototype result (400 logs on 31 Oct 2025 curves): 0% honest flagged; 100% inflated and flat; 84% threshold-bunched; 77% pasted (reversed curve). Current engine result on 11 real days with harder fakes: generated "Site Match" block in section 5.
+### Plans: one lever, the deductible
+The benefit is S$8 an hour on every plan. The old Lite plan (S$5 benefit) is retired. Remove it from code and UI.
 
-### Plans
-| Plan | Benefit | Premium per worker (before GST) |
-|---|---|---|
-| Lite | S$5/h | generated: see "Pricing" in the section 5 block |
-| Standard | S$8/h | generated: see "Pricing" in the section 5 block |
-| Site Match rider | top-ups, 10 h/yr cap | generated: see "Pricing" (assumption until P8 simulation) |
-Premium = expected insured hours x benefit / 0.65. GST 9% on top. Year-one launch credit 30%, applied before GST, printed on the premium line, ends 31 Dec 2027.
+| Plan | Deductible (allowance multiple) | Per worker a week | Per worker a year | 20 workers a year | Average payout, 20 workers | Months that pay | Source |
+|---|---|---|---|---|---|---|---|
+| Essential | Normal + 50% (1.5) | S$1.76 | S$91.50 | S$1,830 | S$1,190 | 1 in 3 | Simulation |
+| Standard (default) | Normal + 25% (1.25) | S$2.48 | S$128.75 | S$2,575 | S$1,565 | 1 in 2 | 26-year back-test |
+| Plus | Normal month (1.0) | S$3.61 | S$187.50 | S$3,750 | S$2,440 | 2 in 3 | Simulation |
+
+All three use a cautious price calibration. Standard is deliberately held at S$2.48 a week even though the observed 26-year back-test returns about 61% of premium as payouts (S$1,565 for 20 workers); 65% is the product target, not the historical result. Worst capped year is S$9,600 for 20 workers on every plan. GST 9% on top (Standard, 20 workers: S$2,807 when rounded to whole dollars). No launch credit and no cash launch offer: remove the old 30% credit everywhere.
+
+### The three levers (use these words in the UI and pitch)
+- Deductible: the monthly allowance.
+- Co-insurance: S$8 paid against a S$10.20 cost.
+- Limit: 60 hours a year, S$480 a worker.
+
+### Work classes (set automatically from the WIC job class, never chosen by the user)
+| Class | Trades | Heat hours counted | Rain and haze |
+|---|---|---|---|
+| A, heavy work | Construction, civil works, landscaping | 100% | 100% |
+| B, moderate work | Outdoor cleaning, conservancy, pest control | 50% | 100% |
+Work class changes counted heat hours, not price. Class B uses the same published plan price as Class A. MOM's rest rule is written for heavy work.
+
+### Included with every policy
+- Hourly heat alert: "Heat reading is 32 at {station}. Ten-minute breaks start now."
+- Compliance log: an automatic hourly record of the station reading and the rest owed, exportable as a PDF. This is the record an MOM inspector asks to see. Firms without their own meter must check NEA's reading every hour, and the engine already reads it.
+- Optional break log: the supervisor can tap "break started" and "break ended". Optional. Never a condition of payout.
+
+### Retention features
+- Two-year rate lock, to match project length. The lock itself is not priced yet. Tag as assumption.
+- Renewal discount for firms that keep the break log all year and have no MOM heat action. Modelled at 5%, not priced. Tag as assumption, label "to be tested in the pilot".
+
+### Conditions against misuse (an owner who takes the payout and keeps people working)
+The core stays a pure index with no claim form. Three conditions, none of which adds a monthly step:
+1. Yearly warranty at purchase, verbatim: "We give the rest breaks MOM requires and do not cut pay for them." A false warranty lets Income void the heat cover.
+2. Any MOM heat enforcement action forfeits that month's heat payout. A second one cancels the heat cover.
+3. Worker QR notice in five languages: workers are told their pay is not cut and where to report a missed break.
+These deter misuse. They do not prevent it. If the pilot's worker survey shows breaks being skipped, the next step is making the heat payout conditional on the break log.
+
+### Site Match (pilot rider, not core)
+Site Match is no longer part of the core product or the main demo. It adds paperwork and an abuse surface. Keep the screen and the checker, move them under Labs, and label them "pilot rider".
+- For subcontractors on sites of S$5M or more, where the main contractor's MOM-required WBGT meter gives a third-party log.
+- Firm uploads the main contractor's hourly WBGT log. A checker scores plausibility against the station network: uplift within -1 to +2°C of station, daily shape correlates (r >= 0.7), no flat or copied values, no bunching just above 32.0 or 33.0.
+- Inside the band: approved top-up. Outside: sent to a person. AI never rejects on its own.
+- Cap 10 top-up hours a year. About S$0.50 per worker a week (assumption).
+- Evaluation results live in the generated numbers block and the Labs model card. They are not a core-product claim.
 
 ### Disclosure and communication (use verbatim)
 - May-not-pay sentence at sale: "Rehat pays only when NEA's published readings at your named station cross the levels shown; your own site can be hotter or wetter than the station, so you can lose work time and receive nothing."
-- Employer SMS (159 chars): "Rehat: if NEA's Bishan station shows heat (WBGT 32+), heavy rain or haze in work hours beyond a normal month, we pay $8/worker/hr. Station only, not your site."
-- Worker notice (Bengali, Tamil, Mandarin, Burmese, Malay; translations need native-speaker review): "WBGT is 32 now. By MOM rule you get 10 min paid rest in shade every hour. Your pay is not cut."
+- Employer SMS (155 characters): "Rehat pays $8/worker/hr when NEA heat (WBGT 32+), heavy rain or haze at your station runs above a normal month. Station only: you may lose time and get $0."
+- Worker notice (Bengali, Tamil, Mandarin, Burmese, Malay; translations need native-speaker review): "WBGT is 32 now. You get 10 minutes of rest in shade every hour. Your pay is not cut. No break? Scan to tell us."
 - Monthly receipt: every counted hour, reading, station, allowance, sum, and what did not count and why.
 
-## 5. Numbers (mid case unless stated; label assumptions in UI)
+## 5. Numbers (label source in the UI: back-test, simulation or assumption)
+
+Back-test = the proxy back-test on MSS Changi daily records, 1983 to 2018. Simulation = 400,000 simulated years calibrated to the back-test (monthly heat and rain shaped on Changi 1991 to 2020, an El Niño / neutral / La Niña state each year, haze in about 1 year in 5). Assumption = a team estimate.
 
 ### Market
 | Item | Value | Basis |
 |---|---|---|
-| Work permit holders, construction + shipyard + process | 490,700 (Jun 2026) | MOM |
-| In-scope outdoor workers at SMEs | 185,400 (110,700 to 261,800) | 75% construction x 60% SME x 70% outdoor + 10,800 landscape + 20,000 outdoor cleaners (assumptions) |
-| Firms | about 12,400 | 15 outdoor workers per firm (assumption) |
-| Total market (premium) | generated (Pricing block) | in-scope workers x Standard premium |
-| Income WIC book slice | generated (Pricing block) | 12% share (assumption) |
-| Year-3 obtainable | generated premium; about 745 firms, 14,900 workers | 40% attach on Income book + 6,000 via associations |
-| WIC cross-sell | S$0.9M to S$1.9M WIC premium from new firms | 1.5 to 3% of payroll (unsourced) |
-| Employer's liability market 2025 | S$488M premium, S$94.4M underwriting profit (about 19%) | GIA |
+| Work permit holders, construction + shipyard + process | 490,700 (Jun 2026) | MOM, published |
+| Premium if every crew were covered | S$63M a year | 490,700 x S$129. Includes large firms, which are beyond the brief. Say "later" |
+| In-scope outdoor workers at SMEs | 185,400 (110,700 to 261,800) | 75% construction x 60% SME x 70% outdoor + about 30,000 landscape and outdoor cleaning (assumptions) |
+| In-scope employers | about 12,400 | 15 outdoor workers per firm (assumption) |
+| In-scope premium | S$23.9M (S$14.3M to S$33.7M) | 185,400 x S$129 |
+| Reachable first | 3,100 employers, 46,400 workers, S$6.0M | 25% of in-scope (assumption, used in deck). See open question 1 |
+| Year-3 target | 745 employers, 14,900 workers, S$1.92M | 24% take-up of reachable |
+| Employer's liability market 2025 | about S$490M premium | GIA, via a secondary summary. Each 1% of share is about S$4.9M a year |
+| WIC underwriting figure 2025 | S$94.4M | GIA page; segment not confirmed in the text. Do not quote "19% margin" without checking |
 
 ### Unit economics, per worker, Standard
-All values are generated by `python -m rehat.pricing` and shown in the generated block below (one version only).
-| Item | Rule |
+| Item | Value | Source |
+|---|---|---|
+| Normal downtime | about 59 h a year (heat 16, rain 40, haze 2.5) | Simulation |
+| Cost of an idle worker-hour | S$10.20 | Assumption (S$2,450 a month over 240 hours) |
+| Loss in a normal year, 20 workers | about S$12,000 (team figure S$12,200) | Model |
+| Expected insured hours | 9.78 a year (8.78 observed + 1.0 haze load assumption) | 26-year back-test + assumption |
+| Expected payout | S$78.27 | 26-year back-test + haze load assumption |
+| Premium | S$128.75, deliberately held at a cautious calibration | Product decision |
+| 1-in-10 year payout | S$159 (124% loss ratio) | Back-test |
+| Worst back-test year (1997-like) | S$295 (229%) | Back-test |
+| Limit | S$480 (373%) | Contract |
+| 20-worker firm | Premium S$2,575 (S$2,807 with GST, rounded); expected payout S$1,565; worst year S$9,600; premium about 0.5% of labour bill | |
+
+### Where each premium dollar goes (the headline for finance judges)
+| Share | Goes to | Note |
+|---|---|---|
+| 65% | Back to firms as claims | Product target. The observed 26-year Standard result at the cautious price is about 61%. |
+| 20% | Expenses | The ceiling in Income's brief. About 12 points direct costs, 8 points room for overheads |
+| 5% | Reinsurance | From year 2. Income keeps the pilot's risk |
+| 10% | Profit | 15% in the pilot year, because no reinsurance is bought |
+
+### Three-year path (plan, not forecast)
+| | Year 1 (pilot) | Year 2 | Year 3 | Total |
+|---|---|---|---|---|
+| Firms | 500 | 620 | 745 | |
+| Workers | 10,000 | 12,400 | 14,900 | |
+| Premium S$ | 1,287,500 | 1,596,500 | 1,918,375 | 4,802,375 |
+| Claims 65% S$ | 836,875 | 1,037,725 | 1,246,944 | |
+| Expenses 20% S$ | 257,500 | 319,300 | 383,675 | |
+| Reinsurance 5% S$ | 0 | 79,825 | 95,919 | |
+| Profit S$ | 193,125 | 159,650 | 191,838 | 544,613 |
+Year 2 dips because reinsurance starts. Say so before a judge asks.
+
+### The pilot
+500 firms, 10,000 workers, from the April 2027 hot season. Premium S$1.29M. Expected profit S$0.19M. Capped worst case S$4.8M (10,000 x S$480), known on day one. A 1-in-100 year is about S$2.6M of claims. Income retains all.
+
+### Probabilities (simulation unless stated)
+| Question | Answer |
 |---|---|
-| Expected insured hours | Back-test expected insured hours + haze load (assumption, 1.0 h) |
-| Premium | Expected insured hours x S$8 / 0.65 target loss ratio |
-| Premium split | 65% claims, 12% variable expenses, 5% reinsurance and capital, 18% fixed cost and margin |
-| Break-even | S$300k fixed cost (assumption) / (18% x premium of a 20-worker policy) |
-| 20-worker firm | Premium, expected payout, 1-in-10, worst back-test year, worst capped (S$9,600), premium as share of labour bill (S$2,145 a worker a month, assumption), weather downtime cost (counted hours x S$10.20 idle-hour cost, assumption) |
-Kit proxy values (10.46 h, S$128.70, S$2.48 a week, 647 policies) are reproduced by `engine/tests/test_pricing.py` from the kit inputs; they are superseded by the generated numbers.
+| Share of months that pay something, Standard | 48% (55% in back-test). Say "about half" |
+| Years with no payout at all | Under 0.1% (0 of 36 in back-test) |
+| Years a firm gets back more than it paid | About 1 in 5 |
+| Years Income makes a profit after all expenses | About 7 in 10 (69%) |
+| Yearly loss ratio above 110% / 125% / 150% | 16% / 12% / 7% (back-test: 5, 4 and 2 of 36 years) |
+| Average loss ratio by year type | El Niño 103%, neutral 50%, La Niña 56% |
 
-### Worked month (May 2026, 20 workers, Bishan)
-Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 -> 2.75 h. 3.19 h x S$8 x 20 = S$510, paid by the 5th working day of June (Mon 8 Jun 2026; 1 Jun is the Vesak Day holiday). (Heat from real sampled readings; rain and the normals 1.0 h and 5.0 h are assumptions for this example. Live receipts use station normals from the back-test.) Reproduced by `test_worked_month_may_2026_bishan_pays_510`.
+### Why 65% (show this table in the pricing lab)
+| Target loss ratio | Price a week | Profit margin | Years in profit |
+|---|---|---|---|
+| 55% | S$2.93 | 20% | 77% |
+| 60% | S$2.69 | 15% | 73% |
+| 65% (chosen) | S$2.48 | 10% | 69% |
+| 70% | S$2.30 | 5% | 66% |
+| 75% | S$2.15 | 0% | 62% |
+Reasons: the owner must see value (two-thirds comes back, half of months pay); with no claims team more can go to claims than the 52% Singapore general insurers paid out in 2025; 10% profit is left after 20% expenses.
 
-### Reinsurance and capital (decided)
-- Pilot (300 firms, 6,000 workers): Income retains all. Premium, expected claims, worst back-test year and hard cap (S$2.88M) are in the generated block.
-- From year 2: aggregate stop-loss attaching at 150% annual loss ratio, up to the cap (decided; reconfirmed by the team on 2026-11-15). The back-test never reaches 150% in 26 years, so the layer is cheap protection against years worse than history (for example a severe haze year). A lower attachment inside the 5% budget was considered and not chosen.
-- No quota share (gives away margin), no per-event cover (losses accrue over months). Capital under MAS RBC 2 set by Income's actuary; caps bound the maximum.
+### Stress tests (simulation, price held at S$129)
+| Stress | Loss ratio becomes |
+|---|---|
+| Base | 65% |
+| Haze 60% more frequent | 75% |
+| Haze twice as frequent | 80% |
+| Heat up 30%, normals not reset | 83% |
+| Heat up 30%, rain up 10%, normals not reset | 96% |
+The yearly reset of normals is a policy term, not an option. Haze is where the price is most likely to be wrong.
+
+### If a judge says 20% expenses is not realistic for a pilot
+A dedicated team at about S$250,000 a year would put expenses near 31% in a 500-firm pilot, break-even at 539 firms, and 20% near 1,200 firms. Answer: "We budgeted at your guideline. If the pilot's costs run higher, year 1 is about break-even and the margin arrives with scale."
+
+### Worked month (May 2026, 20 workers, Bishan, Standard)
+Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 -> 2.75 h. 3.19 h x S$8 x 20 = S$510, paid by the 5th working day of June. (Heat from real sampled readings; rain and normals are assumptions.)
+
+### Reinsurance and capital
+- Pilot: Income retains all. Hard cap S$4.8M.
+- From year 2: aggregate stop-loss attaching at 150% annual loss ratio, up to the cap. Expected recovery about 2% of premium (2.2% back-test, 2.0% simulation). With a 1.75x reinsurer load (assumption) it costs about 3.9%, inside the 5% budget.
+- The published 2015-style haze capital stress is 261% loss ratio. It is a simulation scenario for capital planning, not observed recovery and never changes a customer payout or price.
+- No quota share, no per-event cover. Capital under MAS RBC 2 set by Income's actuary; caps bound the maximum.
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-15T15:57 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.json.
 
-**Back-test (2000 to 2025, demo book weighted, 1 worker, Standard)**
+**Published Standard calibration (2000 to 2025, 1 worker)**
 
 | Item | Value | Basis |
 |---|---|---|
-| Expected insured hours | 8.78 a worker a year | rules.py on NEA WBGT (observed) + corrected ERA5 rebuild, MSS daily rain, NEA PSI where pulled |
-| Expected payout | S$70.3 a worker a year | insured hours x S$8 |
-| 1-in-10 payout | S$128.8 a worker | 90th percentile of 26 book years; loss ratios at the current premium are under Pricing |
-| Worst year | 2013: S$153.7 | |
-| Zero-payout years | 0 of 26 (book); 1.15 for the average firm | |
-| Months paying something | 46.1% | |
-| Basis risk | 3.6% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |
-| Rain hours in window share | 0.616 | calibrated on 484 station-days where NEA 5-minute gauges and MSS daily records overlap |
+| Expected insured hours | 9.78 a worker a year | approved pricing calibration; see product.json basis |
+| Expected payout | S$78.27 a worker a year | insured hours x S$8 |
+| 1-in-10 payout | S$159.0 a worker | published Standard calibration |
+| Worst back-test payout | S$295.0 | published Standard calibration |
+| Zero-payout years | 0 of 26 (book); 1.1 for the average firm | |
+| Months paying something | 46.5% | |
+| Basis risk | 3.69% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |
+| Rain hours in window share | 0.586 | calibrated on 1513 station-days where NEA 5-minute gauges and MSS daily records overlap |
 | Changi rain days 10 mm+ | 61.4 a year (1983 to 2018) | MSS daily, matches proxy 61.4 |
+
+**Pilot geographic-mix diagnostic (capital and cash only, not a price calibration)**
+
+| Item | Value |
+|---|---|
+| Scope | Fictional pilot-book geographic mix used for portfolio, capital and cash diagnostics only. |
+| Generated pilot firms | 500 |
+| Expected insured hours | 8.32 a worker a year |
+| Expected payout | S$66.6 a worker a year |
 
 **Pricing**
 
 | Item | Value |
 |---|---|
-| Expected insured hours (pricing) | 9.78 a worker a year (back-test 8.78 h + haze load 1.0 h (assumption)) |
-| Standard premium | S$120.37 a year, S$2.31 a week, before GST (S$131.20 with GST) |
-| Lite premium | S$75.23 a year, S$1.45 a week, before GST |
-| Site Match rider | S$88.13 a year, S$1.69 a week (Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.16 h a worker a year) |
-| Expected payout a worker | S$78.27 a year (loss ratio 65%) |
-| 1-in-10 payout a worker | S$128.76 (107% loss ratio) |
-| Worst back-test year | 2013: S$153.72 (128%); plus a 2015-like haze year 261% |
-| Hard cap | S$480 a worker (399% loss ratio) |
-| 20-worker firm | premium S$2,407 (S$2,624 with GST; S$1,837 with GST after 30% launch credit); expected payout S$1,565; worst capped S$9,600; premium 0.47% of labour bill; weather downtime costs about S$14,486 a year |
-| Break-even | 692 policies of 20 workers at S$300k fixed cost; expense ratio 30% at break-even; 20% at 1,558 policies |
-| Pilot (300 firms, 6,000 workers) | premium S$722,220; expected claims S$469,595; worst back-test year S$922,320; hard cap S$2,880,000 |
-| Stop-loss (decided 150%) | attach 150%: expected recovery 0.0% of premium, cost 0.0% at 1.75x load, hit 0 of 26 years |
-| Stop-loss (alternative considered) | lowest attachment inside the 5% budget would be 100% (cost 4.66%, hit 5 of 26 years). Team kept 150% (decision 2026-11-15). |
-| Total market (premium) | S$22.3M (S$13.3M to S$31.5M); Income WIC slice S$2.7M; year-3 obtainable S$1.79M |
+| Published Standard price | S$128.75 a worker a year, S$2.48 a week before GST (S$140.34 with GST) |
+| Observed 26-year Standard result | S$78.27 expected payout a worker a year, 61% of the cautious published price |
+| Published calibration basis | 9.78 insured hours and S$78.27 per worker; not recalculated from the pilot's station mix |
+| 500-firm geographic-mix diagnostic | S$66.60 a worker a year in this generated mix; capital and cash only, not a price input |
+| 20-worker Standard example | S$2,575 before GST, S$2,807 with GST; observed expected payout S$1,565 |
+| Plan split | 65% claims, 20% expenses, 5% reinsurance and 10% profit (plan) |
+| 2015-style haze capital stress | 261% loss ratio (simulation; capital planning only, never a customer payout input) |
+| Aggregate stop-loss | Attaches at 150%; observed recovery is 0.0% over 26 years. |
+| Market | S$23.9M small-firm premium at the midpoint; year-three plan S$1.92M |
 
 **Liquidity**
 
 | Item | Value |
 |---|---|
-| Book (demo) | 300 firms, 4,774 outdoor workers |
-| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$2,912, P90 S$13,914, P99 S$22,031; buffer S$19,119 |
-| Cash call for Oct 2025, as of 20 Oct | P50 S$314, P90 S$9,815, P99 S$14,938; buffer S$14,624; settles 2025-11-07 |
-| Forecast validation (P90 coverage) | 87% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
-| Forecast validation (P99 coverage) | 99% |
-
-**Site Match**
-
-| Item | Value |
-|---|---|
-| Simulated logs | 400 logs on 247 real station-days (11 days incl. 31 Oct 2025) |
-| Honest logs flagged | 2% |
-| Inflated logs caught | 100% |
-| Flat logs caught | 100% |
-| Threshold-bunched caught | 51% |
-| Pasted-from-another-day caught | 67% |
-| Fakes approved with a top-up | flat 0%, inflated 0%, pasted_day 23%, threshold 21% |
-| rider_price_year | 88.13 |
-| rider_basis | Site Match simulation: honest uplift N(0.8, 0.5) C, files on 50% of eligible days, 10 h cap; expected top-up 7.16 h a worker a year |
-| Sample logs | 4 approved, 6 sent for review |
+| Book (demo) | 500 firms, 8,313 outdoor workers |
+| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$7,992, P90 S$30,677, P99 S$51,368; buffer S$43,376 |
+| Cash call for Oct 2025, as of 20 Oct | P50 S$5,872, P90 S$26,497, P99 S$32,365; buffer S$26,493; settles 2025-11-07 |
+| Forecast validation (P90 coverage) | 85% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
+| Forecast validation (P99 coverage) | 97% |
 
 <!-- END GENERATED NUMBERS -->
 
 ## 6. Evidence and data
 
 ### Data already pulled (in /data/seed)
-- `d1031.csv`: real NEA WBGT, 15-min, 15 stations, 31 Oct 2025, 08:00 to 17:30. Record day; peak 35.0°C Sentosa 12:15. Mandated rest per worker ranged 0 to 65 min by station; network mean 13 min.
-- Proxy back-test on MSS Changi daily records 1983 to 2018 (third-party GitHub copy, chuachinhon/weather_singapore_cch): rain days >= 10 mm mean 61.4/yr (32 in 1997, 81 in 2013); correlation of above-normal rain and heat -0.31; bundling cuts year-to-year swing 41%; 0 of 36 years with zero payout; 55% of months pay something.
-- Heat frequency sample: 33 days, Nov 2025 to Oct 2026: about 83 h/yr at WBGT 32+ per station, 16 h at 33+. Adjusted paid rest about 12 h/worker/yr (7 to 18.5). Sample year looks hot; Sentosa and Jurong Island drive much of it.
+- `d1031.csv`: real NEA WBGT, 15-min, 15 stations, 31 Oct 2025, 08:00 to 17:30. Record day; peak 35.0°C Sentosa 12:15. Rest owed per worker ranged 0 to 65 min by station; network mean 13 min.
+- Proxy back-test on MSS Changi daily records 1983 to 2018: rain days >= 10 mm mean 61.4/yr; correlation of above-normal rain and heat -0.31; bundling cuts year-to-year swing 41% (43% in simulation); 0 of 36 years with zero payout; 55% of months pay something.
+- Heat frequency sample: 33 days, Nov 2025 to Oct 2026: about 83 h/yr at WBGT 32+ per station, 16 h at 33+.
+
+### Facts checked on 15 Nov 2026 (safe to show)
+| Fact | Source |
+|---|---|
+| Days of high heat stress: 37 (2023), 21 (2024), 29 (2025) | NEA annual climate assessments |
+| 20 WBGT stations as of March 2026 | NEA. Do not say 30 |
+| MOM has taken enforcement action against 213 employers | MOM press reply, 8 Apr 2026 |
+| About a third of 250 workplaces inspected in the hotter months of 2024 breached heat rules (78 sites) | The Straits Times |
+| Four more heat measures mandatory from 1 Dec 2026 | MOM |
+| Work permit holders must be paid the declared salary even with no work | MOM FAQ |
+| Oct 2026: 12 straight days of unhealthy air, longest since 2015 | The Straits Times |
+| Worksites can run hotter than the nearest NEA station | NUS Project HeatSafe |
+| Singapore general insurers' incurred loss ratio about 52% in 2025 | GIA annual report |
+
+### Not verified (do not show as fact)
+- Whether 15 minutes at 33°C is mandatory or recommended.
+- Income's own premium (S$1.8B) and profit (S$110M) quoted by a mentor.
+- That the GIA S$94.4M figure is the employer's liability segment.
+- Any statement about what SME owners actually do. No owner has been interviewed yet (see section 19).
 
 ### Data sources to use
 | Data | Source | Notes |
 |---|---|---|
-| WBGT 15-min | data.gov.sg v2 real-time API, `api=wbgt`, by `date`, paginate with `paginationToken` | From Feb 2025. 15 stations 2025, 31 by Nov 2026 (verified 2026-11-15). Dataset d_87884af1f85d702d4f74c6af13b4853d. Endpoints and shapes in docs/data-sources.md |
+| WBGT 15-min | data.gov.sg v2 real-time API, `api=wbgt`, by `date`, paginate with `paginationToken` | Dataset d_87884af1f85d702d4f74c6af13b4853d |
 | Rainfall 5-min | data.gov.sg v2 real-time rainfall, by date | Dataset d_72ef872af64a49bbf85c037e714267c0 |
 | Air temperature | data.gov.sg v2 real-time air temperature | Dataset d_66b77726bbae1b33f218db60ff5861f0 |
 | 24-hour PSI by region | data.gov.sg v2 real-time PSI, by date | Regions: north, south, east, west, central |
 | Daily rain and temperature history | MSS historical daily records (weather.gov.sg) | From 1980 for many stations |
-| Hourly reanalysis | Open-Meteo archive API (ERA5), no key | From 1940; for WBGT rebuild (Liljegren method) |
-| Archived forecasts | Open-Meteo historical forecast API | From about 2022; for honest forecast back-tests |
-| ENSO state | NOAA Oceanic Niño Index (ONI) table | Classify years El Niño / La Niña / neutral |
-| Climate scenarios | NEA V3 projections | High heat-stress days by 2100: 54 to 135 (low emissions), 107 to 205 (medium), 207 to 326 (high), vs 21 (2024) and 29 (2025) |
-| Workforce | MOM foreign workforce numbers | Market sizing |
-Verify every endpoint before relying on it. data.gov.sg may rate-limit: cache everything to disk; an API key raises limits.
+| Hourly reanalysis | Open-Meteo archive API (ERA5), no key | For WBGT rebuild (Liljegren method) |
+| Archived forecasts | Open-Meteo historical forecast API | For honest forecast back-tests |
+| ENSO state | NOAA Oceanic Niño Index (ONI) table | Classify years |
+| Call list for owner interviews | BCA Listing of Registered Contractors, data.gov.sg dataset d_dcda79be4aded5f9e769b8e23ff69b47 | Public, includes phone numbers. Research calls only |
+Verify every endpoint before relying on it. Cache everything to disk.
 
 ### Expert input (scientific guidance from an NEA climate researcher, NOT an endorsement)
-Stations do not perfectly represent a site and there is no universal correction factor; rebuild WBGT from ERA5 with Liljegren and validate against NEA observations near the payout threshold; the nearest station is not always the most representative; test robustness by varying thresholds, durations, station choice and estimation error; missing data must never be treated as "no event"; for 36 hours, demonstrate event calculations rather than claim a validated product.
+Stations do not perfectly represent a site and there is no universal correction factor; rebuild WBGT from ERA5 with Liljegren and validate against NEA observations near the payout threshold; the nearest station is not always the most representative; missing data must never be treated as "no event"; for 36 hours, demonstrate event calculations rather than claim a validated product.
 
-### AI prototype results (real 31 Oct 2025 data)
-- Gap-filler, kit prototype (estimate a missing station from the other 14, afternoon of 31 Oct 2025): network median MAE 0.87°C, correct rest band 83%; median+offset 1.11°C, 79%; ridge 1.06°C, 81%. Engine retest on pulled history: docs/model-cards/gapfill.md (near the thresholds band agreement is about 57%). NOT good enough to pay on, so pending hours wait up to 48 h for a backup station, then a labelled estimate goes to human review.
+### AI evaluation results (real 31 Oct 2025 data)
+- Gap-filler: network median MAE 0.87°C, correct rest band 83%. NOT good enough to pay on, so pending hours wait up to 48 h for a backup station.
 - Site Match checker: see section 4.
 
 ## 7. Legal and regulatory constraints (encode these as rules in code and copy)
 
 | Rule | Source | What the product must do |
 |---|---|---|
-| WIC compulsory for manual workers and non-manual earning S$2,600 or less | Work Injury Compensation Act, MOM | Rehat requires an active WIC policy; headcount comes from WIC declaration |
-| Heat-stress rest: WBGT 32+ 10 min/h, 33+ 15 min/h (heavy work); paid working time; hourly monitoring; on-site meters for construction S$5M+, shipyards, process | MOM heat stress framework and FAQs | Trigger tiers mirror these; never encourage working through heat; worker notices state the rule |
-| Four measures mandatory from 1 Dec 2026: heat-stress training, cool drinking water, cooling supplies on standby, suitable clothing | MOM, 28 Aug 2026 | Show in employer compliance checklist; renewal reward for compliance |
-| Declared salary owed on idle days | MOM Work Permit FAQ (Employment of Foreign Manpower framework) | Basis of insurable interest for rain and haze |
-| Haze guidance for outdoor work | MOM haze guidelines (Oct 2026) | Haze tiers; link guidance in alerts |
-| Licensed insurer; product filed by Income | Insurance Act, MAS | Every screen says "Underwritten by Income Insurance Limited (proposed)" and "Concept prototype" |
-| Fair dealing and disclosure | MAS Guidelines on Fair Dealing (revised May 2024) | May-not-pay sentence before purchase; teach-back question recorded; plain-language receipts |
-| Fair, explainable AI | MAS FEAT principles; Veritas methodology | Price varies only by plan, headcount and benefit; no nationality, age or health inputs; every AI check outputs a reason; human review of flags; model cards |
-| Climate risk management | MAS Guidelines on Environmental Risk Management for Insurers (2020) and transition planning addendum (Mar 2026) | Scenario stress tests (V3), annual repricing, disclosure of climate assumptions |
-| Personal data | PDPA | Collect only: UEN, WIC policy no., outdoor headcount, wage band, site addresses, PayNow (UEN), one contact. No worker personal data by default; workers opt in to notices by QR; delete at policy end; consent and purpose screens |
-| Insurable interest | Income brief constraint | Benefit below real hourly cost; only firms with declared outdoor workers; one policy per UEN |
+| WIC compulsory for manual workers and non-manual earning S$2,600 or less | Work Injury Compensation Act, MOM | Rehat requires an active WIC policy; headcount comes from the WIC declaration; Rehat is a separate optional policy so compulsory WIC terms are untouched |
+| Heat-stress rest: WBGT 32+ at least 10 min/h for heavy work (mandatory); framework sets 15 min/h at 33+; hourly monitoring; on-site meters for construction S$5M+, shipyards, process | MOM heat stress framework | Trigger tiers mirror these; never encourage working through heat; worker notices state the rule; compliance log records the hourly reading |
+| Four measures mandatory from 1 Dec 2026: heat-stress training, cool drinking water, cooling supplies on standby, suitable clothing | MOM, 28 Aug 2026 | Show in the employer compliance checklist |
+| Enforcement under the WSH Act: stop-work orders and composition fines | MOM FAQ | MOM heat action forfeits that month's heat payout; second action cancels heat cover |
+| Declared salary owed on idle days | MOM Work Permit FAQ | Basis of insurable interest; policy bans pay deductions for weather downtime |
+| Haze guidance for outdoor work | MOM haze guidelines | Advisory only. Haze tiers; link guidance in alerts |
+| Licensed insurer | Insurance Act, MAS | The required disclosure appears in the page footer. Do not repeat it in product copy. |
+| Fair dealing and disclosure | MAS Guidelines on Fair Dealing | May-not-pay sentence before purchase; teach-back question recorded; plain-language receipts |
+| Fair, explainable AI | MAS FEAT principles | Price varies only by plan and declared outdoor headcount; work class affects counted heat hours, never price; no nationality, age or health inputs; every AI check outputs a reason; human review of flags |
+| Climate risk management | MAS Guidelines on Environmental Risk Management for Insurers | Yearly reset of normals, scenario stress tests |
+| Personal data | PDPA | Collect only: UEN, WIC policy no., outdoor headcount, job class, wage band, site addresses, PayNow (UEN), one contact. No worker personal data; workers scan a QR, no login; delete at policy end; consent and purpose screens |
+| Insurable interest | Income brief constraint; no Singapore rule written for parametric cover | Benefit below real hourly cost; only firms with declared outdoor workers; one policy per UEN. Say "designed to be confirmed by Income's legal team", never "compliant" |
+| Insurance intermediaries | Insurance Act | Trade bodies and unions raise awareness and refer only. The sale happens on Income's own renewal journey |
 | GST 9% on premiums | IRAS | Show premium before and after GST |
-| Disputes | FIDReC | Receipt shows how to dispute; disputes are data checks |
-| Platform Workers Act (from 1 Jan 2025) | MOM | Roadmap only: riders via platform WIC |
+| Disputes | FIDReC | Receipt shows how to dispute |
 | No law change needed | Brief | Everything above uses existing rules |
 
 ## 8. Fraud and moral hazard controls
 | Risk | Control |
 |---|---|
-| Inflating headcount | Capped at WIC-declared numbers (which also raise WIC premium); CPF and work-pass cross-check with consent |
-| Stopping work to collect / working on for pay | Impossible: payout depends only on NEA readings |
-| Payout kept, rest not given | Worker notices, no-wage-deduction condition, heat payout forfeited in any month with MOM heat action |
-| Buying before a bad spell | Annual term tied to WIC; 14-day wait mid-term; seasonal normals; alert on sign-up spikes vs forecasts |
-| Station shopping | Station set by rule from declared addresses; changes apply next month |
-| Indoor staff declared outdoor | WIC job class, spot checks |
+| Inflating headcount | Capped at WIC-declared numbers (which also raise the WIC premium) |
+| Stopping work to collect | Not possible: payout depends only on NEA readings |
+| Payout kept, rest not given | Yearly warranty; worker QR notice; MOM heat action forfeits the month, second cancels heat cover; optional break log rewarded at renewal |
+| Buying before a bad spell | Annual term tied to WIC; 14-day wait mid-term; normals reset yearly |
+| Station shopping | Station set by rule from declared addresses |
+| Indoor staff declared outdoor | WIC job class sets the work class |
 | Over-insurance | Benefit below hourly cost; one policy per UEN |
-| Fake site logs | Site Match checker; human review; cap |
+| Fake site logs (Site Match pilot only) | Checker; human review; cap; third-party logs only |
 
 ## 9. Forecasting for liquidity (Income's cash, not the customer's payout)
-Forecasts NEVER change a payout. They plan cash and reinsurance.
+Forecasts NEVER change a payout or a price. They plan cash and reinsurance, and they warn firms so heavy work can move.
 | Horizon | Method | Decision |
 |---|---|---|
-| 1 to 3 days | NEA/Open-Meteo forecasts -> predicted trigger hours per station | Daily accrual; firm alerts to reschedule heavy work |
-| Month-end settlement | Accrued hours to date + Monte Carlo of remaining days (bootstrap same calendar month, same station, conditioned on near-term forecast) -> apply allowance and caps per firm -> aggregate | Cash call for the 5th working day: P50, P90, P99; buffer = P99 - P50 |
-| Season | ENSO state (ONI) reweights historical years | Reinsurance purchase before haze (Aug to Oct) and monsoon (Nov to Jan) seasons |
+| 1 to 3 days | Official forecasts -> predicted trigger hours per station | Daily accrual; employer alert "Heat stress likely {from} to {to} tomorrow at {station}. Plan heavy work early." |
+| Month-end settlement | Accrued hours to date + Monte Carlo of remaining days -> apply allowance and caps per firm | Cash call for the 5th working day: P50, P90, P99 |
+| Season | ENSO state reweights historical years | Reinsurance before haze and monsoon seasons |
 | Year | Annual loss-ratio distribution; stop-loss recovery at 150% | Capital and reinsurance |
-| Decades | V3 scenarios | Normals reset yearly; affordability check |
-Validation: back-test the month-end P90 against actual historical months (coverage rate should be about 90%); use archived forecasts so there is no hindsight. Result: see "Liquidity" in the section 5 generated block and docs/liquidity-validation.md.
+Do not build a temperature prediction model of our own. A mentor was explicit about this.
 
-## 10. Income products in the story (mocked, not wired)
-| Income product | Role in prototype |
+## 10. Income products in the product story
+| Income product | Role in product |
 |---|---|
-| Work Injury Compensation (employer) | Host policy; source of headcount and wages; Rehat is a tick box at WIC renewal |
+| Work Injury Compensation (employer) | Host policy; source of headcount, job class and wages; Rehat is a tick box at WIC renewal |
 | SmartBiz 360 (launched Oct 2026) | Optional "Weather Downtime" section; answers Income's open question |
-| Platform worker WIC (Income is a designated insurer) | Roadmap: riders |
+| Platform worker WIC | Roadmap: riders |
 | Stallholder Insurance | Roadmap: haze section for hawkers |
 | Droplet (2018 parametric rain cover) | Heritage: Income has done parametric before |
-| NTUC network (U SME, Migrant Workers' Centre) | Distribution and worker notices |
-All integrations are mocked with fictional data. Never use Income's logo file or imply this is a live Income product. Every page footer: "Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data."
+| NTUC network | Awareness for employers; worker notices |
+The app uses fictional data. Never use Income's logo file or imply a live Income integration. Every page footer: "Concept prototype for Income Insurance, Singapore-India Hackathon 2026. Not an Income product. Fictional data."
 
-## 11. Architecture (target)
-- `/engine` Python 3.11+: data ingest and cache, trigger engine, back-test, pricing, forecasting and liquidity, AI checks; FastAPI service.
-- `/web` Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + Aceternity UI + 21st.dev components + Recharts; reads the API, falls back to precomputed JSON in `/web/public/data` so the demo never depends on live APIs.
-- `/data/raw` (cached API pulls), `/data/processed` (parquet/JSON), `/data/seed` (committed demo data).
-- `/docs` decisions, model cards, demo script.
+## 11. Architecture
+- `/engine` Python 3.11+: ingest and cache, trigger engine, back-test, pricing, economics, forecasting and liquidity, AI checks; FastAPI service.
+- `/web` Next.js (App Router) + TypeScript + Tailwind + shadcn/ui + Aceternity UI + 21st.dev components + Recharts; reads the API, falls back to precomputed JSON in `/web/public/data`.
+- `/data/raw`, `/data/processed`, `/data/seed`.
+- `/docs`.
+- New in version 2: `data/seed/product.json` is the machine-readable copy of sections 4 and 5. The engine and the web app read plan terms, prices, the premium split, the three-year path and all verbatim copy from it. No screen hard-codes a number or a legal sentence. `make check-numbers` fails if any number in the UI or the engine differs from it.
 
 ## 12. Brand and UI direction
-- Match Income's look: warm orange as the primary colour, deep blue as secondary, generous white space, real-people warmth. Income's 2026 brand platform "For every story" uses three orange dots (an ellipsis) as its device: use the three dots as the loader and as the "story continues" accent. Income's earlier identity used the Ubuntu typeface: use Ubuntu for headings (verify against income.com.sg and switch if the site uses another face) and Inter for body.
-- Colours sampled 2026-11-15 from income.com.sg `main.css` and stored in `web/src/styles/tokens.css`: `--income-orange: #F57100` (Income orange-500), `--income-orange-600: #E46A00` (buttons), `--income-orange-700: #B35300` (orange text on white), `--income-blue: #00467A` (Income blue-800), ink `#262727`. Ubuntu confirmed as Income's web font. Re-check with a colour picker before the final demo.
-- Polished, calm, product-grade. Motion only where it explains (payout counting up, hours filling a meter). No neon, no heavy gradients.
+- Match Income's look: warm orange primary, deep blue secondary, generous white space, real-people warmth. Three orange dots (an ellipsis) as loader and "payout on its way" state. Ubuntu for headings, Inter for body.
+- Placeholders `--income-orange: #F26722` and `--income-blue: #1B3A6B` until sampled from income.com.sg.
+- Polished, calm, product-grade. Motion only where it explains. No neon, no heavy gradients.
+- Full UX principles and the information architecture are in section 17.
 
 ## 13. Status
-(Update every session.)
-- [x] Repo scaffolded (P0, 2026-11-15)
-- [x] Data ingest and cache (P2, 2026-11-15; full Feb 2025 to Nov 2026 pull of WBGT, PSI and rain still running in background)
-- [x] WBGT rebuild and validation (P4, refreshed 2026-11-15 on 236 observed days; re-run as the pull completes)
-- [x] Trigger engine and receipts (P3, 2026-11-15)
-- [x] Back-test and robustness (P5, 2026-11-15; re-run when full WBGT and rain pulls finish)
-- [x] Pricing and reinsurance (P6, 2026-11-15; stop-loss attachment needs a team decision)
-- [x] Liquidity forecasting (P7, 2026-11-15)
-- [x] Site Match AI (P8, 2026-11-15)
-- [x] Design system and app shell (P1 done 2026-11-15: tokens, brand components, /styleguide)
-- [x] Web: landing, employer portal, worker notices, live map, replay, back-test lab, insurer console, compliance (P10 to P12, 2026-11-15)
-- [ ] Demo script rehearsed
+(Carry over ticks from the old CONTEXT.md, then update every session.)
 
-## 14. Open questions for Income's mentor
-1. Income's share of small-firm employer WIC; typical construction WIC premium per worker.
-2. Does the WIC application record outdoor/manual headcount by job class and wages?
-3. Can a parametric section sit alongside compulsory WIC, or must it be a separate policy?
-4. Fixed cost to add a section to an existing policy (sets expense ratio).
-5. Lessons from Droplet.
+Already built (confirmed in the R0 audit):
+- [x] Repo scaffolded
+- [x] Data ingest and cache
+- [x] Trigger engine and receipts
+- [x] Back-test
+- [x] Pricing
+- [x] Liquidity forecasting
+- [x] Site Match checker
+- [x] Web screens from version 1
+
+Version 2 refinement:
+- [x] R0 Audit written, old worklog carried over (2026-11-16)
+- [x] R1 product.json wired, hard-coded numbers and copy removed, `make check-numbers` passes
+- [x] R2 Engine: deductible plans, work classes, forfeiture, economics 65/20/5/10
+- [x] R3 Shell: role switcher, grouped nav, one demo firm everywhere
+- [x] R4 Landing with "what Rehat would have paid you"
+- [x] R5 Onboarding in four steps
+- [x] R6 Employer home and receipts
+- [x] R7 Compliance log, alerts, worker notice
+- [x] R8 Income console
+- [x] R9 Labs: Site Match demoted, back-test detail, compliance map
+- [x] R10 UX polish pass at 390 px and 1440 px
+- [x] R11 Pitch mode, demo cuts, numbers frozen, runs offline
+
+## 14. Open questions
+1. Reachable market. The deck says 3,100 employers reachable first (25% of in-scope). An older build-up assumed Income holds about 12% of small-firm WIC, which is about 1,480 firms on Income's own book. On that view a 500-firm pilot needs a third of Income's small outdoor WIC customers, or association channels from day one. Ask Income for its real share. Until then tag 3,100 as an assumption.
+2. Is 15 minutes at 33°C mandatory? Check MOM's FAQ page.
+3. Does the WIC application record outdoor headcount by job class and wages? (The Income mentor said they collect worker numbers, job types and salary level.)
+4. Can a parametric section sit alongside compulsory WIC, or must it be a separate policy?
+5. What do owners actually do on a hot or wet day? Only interviews answer this (section 19).
+6. The team told one mentor 7,534 and 3,014 firms. Source unknown. The deck uses 12,400 and 3,100.
 
 ## 15. Worklog
-(Append one entry per session, newest last. Format below.)
+(Paste every entry from the old CONTEXT.md here first, oldest at the top. Then append one entry per session, newest last.)
 
-### YYYY-MM-DD HH:MM, session title
-- Done:
-- Files changed:
-- Numbers produced (with source):
-- Decisions:
-- Broken or unverified:
-- Next:
-
-### 2026-11-15 14:27, P0 scaffold the monorepo
++### 2026-11-15 14:27, P0 scaffold the monorepo
 - Done: Copied the kit (AGENTS, CONTEXT, PLAN, PROMPTS, seed) from ~/Downloads/rehat-kit into the empty repo. Created `/engine` (pyproject, package `rehat` with module stubs, `ingest/`, FastAPI `/health`, `rehat.export`), `/web` (Next.js 15.5.4 App Router, TS strict, Tailwind 4.1.13, ESLint, shadcn init, Aceternity registry in components.json, recharts, leaflet, react-leaflet, framer-motion, lucide-react), `/data/{raw,processed,seed}`, `/docs/model-cards`, Makefile (setup, engine, web, test, export), `.env.example`, `.gitignore`, README.
 - Files changed: AGENTS.md, CONTEXT.md, PLAN.md, PROMPTS.md, Makefile, README.md, .env.example, .gitignore, engine/**, web/**, data/seed/d1031.csv, engine/prototypes/ai_usecases.py.
 - Numbers produced (with source): none.
@@ -491,3 +621,138 @@ All integrations are mocked with fictional data. Never use Income's logo file or
 - Broken or unverified: The ACRA dataset is a monthly snapshot, so a company registered this month may show as not found.
 - Tests: `make test` 126 passed (14 new UEN tests); production build passed.
 - Next: unchanged.
+
+### 2026-11-15 23:39, onboarding-led product UX refresh
+- Done: Read the root Markdown set and the untracked alternative context kit, then redesigned the employer journey around the active product specification. Replaced the nine-step onboarding flow with four steps: WIC and named-station verification, plan choice, disclosure plus correct teach-back and consent, then the policy schedule. Added a persistent renewal quote, made Site Match a clearly optional follow-on, shortened the simulated record check from 4.2 s to 0.9 s, and grouped the header into Employer, Worker, Income and Proof views. Landing now leads with the WIC renewal quote. Fixed the flagship policy SMS to use Jurong West, matching its schedule.
+- Files changed: `web/src/app/onboard/Onboard.tsx`, `web/src/app/page.tsx`, `web/src/components/brand/{AppShell,nav}.ts(x)`, `engine/rehat/{export,judgepack}.py`, `web/public/data/*`, `docs/judge-pack.md`, `CONTEXT.md`.
+- Numbers produced (with source): No pricing, trigger or payout number changed. `make export-fast` refreshed generated timestamps and the firm-specific SMS. The flagship SMS is 156 characters from `engine/rehat/export.py`, within the 159-character product limit.
+- Decisions: Root `CONTEXT.md` remains the active source of truth. The untracked `data/` kit is an alternative v2 spec with conflicting plans, pricing and Site Match scope; only its non-conflicting UX ideas were adopted. Confirmation now requires the correct teach-back answer, the mandatory named-station acknowledgement and PDPA consent.
+- Broken or unverified: The redesigned flow has not yet been timed with a person. The two existing lint warnings remain in vendored `file-upload.tsx` and `timeline.tsx`. The untracked v2 kit still needs an explicit product decision before any migration.
+- Tests: `make test` 126 passed. `npx tsc --noEmit` passed. `npm run lint` passed with two existing warnings. `npm run build` passed. Browser checks covered mobile layout, plan selection, wrong and correct teach-back branches, confirmation guardrails and the final schedule with no console errors.
+- Next: Time a human completing the four-step journey, rehearse the demo script, and decide whether to migrate any of the alternative v2 commercial model.
+
+### 2026-11-16 00:20, product-grade employer workflow UI pass
+- Done: Strengthened the Income-style design system with purpose-led Lucide icon tiles, deeper surface and shadow tokens, expanded Ubuntu and Inter type weights, a worker-language fallback stack, improved hierarchy and accessible primary actions. Reworked the home and Income views around a clear WIC renewal route and a truthful first-year price breakdown. Added `/employer`, a fictional but operational workspace for the renewal, worker notice, receipt and Site Match next actions. Onboarding now resets its preview if cover changes, blocks offline or unregistered UENs, labels the final action as a non-binding renewal request preview and presents key terms before it. The receipt now separates a confirmed amount from a sent payout while data is pending, explains the named-station fallback ladder and lets users select an hour for touch- and keyboard-accessible evidence detail.
+- Files changed: `web/src/{app/{page,income/page,onboard/Onboard,employer/page,employer/receipt/ReceiptView,worker/Worker,globals,layout},components/{brand/{AppShell,PageHeader,IconTile,index,nav},ui/button},styles/tokens}.tsx/css`, `CONTEXT.md`.
+- Numbers produced (with source): No pricing, trigger or payout arithmetic changed. The Income renewal offer now consistently displays the existing engine total after the 30% launch credit and 9% GST, rather than a pre-credit, pre-GST amount alongside the payable total.
+- Decisions: Use `lucide-react` as the single new icon language. White-label primary actions remain on accessible orange-700 (#B35300). A concept-only renewal request never claims to issue cover, take payment or send data to Income. Pending evidence never implies zero payout or a sent payment.
+- Broken or unverified: The two pre-existing lint warnings remain in vendored `file-upload.tsx` and `timeline.tsx`. The demo flow has not yet been timed with a person. The transient local dev-cache error seen after a production build cleared after restarting the local preview; production build is clean.
+- Tests: `make test` 126 passed. `npx tsc --noEmit` passed. `npm run lint` passed with two existing warnings. `npm run build` passed. Browser checks covered desktop and mobile employer workspace, the pending receipt state and touch/keyboard evidence selection.
+- Next: Time a human completing the four-step journey and rehearse the demo script.
+
+### 2026-11-15 21:30, context version 2 adopted
+- Done: replaced CONTEXT.md, PLAN.md, AGENTS.md and PROMPTS.md with version 2; added data/seed/product.json and docs/pitch-script.md.
+- Files changed: the four context files, product.json, pitch-script.md.
+- Numbers produced (with source): none new in code. Section 5 now carries deck version 6 numbers.
+- Decisions: see section 16.
+- Broken or unverified: the app still shows version 1 numbers, plans and copy until R1 and R2 are done.
+- Next: run prompt R0.
+
+### 2026-11-16 07:38, R0 audit and v2 kit adoption
+- Done: Promoted the version 2 AGENTS, CONTEXT, PLAN, PROMPTS, product specification and pitch script to their canonical repository paths. Preserved the live version 1 context in `docs/CONTEXT_v1.md`, carried its complete worklog into this file and carried forward the completed build status. Wrote `docs/audit.md`, which inventories the routes, engine, APIs, offline JSON, tests, v1-to-v2 mismatches, route migration and risks. Added a local map error boundary so an unavailable Leaflet chunk no longer blocks onboarding.
+- Files changed: `AGENTS.md`, `CONTEXT.md`, `PLAN.md`, `PROMPTS.md`, `data/seed/product.json`, `docs/{CONTEXT_v1,audit,pitch-script,README_KIT_v2}.md`, `web/src/components/rehat/StationMap.tsx`.
+- Numbers produced (with source): No product arithmetic changed. The audit records the active engine Standard price of S$2.31 a week versus the v2 deck price of S$2.48; the deck figure needs explicit conservative-calibration labelling because the active engine payout implies a 60.79% rather than 65% loss ratio at that price.
+- Decisions: Version 2 is the active product specification. The mandatory concept-prototype footer remains because it is a product rule. Until an authorised pricing-rule change, price remains limited to plan, benefit and headcount even though v2 proposes a work-class input.
+- Broken or unverified: `make check-numbers` does not exist until R1, so it cannot run in this bootstrap audit. Existing v1 data and screens still show retired plans and launch credit until R1 and R2 are complete.
+- Tests: `make test` 126 passed. The map fallback change also passed `npx tsc --noEmit` and `git diff --check`.
+- Next: R1, make `product.json` the single source for product terms and copy, then retire Lite, launch credit and core Site Match.
+
+### 2026-11-16 09:42, v2 product completion and walkthrough hardening
+- Done: Promoted the v2 product contract across the engine, offline export and web app. Replaced the old offer with Essential, Standard and Plus deductible plans; retired Lite and the launch credit; moved Site Match to Labs; and kept price inputs to plan plus declared outdoor headcount. Rebuilt the landing around a live quote calculator, consolidated the employer, worker and Income journeys around Tanjong Greenworks and May 2026, added the full employer compliance log, grouped technical screens under Labs, added the plain-language glossary, and aligned the ten-beat pitch mode. Removed non-required product-facing concept, prototype and event language; the required footer disclosure remains. Added `docs/ux-review.md` and refreshed the offline data, decision pack, pricing and back-test documentation.
+- Files changed: `data/seed/{product,firms}.json`, `engine/rehat/{product,api,export,pricing,rules,ledger,seedgen,backtest,numbers,liquidity,judgepack,sitematch,explain,anomaly}.py`, relevant engine tests, `scripts/check_numbers.py`, `web/src/{app,components,lib,styles}/**`, `web/public/data/**`, `README.md`, `PLAN.md`, `PROMPTS.md`, `AGENTS.md`, `CONTEXT.md`, and `docs/**`.
+- Numbers produced (with source): Published Standard is S$2.48 a worker a week and S$128.75 a year. For 20 workers it is S$2,575 before GST and S$2,807 rounded with GST. The approved 26-year calibration is 9.78 insured hours, S$78.27 a worker and S$1,565 for 20 workers, or 61% of premium (product.json, `pricing.py`). The generated 500-firm geographic-mix diagnostic is 8.32 hours and S$66.60 a worker; it is capital and cash only, not a price calibration (backtest export). The published 2015-style haze capital stress is 261% loss ratio, tagged simulation and never a customer payout input (product.json).
+- Decisions: The S$2.48 deck price is the published cautious customer calibration. The 500-firm station mix is disclosed separately rather than silently replacing it. The 150% stop-loss is justified by the labelled 261% 2015-style haze capital scenario, not by historical recovery. The footer disclosure is retained because it is a standing product rule.
+- Broken or unverified: No open functional or link failures in the offline walkthrough. Non-English worker content remains pending native-speaker review; real customer, underwriting and legal approval remain outside the demo.
+- Tests: `make export`; `make test` (131 passed, one third-party Starlette deprecation warning); `make check-numbers`; `npx tsc --noEmit`; `npm run lint`; and `git diff --check` all passed. Browser checks completed the four-step onboarding, employer handoff, map, compliance log, console, pitch destinations and the 390 px link/mobile audit with no fresh console errors.
+- Next: Keep the existing preview running for the user walkthrough. Before a real pilot, complete native-language review and obtain underwriting and legal approval.
+
+---
+
+## 16. What changed from version 1 (decision log)
+
+| Topic | Version 1 | Version 2 | Why |
+|---|---|---|---|
+| Plans | Lite (S$5) and Standard (S$8) | Essential, Standard, Plus by deductible; S$8 on all | A mentor asked for deductible levels. One lever is easier to explain |
+| Launch credit | 30% in year one | None | It made the pilot year negative |
+| Site Match | Core innovation, demo moment 2 | Pilot rider under Labs | Adds paperwork and an abuse surface. Income said claims must be simple and not open to abuse |
+| Free compliance log and heat alert | Not in product | Included with every policy | Turns regulation into a reason to buy |
+| Misuse | Forfeit on MOM action | Yearly warranty + forfeit (second action cancels) + worker QR notice | Mentor asked what stops pay-and-still-work |
+| Rate lock, renewal discount | None | Two-year lock; discount for break log and no MOM action | Mentor asked for price certainty over a project |
+| Work classes | None | A heavy, B moderate | Income asked if trades are differentiated |
+| Premium split | 65 / 12 / 5 / 18 | 65 / 20 / 5 / 10 | Expenses budgeted at the brief's 20% ceiling |
+| Pilot | 300 firms, S$0.77M, cap S$2.88M | 500 firms, S$1.29M, profit S$0.19M, cap S$4.8M | Team wanted a pilot that earns more |
+| Market framing | 185,400 workers, S$23.9M | S$63M all crews, S$24M small firms, 12,400 employers, 3,100 first | Mentor: size must matter to Income; count employers |
+| Rule wording | "15 minutes at 33", "paid rest" | 10 at 32 is the firm claim; "framework sets 15 at 33" | A mentor caught the team misquoting the rule |
+| Hook | 60 minutes, gets 45 | 60 minutes, gets 50 | Follows from the rule wording |
+| Human line | "We don't insure the summer" | "A normal month is part of the job. A hard month, we carry with you." | Team wanted warmth |
+| AI | Four jobs incl. Site Match | AI sits in the interface: read, explain, warn, check | Mentor: AI belongs in the interface, not the model |
+| Distribution | Five channels incl. brokers | Renewal tick box; "what Rehat would have paid you"; trade bodies and NTUC for awareness; no commission | A S$129 premium cannot carry a commission |
+| Demo's three moments | Replay, Site Match, insurer console | Would-have-paid and onboarding, replay to receipt, Income console | Employer-friendly first, as the founder mentor asked |
+
+## 17. UX principles and information architecture
+
+The product had about twelve separate routes. Version 2 makes it feel like one product with three doors.
+
+### Three doors, one demo firm
+A role switcher in the header: Employer, Worker, Income. One fictional firm flows through every screen: Tanjong Greenworks Pte Ltd, landscaping (class A), 20 outdoor workers, Jurong West, Standard plan, owner "Mr Tan". The same firm, numbers and month appear on the landing page, onboarding, home, receipt, replay and console. Never show a second firm unless the user picks one.
+
+One demo date. Offline demo mode pins "today" to 29 May 2026, so the home screen shows May 2026 for the demo firm at its own station. The engine computes that figure. The S$510 worked month in section 5 is a Bishan test fixture, so the demo firm's number can differ, and that is fine as long as home, receipt and console agree. The replay is the record day, 31 Oct 2025, and its "Open the receipt" button opens the October 2025 receipt. Both dates live in `product.json` under `demo_clock`. If the repo already pins another month with a payout, keep the repo's month and update `product.json` and this paragraph.
+
+### Navigation
+| Door | Screens (in order) |
+|---|---|
+| Story | Landing, Replay of the record day |
+| Employer | Account (WIC and add Rehat), Get cover, Home, Receipts, Compliance log |
+| Worker | Notice |
+| Income | Console: Overview, Cash, Risk, Pricing lab, Review queue |
+| Labs | Site Match pilot, Back-test detail, Live map, Brief and law map |
+Keep existing route paths where they exist and add redirects. Do not rename routes late in the build.
+
+### Principles
+1. One job per screen and one primary button. Everything else is secondary or behind "Details".
+2. Answer first. Each screen's first line is the answer in plain words with one number: "This month so far: 3.2 insured hours. S$510 on its way."
+3. Plain words. "Heat reading (WBGT)" on first use. "Deductible" with a one-line gloss. No "parametric" in employer screens.
+4. Every number has a unit, a period and a source tag (back-test, simulation, assumption).
+5. Show the rule next to the result. A "Why?" link on every counted hour opens the reading, the tier and the allowance.
+6. Never colour alone. States carry a label and an icon.
+7. Honest by default. The may-not-pay sentence is visible before purchase and one tap away afterwards. Assumptions are tagged. Missing data says "pending", never zero.
+8. Employer and worker screens work at 390 px wide first. Owners and supervisors use phones.
+9. Three clicks from landing to a quote. Sixty seconds to complete onboarding.
+10. Empty, loading and error states on every screen. Loading uses the three dots.
+11. Motion only to explain: a meter filling, a number counting up.
+12. The same component for the same thing everywhere: Money, Hours, StateBadge, SourceTag, PlanCard, Meter.
+
+### Screen-level standards
+- Page header: door name, page title, one-sentence answer, primary button.
+- Tables: right-align numbers, tabular figures, sticky header, no more than seven columns on desktop and a card list on mobile.
+- Forms: one question per row, inline validation, sensible defaults, the price visible at all times in onboarding.
+- Glossary: a single `/glossary` drawer with twelve terms at most.
+
+## 18. Pitch narrative (the app's pitch mode and copy must match)
+
+Ten slides, 700 words, 4 minutes 50 seconds. Full script in `docs/pitch-script.md`.
+1. Hook: pays for sixty minutes, gets fifty.
+2. Mr Tan: about S$12,000 a year; 37, 21, 29 heat days; S$0 from any policy.
+3. The rule and the reality: 10 minutes at 32; salary owed with no work; 213 employers acted against; two-thirds of hours are rain.
+4. Size: S$63M all crews, S$24M small firms, 12,400 employers, 3,100 first; 1% of WIC is S$4.9M.
+5. How it works: one tick box; read, count, compare, pay; free compliance log; station, not site.
+6. A normal month is part of the job: deductible, co-insurance, limit; yearly reset.
+7. Choose your deductible: S$1.76 to S$3.61; S$2,575, S$1,565, S$9,600.
+8. Profitable from year one inside the 20% expense limit: 65 / 20 / 5 / 10; S$0.54M over three years; 7 years in 10; forfeiture.
+9. AI sits in the interface: read, explain, warn. Rules decide the payout.
+10. Ask: 500-firm pilot from April 2027; "Would you pilot this? If not, what would have to be true?"
+
+Demo cuts:
+- Cut A, 20 seconds, inside slide 5: replay 31 Oct 2025 for Tanjong Greenworks, meter fills, receipt, PayNow.
+- Cut B, 90 seconds, for questions or a booth: landing calculator -> get cover -> home -> receipt -> Income console.
+
+## 19. Mentor feedback digest and the missing evidence
+
+| Mentor | Main points | Where it lives now |
+|---|---|---|
+| Founder (fintech) | Know the math; month-by-month chart; heat is certain so what is insured; count employers; employer-friendly screens showing what I pay now, what this adds, what I would save; show automation | Monthly allowance chart; employer home; would-have-paid; console economics |
+| Second mentor | Deductible and tiers; lock the premium for the project; average stations for simplicity; add-on to an existing policy | Three plans; rate lock; one national price with a local trigger |
+| Income mentors | Differentiate trades; need business data, not only weather; premium must look like value; direct payout, little paperwork; no abuse; associations and unions, not agents | Work classes; WIC wage declaration as the loss basis; pays in half of months; no claim form; warranty and forfeiture; distribution |
+| Third mentor | Size must matter to Income; a rule is not what owners do; interview real owners; AI is in the interface; end by asking Income a question | S$63M framing and WIC share; inspection facts; interview slot; slide 9; slide 10 |
+
+Missing evidence: no SME owner has been interviewed. The plan is cold calls on Monday from BCA's public contractor register, five open questions, two minutes each. Rule for the app: the landing page has a "What owners told us" block that renders only if `data/seed/interviews.json` contains real entries. Never invent a quote or a count.

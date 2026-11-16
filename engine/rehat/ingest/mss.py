@@ -20,7 +20,7 @@ from rehat.paths import PROCESSED, RAW
 
 URL = "https://www.weather.gov.sg/files/dailydata/DAILYDATA_{code}_{ym}.csv"
 CACHE = RAW / "mss"
-UA = {"User-Agent": "Mozilla/5.0 (rehat-prototype research)"}
+UA = {"User-Agent": "Mozilla/5.0 (rehat research)"}
 
 # Long-record stations chosen to sit near WBGT stations. Codes confirmed by discover_codes(); names come from the files.
 DEFAULT_STATIONS: dict[str, int] = {

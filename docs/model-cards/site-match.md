@@ -1,4 +1,6 @@
-# Model card: Site Match checker
+# Model card: Site Match checker, Labs pilot rider
+
+**Scope.** Site Match is a Labs pilot rider. It is not part of onboarding, the landing page, the main navigation, the core price or the core payment rule.
 
 **What it does.** Checks a firm's own site WBGT log (the main contractor's hourly meter log) against NEA's named station for the same day. If every check passes, it approves a top-up: the extra MOM rest minutes the site log implies over the station, capped at 10 h a worker a year. If any check fails, the claim goes to a person with the reasons.
 
@@ -15,22 +17,22 @@
 | NOT_BUNCHED | At most 35% of all readings, and 60% of readings at 31.5+, within 0.15 C above 32.0 or 33.0 | Values nudged over a threshold |
 | SAME_DAY | Hour-to-hour changes correlate with the station's that day (r at least 0.3) | Pasted logs (added check) |
 
-## Evaluation (400 simulated logs on 163 real NEA station-days: 31 Oct 2025 plus the 10 hottest complete days pulled)
+## Evaluation (400 simulated logs on 247 real NEA station-days)
 
 | Log type | Flagged for review | Approved with a top-up anyway |
 |---|---|---|
 | flat | 100% | 0% |
-| honest | 2% | 58% |
+| honest | 2% | Not published |
 | inflated | 100% | 0% |
-| pasted_day | 60% | 28% |
-| threshold | 54% | 16% |
+| pasted-from-another-day | 67% | 23% |
+| threshold-bunched | 51% | 21% |
 
-Honest logs are approved with a top-up 58% of the time (the rest show no extra rest minutes that day). When a fake slips through, the mean top-up is 23.3 min (threshold) and 23.4 min (pasted) a worker; the 10 h yearly cap bounds the loss.
+The result is deliberately treated as a Labs finding, not a core-product proof point. Threshold-bunched and pasted logs can still receive a top-up, so a person reviews anything outside the published band. The 10 h yearly cap bounds the pilot exposure.
 
-Compared with the kit prototype (0% honest flagged; 100% inflated and flat; 84% threshold; 77% pasted): the evaluation is now harder. Pasted logs use a real curve from another day at the same station (the prototype reversed the curve), and threshold fakes on cooler days barely cross a threshold.
+The harder evaluation uses real curves from another day at the same station and threshold fakes that barely cross a level. It is kept outside the core flow because it adds paperwork and an abuse surface.
 
-## Rider price
-Expected top-up 7.21 h a worker a year -> S$88.76 a year (S$1.71 a week) at the 0.65 target loss ratio. Assumptions: honest site uplift N(0.8, 0.5) C per firm-year (the simulation prior), firms file on 50% of eligible days, 10 h cap. 49% of simulated firm-years hit the cap. This replaces the S$0.50 a week placeholder and must be re-tested on real contractor logs.
+## Pilot pricing
+The current pilot assumption is S$0.50 per worker a week. It is not part of the core product price and must be re-tested against real contractor logs before any launch decision.
 
 ## Inputs and data
 CSV with columns time and wbgt. Photo or PDF reading is optional and off without an API key; the user always confirms the extracted table. No worker personal data.

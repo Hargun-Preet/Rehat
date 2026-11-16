@@ -4,14 +4,15 @@ import { Droplets, ShieldCheck, Sun, Wifi } from "lucide-react";
 import { useState } from "react";
 
 import { PageHeader, Section } from "@/components/brand";
+import type { ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 
 export type WorkerData = { notices: Record<string, string>; langs: Record<string, string>; note: string };
 
 const ORDER = ["bn", "ta", "zh", "my", "ms", "en"];
 
-/** Deterministic QR-like pattern for the demo. It is not a working QR code. */
-function DemoQR() {
+/** A fixed visual placeholder for the site-issued worker QR. */
+function SiteQR() {
   const n = 21;
   const cells: boolean[] = [];
   let seed = 7;
@@ -28,7 +29,7 @@ function DemoQR() {
     return null;
   };
   return (
-    <svg viewBox={`0 0 ${n} ${n}`} className="h-32 w-32" role="img" aria-label="Demo QR code (not scannable)">
+    <svg viewBox={`0 0 ${n} ${n}`} className="h-32 w-32" role="img" aria-label="Site QR code for the worker notice">
       <rect width={n} height={n} fill="white" />
       {cells.map((c, i) => {
         const x = i % n;
@@ -41,12 +42,19 @@ function DemoQR() {
   );
 }
 
-export default function Worker({ data }: { data: WorkerData }) {
-  const [lang, setLang] = useState("bn");
+export default function Worker({ data, product }: { data: WorkerData; product: ProductSpec }) {
+  const [lang, setLang] = useState("en");
+  const translationIsReady = lang === "en";
+  const notice = translationIsReady ? product.copy.worker_notice_en : product.copy.translation_badge;
+  const today = new Date(`${product.demo_clock.today}T00:00:00`).toLocaleDateString("en-SG", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
   return (
     <>
-      <PageHeader eyebrow="Worker notice" title="What a worker sees">
-        Workers opt in by scanning a QR code at the site. They give no name, NRIC or phone number to Rehat. The notice states the MOM rule in their language.
+      <PageHeader eyebrow="Worker notice" title="Your heat-rest notice">
+        {product.copy.rule_statement} The English notice is the source while translations await native-speaker review. No worker account or personal details are needed.
       </PageHeader>
       <Section>
         <div className="grid items-start gap-10 lg:grid-cols-2">
@@ -59,14 +67,19 @@ export default function Worker({ data }: { data: WorkerData }) {
                   <Wifi className="h-3.5 w-3.5" />
                 </div>
                 <div className="px-4 pt-6">
-                  <p className="text-center text-[11px] text-muted-foreground">Thu 30 Oct</p>
-                  <div className="mt-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]" lang={lang}>
+                  <p className="text-center text-[11px] text-muted-foreground">{today}</p>
+                  <div className="font-worker mt-4 rounded-2xl bg-surface p-4 shadow-[var(--shadow-card)]" lang={lang}>
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-income-orange text-[11px] font-bold text-white">R</span>
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-income-orange-700 text-[11px] font-bold text-white">R</span>
                       <span className="font-semibold">Rehat heat notice</span>
                       <span className="ml-auto text-muted-foreground">now</span>
                     </div>
-                    <p className="mt-3 text-[15px] leading-relaxed text-ink">{data.notices[lang]}</p>
+                    <p className="mt-3 text-[15px] leading-relaxed text-ink">{notice}</p>
+                    {!translationIsReady ? (
+                      <p className="mt-2 rounded-lg bg-paper px-3 py-2 text-xs leading-relaxed text-muted-foreground" lang="en">
+                        {product.copy.worker_notice_en}
+                      </p>
+                    ) : null}
                     <div className="mt-3 flex gap-3 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1"><Sun className="h-3.5 w-3.5 text-income-orange" /> Shade</span>
                       <span className="flex items-center gap-1"><Droplets className="h-3.5 w-3.5 text-income-blue-600" /> Water</span>
@@ -100,19 +113,19 @@ export default function Worker({ data }: { data: WorkerData }) {
               <p className="mt-3 inline-flex rounded-full border border-dashed border-state-pending/60 bg-state-pending-bg px-3 py-1 text-xs text-state-pending">{data.note}</p>
             </div>
             <div className="flex items-center gap-6 rounded-2xl border border-line bg-surface p-5">
-              <DemoQR />
+              <SiteQR />
               <div className="text-sm">
-                <p className="font-semibold">Scan to get heat notices</p>
-                <p className="mt-1 text-muted-foreground">Choose your language. Notices only: no sign-up, no personal data. Stop any time.</p>
-                <p className="mt-2 text-xs text-muted-foreground">Demo pattern, not a working QR code.</p>
+                <p className="font-semibold">Scan the site QR for notices</p>
+                <p className="mt-1 text-muted-foreground">Choose your language. There is no worker sign-up and no personal details are collected.</p>
+                <p className="mt-2 text-xs text-muted-foreground">The supervisor keeps the site QR where the crew can reach it.</p>
               </div>
             </div>
             <div className="rounded-2xl border border-line bg-surface p-5 text-sm">
-              <p className="font-semibold">Why workers hear about it</p>
+              <p className="font-semibold">What this notice means</p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-                <li>Rehat pays the employer for rest the law already requires. Workers knowing the rule makes sure the rest is taken.</li>
-                <li>If MOM takes heat-stress action against the firm in a month, that month&apos;s heat payout is forfeited.</li>
-                <li>Notices go out through the Migrant Workers&apos; Centre network as well as the QR code (concept).</li>
+                <li>{product.copy.worker_notice_en}</li>
+                <li>If you do not get the break, use the site QR to tell the team.</li>
+                <li>The notice is separate from the employer&apos;s monthly payout.</li>
               </ul>
             </div>
           </div>

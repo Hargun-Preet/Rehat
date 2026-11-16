@@ -1,6 +1,6 @@
 "use client";
 
-import { Radio, WifiOff } from "lucide-react";
+import { MapPinned, Radio, ShieldCheck, WifiOff } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Ellipsis, PageHeader, Section, SourceNote, StateBadge } from "@/components/brand";
@@ -8,6 +8,7 @@ import { StationMap, type MapPoint } from "@/components/rehat/StationMap";
 import { Switch } from "@/components/ui/switch";
 import { ENGINE_URL } from "@/lib/useJSON";
 import { dayName } from "@/lib/format";
+import type { ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 import type { HourState } from "@/lib/types";
 
@@ -18,7 +19,7 @@ type LiveApi = { day: string; stations: { station_id: string; name: string; lat:
 
 const psiBand = (v: number) => (v > 300 ? "Hazardous" : v > 200 ? "Very unhealthy" : v > 100 ? "Unhealthy" : v > 50 ? "Moderate" : "Good");
 
-export default function Live({ snapshot }: { snapshot: LiveData }) {
+export default function Live({ snapshot, product }: { snapshot: LiveData; product: ProductSpec }) {
   const [live, setLive] = useState(false);
   const [liveData, setLiveData] = useState<LiveApi | null>(null);
   const [liveErr, setLiveErr] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export default function Live({ snapshot }: { snapshot: LiveData }) {
     if (live && liveData) {
       return liveData.stations.map((s) => ({
         id: s.station_id, name: s.name, lat: s.lat, lon: s.lon, wbgt: s.wbgt as number | null,
-        state: (s.rest_if_hour_mean > 0 ? "TRIGGERED" : "NOT_TRIGGERED") as HourState, rest: s.rest_if_hour_mean, source: "latest 15-minute reading",
+        state: (s.rest_if_hour_mean > 0 ? "TRIGGERED" : "NOT_TRIGGERED") as HourState, rest: s.rest_if_hour_mean, source: "hourly result supplied by the engine",
       }));
     }
     return snapshot.stations.map((s) => {
@@ -66,13 +67,22 @@ export default function Live({ snapshot }: { snapshot: LiveData }) {
   }));
   const counts = rows.reduce((a, r) => ({ ...a, [r.state]: (a[r.state] ?? 0) + 1 }), {} as Record<string, number>);
   const psi = live && liveData?.psi.regions ? liveData.psi.regions : snapshot.psi.regions;
+  const activeCount = counts.TRIGGERED ?? 0;
+  const pendingCount = counts.PENDING ?? 0;
 
   return (
     <>
-      <PageHeader eyebrow="Live map" title="NEA heat-stress stations right now">
-        Each station&apos;s hour is triggered, not triggered or pending. Missing readings are pending, never read as no event.
+      <PageHeader eyebrow="Labs / live station map" title={`${activeCount} stations show a heat break at the selected hour`} icon={MapPinned}>
+        {product.copy.rule_statement} {pendingCount ? `${pendingCount} station ${pendingCount === 1 ? "is" : "are"} pending and will not be read as no event.` : "All selected station readings are available."}
       </PageHeader>
       <Section>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-income-blue-100 bg-income-blue-50 p-4 text-sm">
+          <span className="flex max-w-2xl items-start gap-2 text-income-blue">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <span><span className="font-semibold">Evidence only.</span> The map shows station readings and their data state. It does not change a customer&apos;s payout.</span>
+          </span>
+          <span className="rounded-full bg-surface px-3 py-1 text-xs font-semibold text-income-blue">{product.triggers.heat.meter}</span>
+        </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 rounded-full border border-line bg-surface px-4 py-2 text-sm">
             {live ? <Radio className="h-4 w-4 text-income-orange" /> : <WifiOff className="h-4 w-4 text-muted-foreground" />}
@@ -109,9 +119,9 @@ export default function Live({ snapshot }: { snapshot: LiveData }) {
           <div className="lg:col-span-3">
             <StationMap points={points} height={480} zoom={11} />
             <div className="mt-3 flex flex-wrap gap-2">
-              <StateBadge state="TRIGGERED" /> <span className="num text-sm">{counts.TRIGGERED ?? 0}</span>
+              <StateBadge state="TRIGGERED" /> <span className="num text-sm">{activeCount}</span>
               <StateBadge state="NOT_TRIGGERED" /> <span className="num text-sm">{counts.NOT_TRIGGERED ?? 0}</span>
-              <StateBadge state="PENDING" /> <span className="num text-sm">{counts.PENDING ?? 0}</span>
+              <StateBadge state="PENDING" /> <span className="num text-sm">{pendingCount}</span>
             </div>
           </div>
           <div className="max-h-[540px] overflow-auto rounded-2xl border border-line bg-surface lg:col-span-2">
@@ -143,7 +153,7 @@ export default function Live({ snapshot }: { snapshot: LiveData }) {
             </table>
           </div>
         </div>
-        <SourceNote>{snapshot.source}. Snapshot taken from the latest pulled day; live mode asks the Rehat engine, which calls data.gov.sg.</SourceNote>
+        <SourceNote>{snapshot.source}. The offline snapshot is bundled with the app; live mode asks the Rehat engine, which calls data.gov.sg. Missing readings remain pending under the published fallback ladder.</SourceNote>
       </Section>
     </>
   );

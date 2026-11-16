@@ -1,6 +1,6 @@
 PY := engine/.venv/bin/python
 
-.PHONY: setup engine web test export export-fast normalise demo
+.PHONY: setup engine web test check-numbers export export-fast normalise demo
 
 setup:
 	cd engine && python3 -m venv .venv && .venv/bin/pip install -e .
@@ -14,6 +14,9 @@ web:
 
 test:
 	cd engine && .venv/bin/python -m pytest -q
+
+check-numbers:
+	$(PY) scripts/check_numbers.py
 
 # Re-normalise cached raw pulls into parquet (no network).
 normalise:

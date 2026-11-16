@@ -13,7 +13,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from rehat import rules, store
+from rehat import product, rules, store
 from rehat.normals import normal
 from rehat.paths import SEED
 from rehat.stations import region_of_station, station_by_id, wbgt_stations, rain_gauges, psi_region_for
@@ -39,7 +39,6 @@ class Firm:
     rain_backup: str
     psi_region: str
     plan: str = "Standard"
-    site_match: bool = False
     meal_hour: int | None = rules.DEFAULT_MEAL_HOUR
     sector: str = "construction"
     wic_policy_no: str = ""
@@ -69,7 +68,35 @@ class Firm:
 
     @property
     def benefit(self) -> float:
-        return rules.BENEFIT[self.plan]
+        """Return the v2 plan benefit. The deductible is the one plan lever."""
+        # Resolve the plan first so a bad fixture fails clearly instead of
+        # falling back to a retired commercial term.
+        _ = self.product_plan
+        return product.get_product().product.benefit_per_worker_hour
+
+    @property
+    def product_plan(self) -> product.Plan:
+        """Return the v2 plan selected for a firm."""
+        plan_id = self.plan.strip().lower()
+        return product.get_product().plan_by_id(plan_id)
+
+    @property
+    def plan_id(self) -> str:
+        """Stable v2 plan id."""
+        return self.product_plan.id
+
+    @property
+    def allowance_multiple(self) -> float:
+        """The selected plan's monthly-allowance multiple.
+
+        Plan data always resolves through ``product.json``.
+        """
+        return self.product_plan.allowance_multiple
+
+    @property
+    def deductible_label(self) -> str:
+        """Plain-language deductible description for a receipt."""
+        return self.product_plan.deductible_label
 
 
 @lru_cache
@@ -209,7 +236,7 @@ class FirmMonthLedger:
                 continue
             note = res.note
             if res.state == rules.PENDING and ts.strftime("%Y-%m-%d") not in pulled:
-                note = "Readings for this day are not in the prototype's data pull yet. Pending, not counted as no event."
+                note = "Readings for this day are not available from the data feed yet. Pending, not counted as no event."
             self.lines.append(
                 HourLine(ts.isoformat(), "heat", None if res.value is None else round(res.value, 2), "WBGT C", res.source, res.state, mins / 60, note)
             )
@@ -239,7 +266,7 @@ class FirmMonthLedger:
             h = rules.rain_hours(res.value) if (res.value is not None and res.pays) else 0.0
             note = res.note
             if res.state == rules.PENDING and ts.strftime("%Y-%m-%d") not in pulled:
-                note = "Rain readings for this day are not in the prototype's data pull yet. Pending, not counted as no event."
+                note = "Rain readings for this day are not available from the data feed yet. Pending, not counted as no event."
             self.lines.append(HourLine(ts.isoformat(), "rain", None if res.value is None else round(res.value, 1), "mm in the hour", res.source, res.state, h, note))
 
     def _haze(self) -> list[rules.HazeDay]:
@@ -286,7 +313,7 @@ class FirmMonthLedger:
         perils: dict[str, dict[str, Any]] = {}
         for peril, station in (("heat", f.primary_station), ("rain", f.rain_gauge)):
             n, basis, is_assump = normal(station if peril == "heat" else f.primary_station, m, peril)
-            allow = rules.allowance(n)
+            allow = rules.allowance(n, f.allowance_multiple)
             counted = tot(peril)
             ins = rules.insured_hours(counted, allow)
             perils[peril] = {
@@ -321,7 +348,7 @@ class FirmMonthLedger:
             if p["counted_h"] > 0:
                 used = min(p["counted_h"], p["allowance_h"])
                 self.not_counted.append(
-                    {"what": f"First {used:.2f} h of {peril}", "why": f"Within your station's normal month plus 25% ({p['allowance_h']:.2f} h). Only hours above it are insured."}
+                    {"what": f"First {used:.2f} h of {peril}", "why": f"Within your {f.deductible_label.lower()} ({p['allowance_h']:.2f} h). Only hours above it are insured."}
                 )
             if p["pending_hours"]:
                 self.not_counted.append(
@@ -349,8 +376,8 @@ class FirmMonthLedger:
         month_name = datetime.strptime(self.month, "%Y-%m").strftime("%B %Y")
         lines = [
             f"{f.name}, {month_name}. Heat station: {pr.name} ({pr.station_id}). Rain gauge: {rg.name} ({rg.station_id}). Haze: {f.psi_region} region PSI.",
-            f"Heat rest owed: {h['counted_h']:.2f} h a worker. Normal plus 25%: {h['allowance_h']:.2f} h. Insured: {h['insured_h']:.2f} h.",
-            f"Heavy rain: {r['counted_h']:.2f} h a worker. Normal plus 25%: {r['allowance_h']:.2f} h. Insured: {r['insured_h']:.2f} h.",
+            f"Heat rest owed: {h['counted_h']:.2f} h a worker. {f.deductible_label}: {h['allowance_h']:.2f} h. Insured: {h['insured_h']:.2f} h.",
+            f"Heavy rain: {r['counted_h']:.2f} h a worker. {f.deductible_label}: {r['allowance_h']:.2f} h. Insured: {r['insured_h']:.2f} h.",
             f"Haze: {z['counted_h']:.2f} h. No allowance for haze.",
         ]
         if self.insured_after_caps_h != self.insured_before_caps_h:
@@ -367,7 +394,7 @@ class FirmMonthLedger:
     def to_dict(self, include_hours: bool = True) -> dict[str, Any]:
         f = self.firm
         out: dict[str, Any] = {
-            "firm": {"uen": f.uen, "name": f.name, "outdoor_workers": f.outdoor_workers, "wage_band": f.wage_band, "plan": f.plan, "benefit_sgd": f.benefit, "site_match": f.site_match, "sites": [asdict(s) for s in f.sites]},
+            "firm": {"uen": f.uen, "name": f.name, "outdoor_workers": f.outdoor_workers, "wage_band": f.wage_band, "plan": f.plan_id, "deductible_label": f.deductible_label, "benefit_sgd": f.benefit, "sites": [asdict(s) for s in f.sites]},
             "month": self.month,
             "stations": {
                 "primary": asdict(station_by_id(f.primary_station)),

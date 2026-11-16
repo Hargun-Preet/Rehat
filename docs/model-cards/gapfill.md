@@ -12,4 +12,4 @@
 | median+offset | 0.664 | 95% | 0.947 | 57% |
 | ridge | 0.501 | 95% | 0.8 | 57% |
 
-Band agreement looks high overall because most hours are far below the thresholds. Near the thresholds it is about 57%, so the estimate is not good enough to pay on. Kit prototype (afternoon of 31 Oct 2025 only): median MAE 0.87 C, 83%.
+Band agreement looks high overall because most hours are far below the thresholds. Near the thresholds it is about 57%, so the estimate is not good enough to pay on. Earlier 31 Oct 2025 baseline (afternoon only): median MAE 0.87 C, 83%.
