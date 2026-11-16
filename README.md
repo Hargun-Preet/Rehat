@@ -18,4 +18,4 @@ make web       # Next.js on http://localhost:3000
 make test      # engine tests
 make export    # engine writes JSON to web/public/data
 ```
-The web app runs offline from `web/public/data`. Copy `.env.example` to `.env` for optional API keys.
+The web app runs offline from `web/public/data`. Start `make engine` as well to show the current NEA heat reading on Employer home and the live station map. If the engine or source is unavailable, those views label their offline data or pending state clearly. Copy `.env.example` to `.env` for optional API keys.

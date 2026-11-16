@@ -15,7 +15,23 @@ import type { HourState } from "@/lib/types";
 type Hour = { hour: number; wbgt: number | null; state: HourState; rest: number | null };
 type Station = { station_id: string; name: string; lat: number; lon: number; region: string; latest: { ts: string; wbgt: number } | null; hours: Hour[] };
 export type LiveData = { snapshot_day: string; latest_ts: string; stations: Station[]; psi: { ts: string | null; regions: Record<string, number> }; mode: string; source: string };
-type LiveApi = { day: string; stations: { station_id: string; name: string; lat: number; lon: number; wbgt: number; ts: string; rest_if_hour_mean: number }[]; psi: { ts?: string; regions?: Record<string, number> } };
+type LiveApi = {
+  day: string;
+  availability?: "available" | "pending";
+  message?: string | null;
+  stations: {
+    station_id: string;
+    name: string;
+    lat: number;
+    lon: number;
+    wbgt: number | null;
+    ts: string;
+    state?: HourState;
+    rest_if_hour_mean: number | null;
+    rest_minutes?: number | null;
+  }[];
+  psi: { ts?: string; regions?: Record<string, number> };
+};
 
 const psiBand = (v: number) => (v > 300 ? "Hazardous" : v > 200 ? "Very unhealthy" : v > 100 ? "Unhealthy" : v > 50 ? "Moderate" : "Good");
 
@@ -36,8 +52,10 @@ export default function Live({ snapshot, product }: { snapshot: LiveData; produc
       const r = await fetch(`${ENGINE_URL}/live`);
       if (!r.ok) throw new Error(String(r.status));
       const d: LiveApi = await r.json();
-      if (!d.stations.length) throw new Error("no readings yet today");
       setLiveData(d);
+      if (!d.stations.length || d.availability === "pending") {
+        setLiveErr(d.message ?? "Live NEA readings are pending. Missing readings are not read as no event.");
+      }
     } catch (e) {
       setLiveErr(`Live data not available (${(e as Error).message}). Showing the offline snapshot.`);
       setLive(false);
@@ -50,7 +68,9 @@ export default function Live({ snapshot, product }: { snapshot: LiveData; produc
     if (live && liveData) {
       return liveData.stations.map((s) => ({
         id: s.station_id, name: s.name, lat: s.lat, lon: s.lon, wbgt: s.wbgt as number | null,
-        state: (s.rest_if_hour_mean > 0 ? "TRIGGERED" : "NOT_TRIGGERED") as HourState, rest: s.rest_if_hour_mean, source: "hourly result supplied by the engine",
+        state: s.state ?? (s.wbgt == null ? "PENDING" : s.rest_if_hour_mean && s.rest_if_hour_mean > 0 ? "TRIGGERED" : "NOT_TRIGGERED"),
+        rest: s.rest_minutes ?? s.rest_if_hour_mean,
+        source: "hourly result supplied by the engine",
       }));
     }
     return snapshot.stations.map((s) => {
@@ -73,7 +93,7 @@ export default function Live({ snapshot, product }: { snapshot: LiveData; produc
   return (
     <>
       <PageHeader eyebrow="Labs / live station map" title={`${activeCount} stations show a heat break at the selected hour`} icon={MapPinned}>
-        {product.copy.rule_statement} {pendingCount ? `${pendingCount} station ${pendingCount === 1 ? "is" : "are"} pending and will not be read as no event.` : "All selected station readings are available."}
+        {product.copy.rule_statement} {live && (!liveData?.stations.length || liveData.availability === "pending") ? "Today’s live station readings are pending and will not be read as no event." : pendingCount ? `${pendingCount} station ${pendingCount === 1 ? "is" : "are"} pending and will not be read as no event.` : "All selected station readings are available."}
       </PageHeader>
       <Section>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-income-blue-100 bg-income-blue-50 p-4 text-sm">
