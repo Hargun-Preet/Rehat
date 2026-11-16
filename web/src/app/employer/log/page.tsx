@@ -8,6 +8,8 @@ import { dayName, monthName } from "@/lib/format";
 import { loadProduct } from "@/lib/product.server";
 import type { HourLine, Receipt } from "@/lib/types";
 
+import { ExportComplianceLog } from "./ExportComplianceLog";
+
 type ReceiptIndex = { uen: string; firm: string; month: string };
 
 export default async function EmployerLogPage() {
@@ -53,7 +55,7 @@ export default async function EmployerLogPage() {
         Hourly heat reading (WBGT) records for {receipt.stations.primary.name}. They show the rest alert due for the crew, not a payment decision.
       </PageHeader>
       <Section>
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div data-compliance-log className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="min-w-0 space-y-5">
             <section className="overflow-hidden rounded-2xl border border-income-blue-100 bg-surface shadow-[var(--shadow-card)]">
               <div className="flex flex-col gap-4 bg-income-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
@@ -116,13 +118,14 @@ export default async function EmployerLogPage() {
             <section className="product-card p-5">
               <div className="flex items-start gap-3"><IconTile icon={ClipboardCheck} tone="orange" /><div><h2 className="font-semibold text-ink">Break log status</h2><p className="mt-1 text-sm text-muted-foreground">No supervisor break entries are recorded in this offline demo.</p></div></div>
               <StateBadge state="NOT_TRIGGERED" label="Optional record" className="mt-4" />
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">The break log is optional. It never changes an eligible hour or a payment.</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">The break log is optional. It never changes an insured hour or a payment.</p>
             </section>
             <section className="product-card p-5">
               <p className="text-sm font-semibold text-income-blue">The safety rule</p>
               <p className="mt-2 text-sm leading-relaxed text-ink">{product.copy.rule_statement}</p>
               <SourceNote>published product terms</SourceNote>
             </section>
+            <ExportComplianceLog />
             <Button asChild className="w-full">
               <Link href="/worker">Open worker notice <ArrowRight className="ml-1 h-4 w-4" /></Link>
             </Button>

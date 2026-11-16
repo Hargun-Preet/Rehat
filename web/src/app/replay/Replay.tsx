@@ -122,7 +122,7 @@ export default function Replay({ d, product, deductibleLabel }: { d: ReplayData;
   return (
     <>
       <PageHeader eyebrow="Record day replay" title={`${replayDate}: a record heat-stress day`}>
-        Real NEA heat reading (WBGT) data builds the rest owed hour by hour for {product.demo_firm.name}. The monthly allowance decides whether any benefit is due.
+        Real NEA heat reading (WBGT) data builds the rest owed hour by hour for {product.demo_firm.name}. The monthly deductible decides whether any payment is due.
       </PageHeader>
       <Section>
         <div className="sticky top-16 z-20 mb-6 rounded-2xl border border-line bg-surface/95 p-4 backdrop-blur">
@@ -182,7 +182,7 @@ export default function Replay({ d, product, deductibleLabel }: { d: ReplayData;
               <p className="font-heading text-4xl font-bold">
                 <CountUp value={mine.total} format={(v) => `${Math.round(v)} min`} />
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">Benefit before the monthly allowance, at S${product.product.benefit_per_worker_hour} an hour</p>
+              <p className="mt-2 text-xs text-muted-foreground">Amount before the monthly deductible, at S${product.product.benefit_per_worker_hour} an hour</p>
               <p className="font-heading text-2xl font-bold text-income-orange-700">
                 <CountUp value={value} format={(v) => sgd(v, 2)} />
               </p>
@@ -207,7 +207,7 @@ export default function Replay({ d, product, deductibleLabel }: { d: ReplayData;
               <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-line bg-surface p-5">
                 <p className="text-sm font-semibold">How this day reaches the October receipt</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Today&apos;s {mine.total} minutes join every other counted hour in October at {namedStation}. Rehat pays only the hours above the station&apos;s monthly allowance.
+                  Today&apos;s {mine.total} minutes join every other counted hour in October at {namedStation}. Rehat pays only the hours above the station&apos;s monthly deductible.
                 </p>
                 <table className="mt-3 w-full text-sm">
                   <tbody>
@@ -226,15 +226,15 @@ export default function Replay({ d, product, deductibleLabel }: { d: ReplayData;
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 font-semibold">October payout</td>
+                      <td className="py-1 font-semibold">October payment</td>
                       <td className="num py-1 text-right font-semibold">{sgd(oct.payout_sgd)}</td>
                     </tr>
                   </tbody>
                 </table>
                 <p className="mt-2 text-xs text-muted-foreground">
                   {oct.payout_sgd > 0
-                    ? `Paid by PayNow by ${oct.settlement_date}.`
-                    : "One record day is not a bad month. If October stays within normal at your station, nothing is paid, and the receipt says why."}
+                    ? `Payment by PayNow is due by ${oct.settlement_date}.`
+                    : "One record day is not a bad month. If October stays within normal at your station, no payment is due, and the receipt says why."}
                 </p>
                 <Button asChild variant="secondary" size="sm" className="mt-3">
                   <Link href={`/employer/receipt?month=${product.demo_clock.replay_receipt_month}`}>Open the receipt</Link>

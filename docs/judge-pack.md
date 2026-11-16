@@ -1,6 +1,6 @@
 # Rehat decision pack
 
-Generated 16 Nov 2026 09:40 from the same product terms and offline engine outputs used by the app.
+Generated 16 Nov 2026 11:27 from the same product terms and offline engine outputs used by the app.
 
 ## 1. The owner problem
 
@@ -43,7 +43,7 @@ The plan starts with 500 firms and 10,000 workers in April 2027. Premium is S$1,
 
 ## 9. Cash and operations
 
-The next cash view is 2026-11: P50 S$7,992, P90 S$30,677. Forecasts help plan cash and reinsurance only. They cannot change a customer's price or payment. Offered by or with Income as the licensed insurer; Triggers and pricing use independent, verifiable data; Customer understands what they pay for and when they get paid in under a minute
+The next cash view is 2026-05: P50 S$111,432, P90 S$111,432. Forecasts help plan cash and reinsurance only. They cannot change a customer's price or payment. Offered by or with Income as the licensed insurer; Triggers and pricing use independent, verifiable data; Customer understands what they pay for and when they get paid in under a minute
 
 ## 10. The decision to test
 
@@ -51,7 +51,7 @@ The first proof point is whether firms understand the named-station limit before
 
 ## Limits stated plainly
 
-- The published Standard calibration's worst back-test loss ratio is 229%. The published 2015-style haze stress is 261%; it is a capital scenario. The separate geographic-mix portfolio diagnostic reaches 236% with its stated 20-hour haze stress.
+- The published Standard calibration's worst back-test loss ratio is 229%. The published 2015-style haze stress is 261%; it is a capital scenario. The separate geographic-mix portfolio diagnostic reaches 207% with its stated 20-hour haze stress.
 - Historical heat before NEA coverage uses a validated rebuild. It supports frequency analysis, not a single historical payment.
 - Non-English worker and receipt copy remains unavailable until native-speaker review. English is the canonical source.
 - Site-specific logs are evaluated only in Labs and do not affect the core plan price or payment rule.

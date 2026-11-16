@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
+import { CircleMarker, MapContainer, Tooltip } from "react-leaflet";
 
 export type MapPoint = {
   id: string;
@@ -25,17 +25,12 @@ const style: Record<MapPoint["kind"], { color: string; fill: string; r: number; 
   pending: { color: "#a16207", fill: "#fef6e0", r: 8, dash: "3 3" },
 };
 
-/** Leaflet map. Tiles load when online; offline, markers still render on the plain background. */
+/** Offline-first station plot. All marker coordinates are bundled with the app. */
 export default function MapInner({ points, height = 360, zoom = 11, center }: { points: MapPoint[]; height?: number; zoom?: number; center?: [number, number] }) {
   const c: [number, number] = center ?? [1.3521, 103.8198];
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-[#eef1f4]" style={{ height }}>
-      <MapContainer center={c} zoom={zoom} scrollWheelZoom={false} style={{ height: "100%", width: "100%", background: "#eef1f4" }} attributionControl>
-        <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          className="rehat-tiles"
-        />
+      <MapContainer center={c} zoom={zoom} scrollWheelZoom={false} style={{ height: "100%", width: "100%", background: "#eef1f4" }} attributionControl={false}>
         {points.map((p) => {
           const s = style[p.kind];
           return (

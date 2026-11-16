@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import re
 from collections import Counter
+from datetime import date
 from typing import Any, Callable
 
 import requests
@@ -36,11 +37,11 @@ WORKER_NOTICE = _worker_notices()
 WORKER_NOTICE_STATUS = {lang: "available" if lang == "en" else "pending_native_review" for lang in LANGS}
 
 WHY_NOT_EN = {
-    "normal": "Your station's month stayed within the plan allowance, so there was nothing above the deductible to pay.",
-    "pending": "Some hours are still pending because readings are missing. They are not counted as no event and will be settled when data arrives.",
+    "normal": "Your station's month stayed within the plan deductible, so there was nothing above it to pay.",
+    "pending": "Some hours are still pending because readings are missing. They are not counted as no event and will be confirmed when data arrives.",
     "cap": "You reached the cap of 20 insured hours this month or 60 this year.",
     "excluded": "This month is excluded: {reason}",
-    "paid": "You were paid S${payout} this month.",
+    "paid": "Your payment of S${payout} is due by PayNow on {date}.",
 }
 
 NUM = re.compile(r"\d+(?:[.,]\d+)*")
@@ -71,9 +72,15 @@ def _fields(receipt: dict[str, Any]) -> dict[str, str]:
         "benefit": f"{firm['benefit_sgd']:g}",
         "workers": str(firm["outdoor_workers"]),
         "payout": f"{receipt['payout_sgd']:,.0f}",
-        "date": receipt["settlement_date"],
+        "date": _payment_date(receipt["settlement_date"]),
         "deductible": deductible,
     }
+
+
+def _payment_date(raw: str) -> str:
+    """Format a receipt date in the plain language used on employer screens."""
+    value = date.fromisoformat(raw)
+    return f"{value.day} {value.strftime('%B %Y')}"
 
 
 def template(receipt: dict[str, Any], lang: str = "en") -> str:
@@ -81,13 +88,10 @@ def template(receipt: dict[str, Any], lang: str = "en") -> str:
     if lang not in LANGS:
         raise KeyError(f"Unknown language: {lang}")
     f = _fields(receipt)
-    english = " ".join([
-        "{firm}, {month}. Heat station: {station}.",
-        "Heat rest owed: {heat} h a worker. Your {deductible}: {heat_allow} h. Insured: {heat_ins} h.",
-        "Heavy rain: {rain} h a worker. Your {deductible}: {rain_allow} h. Insured: {rain_ins} h.",
-        "Haze: {haze} h.",
-        "Total {total} h x S${benefit} x {workers} workers = S${payout}. PayNow to your UEN by {date}.",
-    ]).format(**f)
+    english = (
+        "{firm} had {heat} heat-rest hours, {rain} heavy-rain hours and {haze} haze hours for each worker in {month} at {station}. "
+        "After its {heat_allow}-hour heat and {rain_allow}-hour rain deductibles, {total} insured hours mean Rehat will pay S${payout} to its UEN by PayNow on {date}."
+    ).format(**f)
     if lang == "en":
         return english
     return f"{REVIEW_NOTE} {LANGS[lang]} receipt explanation is unavailable until review. English explanation: {english}"
@@ -148,7 +152,7 @@ def why_not_paid(receipt: dict[str, Any], lang: str = "en") -> str:
         out.append(w["excluded"].format(reason=ex[0]["reason"]))
     p = receipt["perils"]
     if receipt["payout_sgd"] > 0:
-        out.append(w["paid"].format(payout=f"{receipt['payout_sgd']:,.0f}"))
+        out.append(w["paid"].format(payout=f"{receipt['payout_sgd']:,.0f}", date=_payment_date(receipt["settlement_date"])))
     elif not ex and all(p[k]["insured_h"] == 0 for k in ("heat", "rain")) and p["haze"]["counted_h"] == 0:
         out.append(w["normal"])
     if p["heat"].get("pending_hours") or p["rain"].get("pending_hours") or p["haze"].get("pending_days"):

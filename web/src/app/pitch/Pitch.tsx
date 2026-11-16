@@ -18,6 +18,10 @@ export type Step = {
   kpi: { v: string; l: string; source?: Source };
 };
 
+function PitchSourceTag({ source }: { source: Source }) {
+  return <span className="mt-1 shrink-0 text-[9px] font-semibold uppercase leading-none tracking-wide text-muted-foreground">{source}</span>;
+}
+
 export default function Pitch({ steps }: { steps: Step[] }) {
   const [i, setI] = useState(0);
   const [src, setSrc] = useState(steps[0].href);
@@ -87,14 +91,14 @@ export default function Pitch({ steps }: { steps: Step[] }) {
                 <li key={point.text} className="flex gap-3">
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-income-orange" />
                   <span className="min-w-0 flex-1">{point.text}</span>
-                  {point.source ? <span className="mt-0.5 shrink-0 rounded-full bg-paper px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{point.source}</span> : null}
+                  {point.source ? <PitchSourceTag source={point.source} /> : null}
                 </li>
               ))}
             </ul>
             <div className="mt-6 rounded-2xl bg-income-orange-100/60 p-4 sm:mt-8 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <p className="num font-heading text-2xl font-bold text-ink sm:text-4xl">{s.kpi.v}</p>
-                {s.kpi.source ? <span className="shrink-0 rounded-full bg-surface px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{s.kpi.source}</span> : null}
+                {s.kpi.source ? <PitchSourceTag source={s.kpi.source} /> : null}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{s.kpi.l}</p>
             </div>

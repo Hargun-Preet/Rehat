@@ -148,10 +148,27 @@
   40% { opacity: 1; transform: translateY(-3px); }
 }
 
-/* Calm, desaturated map tiles so Income colours carry the meaning */
-.rehat-tiles {
-  filter: grayscale(0.85) contrast(0.92) brightness(1.04);
-}
 .leaflet-container {
   font-family: var(--font-inter), sans-serif;
+}
+
+@media print {
+  @page { margin: 12mm; }
+
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  [data-compliance-log] {
+    max-width: none;
+  }
+
+  [data-compliance-log] aside {
+    position: static !important;
+  }
+
+  [data-compliance-log] section {
+    break-inside: avoid;
+  }
 }

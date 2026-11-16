@@ -374,7 +374,10 @@ def alerts(asof: date, max_items: int = 5) -> list[dict]:
 # ---------------------------------------------------------------- run
 def run(asof: date | None = None) -> dict:
     D = daily()
-    asof = asof or (D.dates.max() + timedelta(days=1)).date()
+    # The offline walkthrough has one clock. Keep the cash console on the same
+    # date as the employer home instead of silently advancing it to the latest
+    # cached weather pull.
+    asof = asof or date.fromisoformat(product.get_product().demo_clock.today)
     cur = forecast_month(asof)
     demo = forecast_month(date(2025, 10, 20))
     last = (pd.Timestamp(asof) - pd.offsets.MonthBegin(1)).to_period("M") - 1 if asof.day == 1 else pd.Timestamp(asof).to_period("M") - 1
@@ -383,7 +386,11 @@ def run(asof: date | None = None) -> dict:
     val = validate()
     out = {
         "asof": asof.isoformat(),
-        "book": {"firms": len(demo_book()), "workers": int(D.workers.sum())},
+        "book": {
+            "firms": len(demo_book()),
+            "workers": int(D.workers.sum()),
+            "scope": "Fictional geographic mix for cash diagnostics. The planned pilot is shown separately.",
+        },
         "current": cur,
         "demo_oct_2025": demo,
         "fan_last_month": {"month": f"{last_y}-{last_m:02d}", "actual": round(actual_month(last_y, last_m)[0]), "settlement_date": rules.settlement_date(f"{last_y}-{last_m:02d}").isoformat(), "series": fan(last_y, last_m, step=1)},

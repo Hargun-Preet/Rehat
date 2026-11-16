@@ -109,7 +109,7 @@ export default function SiteMatch({ data, product }: { data: SiteMatchData; prod
   return (
     <>
       <PageHeader eyebrow="Labs / Site Match pilot rider" title={`Up to ${product.site_match_pilot_rider.top_up_cap_hours_year} extra hours in the pilot`} icon={FlaskConical}>
-        This optional pilot rider is separate from Rehat&apos;s core cover. It can suggest a top-up from an independent main-contractor log; it never changes the core payout and never rejects automatically.
+        This optional pilot rider is separate from Rehat&apos;s core cover. It can suggest a top-up from an independent main-contractor log; it never changes the core payment and never rejects automatically.
       </PageHeader>
       <Section>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-4 text-sm">

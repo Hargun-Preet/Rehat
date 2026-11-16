@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from calendar import month_name
 from dataclasses import asdict
 from datetime import datetime, timezone
 
@@ -11,6 +12,7 @@ import pandas as pd
 
 from rehat import explain, product, rules
 from rehat.ledger import FirmMonthLedger, demo_book, firm_by_uen, policy_year_ledgers
+from rehat.normals import normal
 from rehat.paths import PROCESSED, SEED, WEB_DATA
 from rehat.stations import psi_regions, rain_gauges, region_of_station, suggest_station, wbgt_stations
 
@@ -46,8 +48,16 @@ def _months_with_payout(uen: str, months: list[str]) -> list[str]:
 
 
 def receipts() -> list[dict]:
-    """Receipts for the one fictional demo firm used throughout the walkthrough."""
-    months = [p.strftime("%Y-%m") for p in pd.period_range("2025-03", "2026-10", freq="M")]
+    """Only the two receipts used in the walkthrough.
+
+    The paid May receipt is the main employer demo. The record-day October
+    receipt stays available for questions, where its zero payout is the honest
+    explanation of how a single hot day still has to clear the month-level
+    deductible. Keeping incomplete historical months out of the picker avoids
+    presenting a long list of deliberately pending fixture data as the demo.
+    """
+    spec = product.get_product()
+    months = sorted({spec.demo_clock.month, spec.demo_clock.replay_receipt_month})
     out_index = []
     for uen in (FLAGSHIP,):
         f = firm_by_uen(uen)
@@ -142,6 +152,34 @@ def onboarding() -> None:
         sug = suggest_station(s.lat, s.lon)
     except Exception:  # noqa: BLE001
         sug = None
+    monthly_deductibles = {}
+    for selected_plan in spec.plans:
+        months = []
+        heat_basis = ""
+        rain_basis = ""
+        heat_is_assumption = False
+        rain_is_assumption = False
+        for month_num in range(1, 13):
+            # Keep this table exactly aligned with the ledger's deductible
+            # calculation. Rain's station normal follows the ledger convention.
+            heat_normal, current_heat_basis, current_heat_assumption = normal(f.primary_station, month_num, "heat")
+            rain_normal, current_rain_basis, current_rain_assumption = normal(f.primary_station, month_num, "rain")
+            heat_basis = heat_basis or current_heat_basis
+            rain_basis = rain_basis or current_rain_basis
+            heat_is_assumption = heat_is_assumption or current_heat_assumption
+            rain_is_assumption = rain_is_assumption or current_rain_assumption
+            months.append({
+                "month": month_name[month_num],
+                "heat_allowance_h": round(rules.allowance(heat_normal, selected_plan.allowance_multiple), 2),
+                "rain_allowance_h": round(rules.allowance(rain_normal, selected_plan.allowance_multiple), 2),
+            })
+        monthly_deductibles[selected_plan.id] = {
+            "months": months,
+            "heat_basis": heat_basis,
+            "rain_basis": rain_basis,
+            "heat_is_assumption": heat_is_assumption,
+            "rain_is_assumption": rain_is_assumption,
+        }
     _w("onboarding.json", {
         "firm": {"uen": f.uen, "name": f.name, "trade": f.trade, "outdoor_workers": f.outdoor_workers, "wage_band": f.wage_band,
                  "wic_policy_no": f.wic_policy_no, "site": asdict(s), "primary_station": f.primary_station, "backup_station": f.backup_station,
@@ -152,6 +190,8 @@ def onboarding() -> None:
         "gst_rate": spec.product.gst_rate,
         "may_not_pay": spec.copy_text("may_not_pay"),
         "sms": spec.copy_text("employer_sms"),
+        "monthly_deductibles": monthly_deductibles,
+        "first_payout_date": rules.settlement_date(spec.demo_clock.month).isoformat(),
     })
 
 
