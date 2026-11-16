@@ -30,11 +30,18 @@ export default async function EmployerDashboard() {
   const receipt = current ? await loadJSON<Receipt>(`receipt_${current.uen}_${current.month}.json`) : null;
   const todayHeat = receipt?.hours.filter((hour) => hour.peril === "heat" && hour.ts.startsWith(product.demo_clock.today)).at(-1);
   const pending = (receipt?.perils.heat.pending_hours ?? 0) + (receipt?.perils.rain.pending_hours ?? 0) + (receipt?.perils.haze.pending_days ?? 0);
+  const paymentAnswer = receipt
+    ? receipt.payout_sgd > 0
+      ? `${sgd(receipt.payout_sgd, 0)} paid by ${formatPaymentDate(receipt.settlement_date)}`
+      : pending
+        ? "This month’s evidence is still pending"
+        : "No payment is due this month"
+    : "This month’s receipt is preparing";
 
   return (
     <>
-      <PageHeader eyebrow="Employer workspace" title={`${product.demo_firm.name}`} icon={ShieldCheck}>
-        Your weather status, monthly deductible and evidence are ready in one view.
+      <PageHeader eyebrow="Employer workspace" title={paymentAnswer} icon={ShieldCheck}>
+        {product.demo_firm.name} · your weather status, monthly deductible and payment evidence in one view.
       </PageHeader>
 
       <Section>
@@ -53,9 +60,9 @@ export default async function EmployerDashboard() {
             </section>
 
             <section className="product-card p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><IconTile icon={CalendarClock} tone="orange" /><div><p className="text-sm font-semibold text-income-orange-700">This month against your deductible</p><h2 className="mt-1 text-xl font-bold text-ink">{receipt ? monthName(receipt.month) : "Current month"}</h2><p className="mt-1 text-sm text-muted-foreground">Counted hours first absorb the monthly allowance. Only the amount above it becomes eligible.</p></div></div>{pending ? <StateBadge state="PENDING" /> : <StateBadge state="APPROVED" />}</div>
+              <div className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-start gap-3"><IconTile icon={CalendarClock} tone="orange" /><div><p className="text-sm font-semibold text-income-orange-700">{receipt ? `${monthName(receipt.month)} payment` : "This month’s payment"}</p><h2 className="mt-1 text-xl font-bold text-ink">{paymentAnswer}</h2><p className="mt-1 text-sm text-muted-foreground">Counted hours first absorb your deductible. Only the excess becomes insured hours.</p></div></div>{pending ? <StateBadge state="PENDING" /> : <StateBadge state="APPROVED" label="Evidence complete" />}</div>
               {receipt ? <div className="mt-6 grid gap-4 md:grid-cols-2"><DeductibleRow icon={Sun} label="Heat" counted={receipt.perils.heat.counted_h} allowance={receipt.perils.heat.allowance_h} insured={receipt.perils.heat.insured_h} /><DeductibleRow icon={CloudRain} label="Heavy rain" counted={receipt.perils.rain.counted_h} allowance={receipt.perils.rain.allowance_h} insured={receipt.perils.rain.insured_h} /></div> : <p className="mt-5 rounded-xl bg-paper p-4 text-sm text-muted-foreground">This month&apos;s receipt is still preparing.</p>}
-              <div className="mt-5 grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-3"><Metric label="Eligible hours" value={receipt ? `${receipt.insured_after_caps_h.toFixed(2)} h` : "Pending"} /><Metric label="Monthly payment" value={receipt ? sgd(receipt.payout_sgd, 0) : "Pending"} /><Metric label="Settlement" value={receipt ? formatShortDate(receipt.settlement_date) : "Pending"} /></div>
+              <div className="mt-5 grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-3"><Metric label="Insured hours" value={receipt ? `${receipt.insured_after_caps_h.toFixed(2)} h` : "Pending"} /><Metric label="Payment" value={receipt ? sgd(receipt.payout_sgd, 0) : "Pending"} /><Metric label="PayNow date" value={receipt ? formatShortDate(receipt.settlement_date) : "Pending"} /></div>
               <p className="mt-4 text-sm text-muted-foreground">{pending ? "Some readings are still pending. They are not treated as zero while the fallback ladder runs." : "No readings are pending. Open the receipt to inspect each source and calculation."}</p>
             </section>
 
@@ -69,7 +76,7 @@ export default async function EmployerDashboard() {
 
           <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
             <section className="product-card p-5"><p className="flex items-center gap-2 text-sm font-semibold text-income-blue"><MapPinned className="h-4 w-4" /> Your operating setup</p><dl className="mt-4 space-y-3 text-sm"><PolicyLine label="Site area" value={product.demo_firm.site_area} /><PolicyLine label="Heat station" value={receipt?.stations.primary.name ?? "Not set"} /><PolicyLine label="Backup station" value={receipt?.stations.backup.name ?? "Not set"} /><PolicyLine label="Rain gauge" value={receipt?.stations.rain_gauge.name ?? "Not set"} /><PolicyLine label="Haze region" value={receipt ? `${receipt.stations.psi_region} region` : "Not set"} /></dl></section>
-            <section className="rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-5"><p className="text-sm font-semibold text-income-orange-700">How the price stays fair</p><p className="mt-2 text-sm leading-relaxed text-ink">Price uses the selected plan and declared outdoor headcount. It never uses worker nationality, age, health or gender.</p><p className="mt-3 text-xs text-muted-foreground">Independent weather data determines the eligible hours, not a claim decision.<AssumptionTag basis="Published product terms and back-test calibration." label="product terms" /></p></section>
+            <section className="rounded-2xl border border-income-orange-200 bg-income-orange-100/60 p-5"><p className="text-sm font-semibold text-income-orange-700">How the price stays fair</p><p className="mt-2 text-sm leading-relaxed text-ink">Price uses the selected plan and declared outdoor headcount. It never uses worker nationality, age, health or gender.</p><p className="mt-3 text-xs text-muted-foreground">Independent weather data determines insured hours, not a claim decision.<AssumptionTag basis="Published product terms and back-test calibration." label="product terms" /></p></section>
             <Button asChild className="w-full"><Link href="/onboard">Review renewal <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
           </aside>
         </div>
@@ -84,7 +91,9 @@ function StatusTile({ icon, label, value, note }: { icon: typeof Sun; label: str
 
 function DeductibleRow({ icon: Icon, label, counted, allowance, insured }: { icon: typeof Sun; label: string; counted: number; allowance: number; insured: number }) {
   const total = Math.max(counted, allowance, 0.01);
-  return <div className="rounded-xl border border-line-soft p-4"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-income-orange-700" /><p className="font-semibold text-ink">{label}</p></div><p className="num text-sm font-bold text-ink">{insured.toFixed(2)} h eligible</p></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-paper"><div className="h-full bg-income-orange" style={{ width: `${Math.min(100, (counted / total) * 100)}%` }} /></div><dl className="mt-3 grid grid-cols-3 gap-2 text-xs"><Metric label="Counted" value={`${counted.toFixed(2)} h`} /><Metric label="Deductible" value={`${allowance.toFixed(2)} h`} /><Metric label="Eligible" value={`${insured.toFixed(2)} h`} /></dl></div>;
+  const deductibleWidth = Math.min(100, (Math.min(counted, allowance) / total) * 100);
+  const insuredWidth = Math.min(100 - deductibleWidth, (insured / total) * 100);
+  return <div className="rounded-xl border border-line-soft p-4"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-income-orange-700" /><p className="font-semibold text-ink">{label}</p></div><p className="num text-sm font-bold text-ink">{insured.toFixed(2)} h insured</p></div><div className="relative mt-4 h-2 overflow-hidden rounded-full bg-paper" aria-label={`${label}: ${allowance.toFixed(2)} deductible hours and ${insured.toFixed(2)} insured hours`}><div className="absolute inset-y-0 left-0 bg-line" style={{ width: `${deductibleWidth}%` }} /><div className="absolute inset-y-0 bg-income-orange" style={{ left: `${deductibleWidth}%`, width: `${insuredWidth}%` }} /></div><p className="mt-2 text-[11px] text-muted-foreground"><span className="inline-block h-2 w-2 rounded-sm bg-line" /> deductible <span className="ml-3 inline-block h-2 w-2 rounded-sm bg-income-orange" /> insured excess</p><dl className="mt-3 grid grid-cols-3 gap-2 text-xs"><Metric label="Counted" value={`${counted.toFixed(2)} h`} /><Metric label="Deductible" value={`${allowance.toFixed(2)} h`} /><Metric label="Insured" value={`${insured.toFixed(2)} h`} /></dl></div>;
 }
 
 function WorkspaceAction({ href, icon, title, text, tone }: { href: string; icon: typeof ReceiptText; title: string; text: string; tone: "orange" | "blue" | "green" }) {
@@ -105,4 +114,8 @@ function formatDemoDate(date: string) {
 
 function formatShortDate(date: string) {
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatPaymentDate(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-SG", { day: "numeric", month: "short" });
 }

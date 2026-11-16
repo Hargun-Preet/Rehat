@@ -86,7 +86,7 @@ export default async function EmployerAccount() {
         <div className="mt-5 grid gap-4 md:grid-cols-3">
           <Feature Icon={BellRing} title="Plan the workday" text="Use a named-station heat alert to prepare your schedule and worker notice." />
           <Feature Icon={FileCheck2} title="Keep a compliance log" text="Record required breaks without making the log a condition of payment." />
-          <Feature Icon={ReceiptText} title="Inspect each month" text="Open a clear receipt for counted hours, allowance, pending data and payment." />
+          <Feature Icon={ReceiptText} title="Inspect each month" text="Open a clear receipt for counted hours, deductible, pending data and payment." />
         </div>
       </Section>
     </>

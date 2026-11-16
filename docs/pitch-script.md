@@ -1,6 +1,6 @@
-# Rehat: the 5-minute pitch script (version 6)
+# Rehat: the 5-minute pitch script (version 9)
 
-Ten slides, about 700 words, 4 minutes 50 seconds at a calm pace. It matches `Rehat_pitch_deck_v6.pptx` and `data/seed/product.json`. If a number changes in one place, change it in all three.
+Ten slides, about 700 words, 4 minutes 50 seconds at a calm pace. It matches `Rehat_pitch_deck_v9.pptx` and `data/seed/product.json`. If a number changes in one place, change it in all three.
 
 The app's pitch mode (`/pitch`) steps through the same ten beats. Demo cut A (20 seconds) sits inside slide 5.
 
@@ -32,9 +32,9 @@ Mr Tan already plans for heat and rain. This chart is a normal year, and a norma
 
 Mr Tan chooses his deductible. On the Standard plan he pays two dollars forty-eight per worker per week. For twenty workers that is 2,575 dollars a year. The observed 26-year back-test returns about 1,565 in an average year. We hold the price at that cautious level rather than claiming the history itself returns 65 percent. In the worst year, 9,600. A bigger deductible costs less, a smaller one more. Standard pays in about half of all months, so he sees it working.
 
-## 8. Profitable from year one (3:30)
+## 8. Plan economics (3:30)
 
-Rehat is profitable from the first year, with expenses budgeted at the twenty percent Income's own brief sets. Across the plan, sixty-five cents of every premium dollar go back to firms, twenty to expenses, five to reinsurance, and ten is profit: about 540,000 dollars over three years. In the first-year pilot, Income retains the risk, so planned profit is fifteen percent. From year two, stop-loss cover protects the tail. The worst case is in the contract, 480 dollars per worker. In simulation it makes a profit seven years in ten. And if MOM acts against a firm, its heat payout is forfeited.
+The plan allocates sixty-five cents of every premium dollar to claims, twenty to expenses, five to reinsurance, and ten to profit: 544,613 dollars over three years. The loss years are very wet years and severe haze years. In the first-year pilot, Income retains the risk, so planned profit is fifteen percent. From year two, stop-loss cover protects the tail. The worst case is in the contract, 480 dollars per worker. In simulation it makes a profit seven years in ten. And if MOM acts against a firm, its heat payout is forfeited.
 
 ## 9. AI and data (4:00)
 

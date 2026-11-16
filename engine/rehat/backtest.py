@@ -176,15 +176,19 @@ def rain_monthly_by_mss() -> tuple[dict[str, np.ndarray], float, str]:
     m = mss_daily()
     m = m[(m.date.dt.year >= FIRST_YEAR) & (m.date.dt.year <= LAST_YEAR) & (m.date.dt.weekday < 6)].copy()
     m["est"] = rain_day_hours(m.rain_mm.values, m.rain_max60_mm.values)
-    # fill a missing day from Changi on the same date (documented gap fill for the back-test only)
-    changi = m[m.station_code == "S24"].set_index("date").est
+    # Fill a missing day from Changi on the same date (documented gap fill for
+    # the back-test only). Reindex before filling so a station which began
+    # later in the historical period does not silently contribute zero rain.
+    days = pd.date_range(f"{FIRST_YEAR}-01-01", f"{LAST_YEAR}-12-31", freq="D")
+    days = days[days.weekday < 6]
+    changi = m[m.station_code == "S24"].set_index("date").est.reindex(days)
     out = {}
     for code, g in m.groupby("station_code"):
-        g = g.set_index("date").est
-        g = g.fillna(changi.reindex(g.index))
+        g = g.set_index("date").est.reindex(days)
+        g = g.fillna(changi)
         idx = pd.DatetimeIndex(g.index)
         out[code] = monthly_sum(idx, g.values * share)
-    return out, share, basis
+    return out, share, f"{basis}; missing MSS station-days, including before a local station began, use Changi on the same date"
 
 
 # ---------------------------------------------------------------- haze

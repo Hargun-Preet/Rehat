@@ -56,7 +56,14 @@ export type ProductSpec = {
     wic_policy_no: string;
     fictional: boolean;
   };
-  demo_clock: { today: string; month: string; replay_day: string; replay_receipt_month: string; note: string };
+  demo_clock: {
+    today: string;
+    month: string;
+    replay_day: string;
+    replay_receipt_month: string;
+    may_receipt: { month: string; rain_hours: number; deductible_hours: number; payment: number; payment_date: string; source: "simulation" };
+    note: string;
+  };
   copy: {
     tagline: string;
     hook: string;

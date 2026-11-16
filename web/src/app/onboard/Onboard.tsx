@@ -19,7 +19,7 @@ import {
   Sun,
   WalletCards,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AssumptionTag, IconTile, PageHeader, Section } from "@/components/brand";
 import { StationMap, type MapPoint } from "@/components/rehat/StationMap";
@@ -28,10 +28,24 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MultiStepLoader } from "@/components/ui/multi-step-loader";
-import { sgd } from "@/lib/format";
+import { dayName, num, sgd } from "@/lib/format";
 import { productPlan, productQuote, type ProductPlan, type ProductSpec } from "@/lib/product";
 import { ENGINE_URL } from "@/lib/useJSON";
 import { cn } from "@/lib/utils";
+
+type MonthlyDeductible = {
+  month: string;
+  heat_allowance_h: number;
+  rain_allowance_h: number;
+};
+
+type MonthlyDeductibleSchedule = {
+  months: MonthlyDeductible[];
+  heat_basis: string;
+  rain_basis: string;
+  heat_is_assumption: boolean;
+  rain_is_assumption: boolean;
+};
 
 export type OnboardData = {
   site: { address: string; lat: number; lon: number };
@@ -42,6 +56,8 @@ export type OnboardData = {
   meal_hour: number;
   station_reason: string;
   suggestion: { reason: string; changed: boolean } | null;
+  monthly_deductibles?: Record<string, MonthlyDeductibleSchedule>;
+  first_payout_date?: string;
 };
 
 type Station = { station_id: string; name: string; lat: number; lon: number };
@@ -73,12 +89,12 @@ function localFormat(raw: string, demoUen: string): UenCheck {
   return { uen, format_ok: ok, kind: ok ? "unknown" : null, message: ok ? "Format looks right." : "That does not look like a Singapore UEN. Check the number and try again.", acra: ok ? { offline: true } : null };
 }
 
-export default function Onboard({ data, stations, product }: { data: OnboardData; stations: StationsData; product: ProductSpec }) {
-  const [step, setStep] = useState(0);
+export default function Onboard({ data, stations, product, initialPlanId, initialStep }: { data: OnboardData; stations: StationsData; product: ProductSpec; initialPlanId: string; initialStep: number }) {
+  const [step, setStep] = useState(initialStep);
   const [uen, setUen] = useState(product.demo_firm.uen);
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
-  const [planId, setPlanId] = useState(product.demo_firm.plan);
+  const [planId, setPlanId] = useState(initialPlanId);
   const [ack, setAck] = useState(false);
   const [warranty, setWarranty] = useState(false);
   const [answer, setAnswer] = useState<number | null>(null);
@@ -86,11 +102,20 @@ export default function Onboard({ data, stations, product }: { data: OnboardData
   const [uenCheck, setUenCheck] = useState<UenCheck | null>(null);
   const [uenError, setUenError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const stepContentRef = useRef<HTMLDivElement>(null);
+  const hasChangedStep = useRef(false);
 
   const plan = productPlan(product, planId);
   const quote = productQuote(product, plan);
   const correct = answer !== null && product.copy.teach_back_options[answer]?.correct === true;
-  const canContinue = step === 0 ? verified : step === 2 ? ack && warranty && correct && consent : true;
+  const confirmationRequirements = [
+    { label: "Acknowledge the named-station limit", complete: ack },
+    { label: "Choose the correct payment answer", complete: correct },
+    { label: "Tick the required rest-break warranty", complete: warranty },
+    { label: "Agree to the data use", complete: consent },
+  ];
+  const missingConfirmations = confirmationRequirements.filter((requirement) => !requirement.complete);
+  const canContinue = step === 0 ? verified : step === 2 ? missingConfirmations.length === 0 : true;
   const lookup = useMemo(() => Object.fromEntries([...stations.wbgt, ...stations.rain].map((station) => [station.station_id, station])), [stations]);
   const mapPoints = createMapPoints(data, lookup);
 
@@ -125,6 +150,23 @@ export default function Onboard({ data, stations, product }: { data: OnboardData
     setLoading(false);
   };
 
+  useEffect(() => {
+    if (!hasChangedStep.current) {
+      hasChangedStep.current = true;
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.requestAnimationFrame(() => stepContentRef.current?.focus({ preventScroll: true }));
+  }, [step]);
+
+  useEffect(() => {
+    setPlanId(initialPlanId);
+  }, [initialPlanId]);
+
+  useEffect(() => {
+    setStep(initialStep);
+  }, [initialStep]);
+
   const next = () => setStep((current) => Math.min(current + 1, STEPS.length - 1));
   const back = () => setStep((current) => Math.max(current - 1, 0));
 
@@ -140,7 +182,7 @@ export default function Onboard({ data, stations, product }: { data: OnboardData
           <div>
             <Progress step={step} />
             <div className="sticky top-16 z-20 mb-4 lg:hidden"><QuoteStrip plan={plan} quote={quote} /></div>
-            <div className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-card)] sm:p-8">
+            <div ref={stepContentRef} tabIndex={-1} aria-label={`Step ${step + 1}: ${STEPS[step].label}`} className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-card)] outline-none focus-visible:ring-2 focus-visible:ring-income-orange sm:p-8">
               {step === 0 ? <YourWic data={data} product={product} lookup={lookup} points={mapPoints} uen={uen} uenError={uenError} uenCheck={uenCheck} verified={verified} onUenChange={(value) => { setUen(value); setVerified(false); setUenCheck(null); setUenError(null); }} onVerify={startChecks} /> : null}
               {step === 1 ? <ChooseDeductible product={product} selected={plan} onSelect={(nextPlan) => { setPlanId(nextPlan.id); setSubmitted(false); }} /> : null}
               {step === 2 ? <ConfirmTerms product={product} mealHour={data.meal_hour} ack={ack} warranty={warranty} answer={answer} consent={consent} correct={correct} onAck={setAck} onWarranty={setWarranty} onAnswer={setAnswer} onConsent={setConsent} /> : null}
@@ -148,7 +190,7 @@ export default function Onboard({ data, stations, product }: { data: OnboardData
 
               {!(step === 0 && !verified) ? <div className={cn("mt-8 flex items-center gap-3 border-t border-line-soft pt-5", step === 0 ? "justify-end" : "justify-between")}>
                 {step > 0 ? <Button variant="outline" onClick={back}><ChevronLeft className="h-4 w-4" /> Back</Button> : null}
-                {step < STEPS.length - 1 ? <Button onClick={next} disabled={!canContinue}>{step === 0 ? "Choose your deductible" : step === 1 ? "Review the terms" : "Confirm and add to policy"}<ChevronRight className="h-4 w-4" /></Button> : submitted ? <Button variant="secondary" onClick={() => window.location.assign("/employer")}>Open employer workspace <ChevronRight className="h-4 w-4" /></Button> : <Button onClick={() => setSubmitted(true)}>Submit renewal request <Send className="h-4 w-4" /></Button>}
+                {step < STEPS.length - 1 ? <div className="ml-auto flex flex-col items-end gap-2"><Button onClick={next} disabled={!canContinue} aria-describedby={step === 2 && missingConfirmations.length > 0 ? "confirmation-requirements" : undefined}>{step === 0 ? "Choose your deductible" : step === 1 ? "Review the terms" : missingConfirmations.length > 0 ? "Complete the required checks" : "Confirm and add to policy"}<ChevronRight className="h-4 w-4" /></Button>{step === 2 && missingConfirmations.length > 0 ? <ConfirmationChecklist requirements={confirmationRequirements} /> : null}</div> : submitted ? <Button variant="secondary" onClick={() => window.location.assign("/employer")}>Open employer workspace <ChevronRight className="h-4 w-4" /></Button> : <Button onClick={() => setSubmitted(true)}>Submit renewal request <Send className="h-4 w-4" /></Button>}
               </div> : null}
             </div>
           </div>
@@ -161,6 +203,11 @@ export default function Onboard({ data, stations, product }: { data: OnboardData
 
 function Progress({ step }: { step: number }) {
   return <div className="mb-5 rounded-2xl border border-line-soft bg-surface px-4 py-3 shadow-[var(--shadow-card)]"><div className="mb-3 flex items-center justify-between lg:hidden"><p className="text-sm font-semibold text-ink">Step {step + 1} of {STEPS.length}</p><p className="text-xs text-muted-foreground">About one minute</p></div><ol className="grid grid-cols-4 gap-2" aria-label="Onboarding progress">{STEPS.map((item, index) => { const done = index < step; const active = index === step; const Icon = item.Icon; return <li key={item.label} aria-current={active ? "step" : undefined} className="min-w-0"><div className="flex items-center gap-2"><span className={cn("grid h-7 w-7 shrink-0 place-items-center rounded-full", done ? "bg-state-ok text-white" : active ? "bg-income-orange-700 text-white" : "bg-paper text-muted-foreground")}>{done ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}</span>{index < STEPS.length - 1 ? <span className={cn("hidden h-px flex-1 lg:block", done ? "bg-state-ok" : "bg-line")} /> : null}</div><p className={cn("mt-2 truncate text-xs font-medium sm:text-sm", active ? "text-ink" : "text-muted-foreground")}>{item.label}</p><p className="hidden text-xs text-muted-foreground xl:block">{item.detail}</p></li>; })}</ol></div>;
+}
+
+function ConfirmationChecklist({ requirements }: { requirements: { label: string; complete: boolean }[] }) {
+  const missing = requirements.filter((requirement) => !requirement.complete);
+  return <div id="confirmation-requirements" role="status" aria-live="polite" className="w-full max-w-sm rounded-xl border border-income-orange-200 bg-income-orange-100/60 p-3 text-left"><p className="text-xs font-semibold text-income-orange-700">Still needed before you continue</p><ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-ink">{missing.map((requirement) => <li key={requirement.label} className="flex items-start gap-2"><span aria-hidden className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-income-orange-700" />{requirement.label}</li>)}</ul></div>;
 }
 
 function YourWic({ data, product, lookup, points, uen, uenError, uenCheck, verified, onUenChange, onVerify }: { data: OnboardData; product: ProductSpec; lookup: Record<string, Station>; points: MapPoint[]; uen: string; uenError: string | null; uenCheck: UenCheck | null; verified: boolean; onUenChange: (value: string) => void; onVerify: () => void }) {
@@ -198,21 +245,107 @@ function ChooseDeductible({ product, selected, onSelect }: { product: ProductSpe
               <span className="num mt-5 block font-heading text-2xl font-bold text-ink">{sgd(item.per_worker_week, 2)} <span className="font-sans text-sm font-normal text-muted-foreground">a worker a week</span></span>
               <span className="mt-2 block text-xs text-muted-foreground">{sgd(quote.total, 0)} for {product.demo_firm.outdoor_workers} workers with GST</span>
               <span className="mt-3 block text-xs text-income-blue">Pays in {item.months_that_pay} months <span className="rounded-full bg-income-blue-50 px-1.5 py-0.5 text-[11px]" title={`Published ${item.source} result.`}>{item.source}</span></span>
+              <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line-soft pt-3 text-xs">
+                <div><dt className="text-muted-foreground">Average year</dt><dd className="num mt-1 font-semibold text-ink">{sgd(item.example_20_workers.average_payout_year, 0)}</dd></div>
+                <div><dt className="text-muted-foreground">Worst capped year</dt><dd className="num mt-1 font-semibold text-ink">{sgd(item.example_20_workers.worst_year_payout, 0)}</dd></div>
+              </dl>
+              <span className="mt-2 block text-[11px] leading-relaxed text-muted-foreground">For {product.demo_firm.outdoor_workers} declared workers. <span className="rounded-full bg-income-blue-50 px-1.5 py-0.5 text-[11px]" title={`Published ${item.source} result.`}>{item.source}</span> <span className="rounded-full bg-paper px-1.5 py-0.5 text-[11px]" title="The annual product limit caps the worst-year amount.">plan limit</span></span>
             </button>
           );
         })}
       </div>
-      <div className="rounded-2xl border border-line-soft bg-paper p-4"><p className="flex items-center gap-2 text-sm font-semibold text-income-blue"><FileCheck2 className="h-4 w-4" /> How the payout stays simple</p><p className="mt-2 text-sm text-muted-foreground">Eligible hours at the named NEA sources × {sgd(product.product.benefit_per_worker_hour, 0)} benefit × declared outdoor headcount. There is no claim form.</p></div>
+      <div className="rounded-2xl border border-line-soft bg-paper p-4"><p className="flex items-center gap-2 text-sm font-semibold text-income-blue"><FileCheck2 className="h-4 w-4" /> How the payment stays simple</p><p className="mt-2 text-sm text-muted-foreground">Insured hours at the named NEA sources × {sgd(product.product.benefit_per_worker_hour, 0)} benefit × declared outdoor headcount. There is no claim form.</p></div>
     </div>
   );
 }
 
 function ConfirmTerms({ product, mealHour, ack, warranty, answer, consent, correct, onAck, onWarranty, onAnswer, onConsent }: { product: ProductSpec; mealHour: number; ack: boolean; warranty: boolean; answer: number | null; consent: boolean; correct: boolean; onAck: (value: boolean) => void; onWarranty: (value: boolean) => void; onAnswer: (value: number) => void; onConsent: (value: boolean) => void }) {
-  return <div className="max-w-3xl space-y-7"><div><p className="text-sm font-semibold text-income-orange-700">Confirm your understanding</p><h2 className="mt-1 text-xl font-bold">A clear limit before you submit</h2><p className="mt-1 text-sm text-muted-foreground">A few quick checks make the schedule clear and keep only the data needed for this cover.</p></div><section className="rounded-2xl border border-income-orange-200 bg-income-orange-100/50 p-5"><p className="text-sm font-semibold text-income-orange-700">1. Named-station limit</p><blockquote className="mt-3 text-base leading-relaxed text-ink">{product.copy.may_not_pay}</blockquote><label className="mt-4 flex items-start gap-3 text-sm font-medium text-ink"><Checkbox checked={ack} onCheckedChange={(value) => onAck(Boolean(value))} /><span>I have read and understood this limit.</span></label></section><section className="rounded-2xl border border-line p-5"><p className="text-sm font-semibold text-income-blue">2. Quick check</p><h3 className="mt-1 font-heading text-lg font-bold">{product.copy.teach_back_question}</h3><div className="mt-4 space-y-2" role="radiogroup" aria-label={product.copy.teach_back_question}>{product.copy.teach_back_options.map((item, index) => { const chosen = answer === index; return <button key={item.text} type="button" role="radio" aria-checked={chosen} onClick={() => onAnswer(index)} className={cn("w-full rounded-xl border-2 p-4 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-income-orange", chosen && item.correct ? "border-state-ok bg-state-ok-bg" : chosen ? "border-state-pending bg-state-pending-bg" : "border-line hover:border-income-orange-200")}>{item.text}</button>; })}</div>{answer !== null ? <p className={cn("mt-3 rounded-xl p-3 text-sm", correct ? "bg-state-ok-bg text-state-ok" : "bg-state-pending-bg text-state-pending")}>{correct ? "Correct. We have recorded your answer." : product.copy.teach_back_explain}</p> : null}</section><section className="rounded-2xl border border-line p-5"><p className="text-sm font-semibold text-income-blue">3. Safe work and key terms</p><div className="mt-4 grid gap-3 sm:grid-cols-2"><Term icon={Sun} title="Required rest" text={product.copy.rule_statement} /><Term icon={Clock3} title="Work window" text={`Mon to Sat, ${product.product.window.start} to ${product.product.window.end}. The ${mealHour}:00 to ${mealHour + 1}:00 meal hour is excluded.`} /><Term icon={ShieldCheck} title="Allowance and caps" text={`${product.limits.insured_hours_per_month} insured hours a month and ${product.limits.insured_hours_per_year} a year. Heat and rain use the selected deductible; haze has no allowance.`} /><Term icon={Banknote} title="Payment" text={product.product.payment} /></div><label className="mt-4 flex items-start gap-3 rounded-xl bg-paper p-3 text-sm font-medium text-ink"><Checkbox checked={warranty} onCheckedChange={(value) => onWarranty(Boolean(value))} /><span>{product.copy.warranty}</span></label></section><section className="rounded-2xl border border-line p-5"><p className="text-sm font-semibold text-income-blue">4. The data we use</p><dl className="mt-3 divide-y divide-line-soft rounded-xl bg-paper px-4">{product.pdpa_fields_collected.map((field) => <div key={field} className="py-2.5 text-sm text-ink">{field}</div>)}</dl><p className="mt-3 text-xs leading-relaxed text-muted-foreground">No worker names, NRICs or phone numbers are required to price the cover.</p><label className="mt-4 flex items-start gap-3 text-sm font-medium text-ink"><Checkbox checked={consent} onCheckedChange={(value) => onConsent(Boolean(value))} /><span>I agree to the data use described above.</span></label></section></div>;
+  return (
+    <div className="max-w-3xl space-y-7">
+      <div>
+        <p className="text-sm font-semibold text-income-orange-700">Confirm your understanding</p>
+        <h2 className="mt-1 text-xl font-bold">A clear limit before you submit</h2>
+        <p className="mt-1 text-sm text-muted-foreground">A few quick checks make the schedule clear and keep only the data needed for this cover.</p>
+      </div>
+
+      <section className="rounded-2xl border border-income-orange-200 bg-income-orange-100/50 p-5">
+        <p className="text-sm font-semibold text-income-orange-700">1. Named-station limit</p>
+        <blockquote className="mt-3 text-base leading-relaxed text-ink">{product.copy.may_not_pay}</blockquote>
+        <label className="mt-4 flex items-start gap-3 text-sm font-medium text-ink"><Checkbox checked={ack} onCheckedChange={(value) => onAck(Boolean(value))} /><span>I have read and understood this limit.</span></label>
+      </section>
+
+      <section className="rounded-2xl border border-line p-5">
+        <p className="text-sm font-semibold text-income-blue">2. Quick check</p>
+        <h3 className="mt-1 font-heading text-lg font-bold">{product.copy.teach_back_question}</h3>
+        <div className="mt-4 space-y-2" role="radiogroup" aria-label={product.copy.teach_back_question}>
+          {product.copy.teach_back_options.map((item, index) => {
+            const chosen = answer === index;
+            return <button key={item.text} type="button" role="radio" aria-checked={chosen} onClick={() => onAnswer(index)} className={cn("w-full rounded-xl border-2 p-4 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-income-orange", chosen && item.correct ? "border-state-ok bg-state-ok-bg" : chosen ? "border-state-pending bg-state-pending-bg" : "border-line hover:border-income-orange-200")}>{item.text}</button>;
+          })}
+        </div>
+        {answer !== null ? <p className={cn("mt-3 rounded-xl p-3 text-sm", correct ? "bg-state-ok-bg text-state-ok" : "bg-state-pending-bg text-state-pending")}>{correct ? "Correct. We have recorded your answer." : product.copy.teach_back_explain}</p> : null}
+      </section>
+
+      <section className="rounded-2xl border border-line p-5">
+        <p className="text-sm font-semibold text-income-blue">3. Safe work and key terms</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2"><Term icon={Sun} title="Required rest" text={product.copy.rule_statement} /><Term icon={Clock3} title="Work window" text={`Mon to Sat, ${product.product.window.start} to ${product.product.window.end}. The ${mealHour}:00 to ${mealHour + 1}:00 meal hour is excluded.`} /><Term icon={ShieldCheck} title="Deductible and caps" text={`${product.limits.insured_hours_per_month} insured hours a month and ${product.limits.insured_hours_per_year} a year. Heat and rain use the selected deductible; haze has no deductible.`} /><Term icon={Banknote} title="Payment" text={product.product.payment} /></div>
+        <div className={cn("mt-5 rounded-xl border-2 p-4", warranty ? "border-state-ok bg-state-ok-bg" : "border-income-orange-300 bg-income-orange-100/50")}>
+          <div className="flex items-center justify-between gap-3"><p className="text-sm font-semibold text-ink">Required yearly warranty</p><span className="rounded-full bg-income-orange-700 px-2 py-0.5 text-[11px] font-semibold text-white">Required</span></div>
+          <p id="rest-break-warranty-help" className="mt-1 text-xs leading-relaxed text-muted-foreground">Tick this before you can add Rehat to the policy.</p>
+          <div className="mt-4 flex items-start gap-3"><Checkbox id="rest-break-warranty" checked={warranty} aria-required="true" aria-describedby="rest-break-warranty-help" className="!size-6 !border-2 !border-income-orange-700" onCheckedChange={(value) => onWarranty(Boolean(value))} /><Label htmlFor="rest-break-warranty" className="items-start text-sm leading-relaxed text-ink">{product.copy.warranty}</Label></div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-line p-5">
+        <p className="text-sm font-semibold text-income-blue">4. The data we use</p>
+        <dl className="mt-3 divide-y divide-line-soft rounded-xl bg-paper px-4">{product.pdpa_fields_collected.map((field) => <div key={field} className="py-2.5 text-sm text-ink">{field}</div>)}</dl>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">No worker names, NRICs or phone numbers are required to price the cover.</p>
+        <label className="mt-4 flex items-start gap-3 text-sm font-medium text-ink"><Checkbox checked={consent} onCheckedChange={(value) => onConsent(Boolean(value))} /><span>I agree to the data use described above.</span></label>
+      </section>
+    </div>
+  );
 }
 
 function Schedule({ product, data, lookup, plan, quote, correct, submitted }: { product: ProductSpec; data: OnboardData; lookup: Record<string, Station>; plan: ProductPlan; quote: ReturnType<typeof productQuote>; correct: boolean; submitted: boolean }) {
-  return <div className="space-y-7"><div className={cn("rounded-2xl p-5", submitted ? "bg-state-ok-bg" : "border border-income-blue-100 bg-income-blue-50")}><p className={cn("flex items-center gap-2 text-sm font-semibold", submitted ? "text-state-ok" : "text-income-blue")}><ShieldCheck className="h-5 w-5" /> {submitted ? "Renewal request received" : "Review before you submit"}</p><h2 className="mt-2 text-xl font-bold text-ink">{submitted ? "Your next step is ready" : "Your Rehat schedule is clear"}</h2><p className="mt-1 text-sm text-muted-foreground">{submitted ? "Open the employer workspace to see your operating dashboard, worker notice and monthly receipt." : "Review the named data sources and price below, then submit your renewal request."}</p>{submitted ? <div className="mt-4 grid gap-3 border-t border-state-ok/20 pt-4 sm:grid-cols-3"><Box label="Request reference" value={`REHAT-${product.demo_firm.uen}`} /><Box label="Effective date" value="Your next policy renewal" /><Box label="Policy term" value={`${product.product.term_months} months alongside WIC`} /></div> : null}</div><div><p className="text-sm font-semibold text-income-blue">Schedule summary</p><div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"><Box label="Business" value={product.demo_firm.name} /><Box label="Selected plan" value={`${plan.name}, ${plan.deductible_label}`} /><Box label="Insured workers" value={`${product.demo_firm.outdoor_workers} declared outdoor workers`} /><Box label="Named heat station" value={lookup[data.primary_station]?.name ?? "Loading station"} /><Box label="Backup station" value={lookup[data.backup_station]?.name ?? "Loading station"} /><Box label="Rain gauge" value={lookup[data.rain_gauge]?.name ?? "Loading station"} /><Box label="Haze source" value={`NEA 24-hour PSI, ${data.psi_region} region`} /><Box label="Annual price" value={`${sgd(quote.total, 0)} including GST`} /><Box label="Understanding check" value={correct ? "Correct and recorded" : "Explained and recorded"} /></div></div><div className="grid gap-3 sm:grid-cols-3"><NextStep icon={HardHat} title="Keep working safely" text={product.copy.warranty} /><NextStep icon={ReceiptText} title="See every hour" text="Your receipt shows what counted and what did not." /><NextStep icon={Banknote} title="Get paid" text="Eligible payout goes to your company UEN before payroll." /></div><div className="rounded-2xl bg-paper p-4 text-sm"><p className="text-xs font-semibold text-muted-foreground">Your alert</p><p className="mt-1 text-ink">{product.copy.employer_sms}</p></div></div>;
+  const monthlyDeductibles = data.monthly_deductibles?.[plan.id];
+  const sourceLabel = monthlyDeductibles?.heat_is_assumption || monthlyDeductibles?.rain_is_assumption ? "assumption" : "station normal";
+  const sourceBasis = monthlyDeductibles ? `Heat: ${monthlyDeductibles.heat_basis} Rain: ${monthlyDeductibles.rain_basis}` : "The published station normal is added to the offline schedule during export.";
+
+  return (
+    <div className="space-y-7">
+      <div className={cn("rounded-2xl p-5", submitted ? "bg-state-ok-bg" : "border border-income-blue-100 bg-income-blue-50")}>
+        <p className={cn("flex items-center gap-2 text-sm font-semibold", submitted ? "text-state-ok" : "text-income-blue")}><ShieldCheck className="h-5 w-5" /> {submitted ? "Renewal request received" : "Review before you submit"}</p>
+        <h2 className="mt-2 text-xl font-bold text-ink">{submitted ? "Your next step is ready" : "Your Rehat schedule is clear"}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{submitted ? "Open the employer workspace to see your operating dashboard, worker notice and monthly receipt." : "Review the named data sources and price below, then submit your renewal request."}</p>
+        {submitted ? <div className="mt-4 grid gap-3 border-t border-state-ok/20 pt-4 sm:grid-cols-3"><Box label="Request reference" value={`REHAT-${product.demo_firm.uen}`} /><Box label="Effective date" value="Your next policy renewal" /><Box label="Policy term" value={`${product.product.term_months} months alongside WIC`} /></div> : null}
+      </div>
+
+      <div>
+        <p className="text-sm font-semibold text-income-blue">Schedule summary</p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"><Box label="Business" value={product.demo_firm.name} /><Box label="Selected plan" value={`${plan.name}, ${plan.deductible_label}`} /><Box label="Insured workers" value={`${product.demo_firm.outdoor_workers} declared outdoor workers`} /><Box label="Named heat station" value={lookup[data.primary_station]?.name ?? "Loading station"} /><Box label="Backup station" value={lookup[data.backup_station]?.name ?? "Loading station"} /><Box label="Rain gauge" value={lookup[data.rain_gauge]?.name ?? "Loading station"} /><Box label="Haze source" value={`NEA 24-hour PSI, ${data.psi_region} region`} /><Box label="Annual price" value={`${sgd(quote.total, 0)} including GST`} /><Box label="Understanding check" value={correct ? "Correct and recorded" : "Explained and recorded"} /></div>
+      </div>
+
+      <section className="rounded-2xl border border-line p-5">
+        <p className="text-sm font-semibold text-income-blue">Monthly deductible</p>
+        <h3 className="mt-1 text-lg font-bold text-ink">Your heat and rain deductible, month by month</h3>
+        <p className="mt-1 text-sm text-muted-foreground">These are hours per worker at your named sources. Only hours above each monthly deductible become insured.</p>
+        {monthlyDeductibles ? <><div className="mt-4 overflow-x-auto rounded-xl border border-line-soft"><table className="min-w-full text-sm"><thead className="bg-paper text-left text-xs text-muted-foreground"><tr><th scope="col" className="px-3 py-2.5 font-medium">Month</th><th scope="col" className="px-3 py-2.5 text-right font-medium">Heat</th><th scope="col" className="px-3 py-2.5 text-right font-medium">Heavy rain</th></tr></thead><tbody>{monthlyDeductibles.months.map((month) => <tr key={month.month} className="border-t border-line-soft"><th scope="row" className="px-3 py-2.5 text-left font-medium text-ink">{month.month}</th><td className="num px-3 py-2.5 text-right text-ink">{num(month.heat_allowance_h)} h</td><td className="num px-3 py-2.5 text-right text-ink">{num(month.rain_allowance_h)} h</td></tr>)}</tbody></table></div><p className="mt-3 text-xs leading-relaxed text-muted-foreground">These monthly deductibles use the selected {plan.name} plan.<AssumptionTag label={sourceLabel} basis={sourceBasis} /></p></> : <p className="mt-4 rounded-xl bg-paper p-4 text-sm text-muted-foreground">Your month-by-month deductible table is preparing with the named-station data.</p>}
+      </section>
+
+      <section className="rounded-2xl border border-line p-5">
+        <p className="text-sm font-semibold text-income-blue">Limits and first payment</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><ScheduleDetail label="Monthly limit" value={`${product.limits.insured_hours_per_month} insured hours`} /><ScheduleDetail label="Annual limit" value={`${product.limits.insured_hours_per_year} insured hours, ${sgd(product.limits.max_payout_per_worker_year, 0)} a worker`} /><ScheduleDetail label="Haze limit" value={`No deductible, ${product.limits.haze_hours_per_year} hours a year`} /><ScheduleDetail label="First payment date" value={data.first_payout_date ? `By ${dayName(data.first_payout_date)}` : product.product.payment} /></div>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Limits and payment timing are published plan terms.<AssumptionTag label="plan" basis="Published product limits and the next-month payment rule." /></p>
+      </section>
+
+      <div className="grid gap-3 sm:grid-cols-3"><NextStep icon={HardHat} title="Keep working safely" text={product.copy.warranty} /><NextStep icon={ReceiptText} title="See every hour" text="Your receipt shows what counted and what did not." /><NextStep icon={Banknote} title="Get paid" text={data.first_payout_date ? `The first payment is due by ${dayName(data.first_payout_date)}.` : "A payment, when due, goes to your company UEN before payroll."} /></div>
+      <div className="rounded-2xl bg-paper p-4 text-sm"><p className="text-xs font-semibold text-muted-foreground">Your alert</p><p className="mt-1 text-ink">{product.copy.employer_sms}</p></div>
+    </div>
+  );
+}
+
+function ScheduleDetail({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-xl border border-line-soft bg-paper p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="num mt-1 font-medium text-ink">{value}</p></div>;
 }
 
 function QuotePanel({ plan, quote }: { plan: ProductPlan; quote: ReturnType<typeof productQuote> }) {

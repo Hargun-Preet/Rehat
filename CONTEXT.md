@@ -251,7 +251,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-16T11:27 from engine outputs. Source files: data/processed/*.json.
 
 **Published Standard calibration (2000 to 2025, 1 worker)**
 
@@ -261,10 +261,10 @@ Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.j
 | Expected payout | S$78.27 a worker a year | insured hours x S$8 |
 | 1-in-10 payout | S$159.0 a worker | published Standard calibration |
 | Worst back-test payout | S$295.0 | published Standard calibration |
-| Zero-payout years | 0 of 26 (book); 1.1 for the average firm | |
-| Months paying something | 46.5% | |
+| Zero-payout years | 0 of 26 (book); 0.11 for the average firm | |
+| Months paying something | 43.5% | |
 | Basis risk | 3.69% of window hours | named station below 31.5 C while a nearest neighbour is at 31.5+ (NEA observed) |
-| Rain hours in window share | 0.586 | calibrated on 1513 station-days where NEA 5-minute gauges and MSS daily records overlap |
+| Rain hours in window share | 0.586 | calibrated on 1513 station-days where NEA 5-minute gauges and MSS daily records overlap; missing MSS station-days, including before a local station began, use Changi on the same date |
 | Changi rain days 10 mm+ | 61.4 a year (1983 to 2018) | MSS daily, matches proxy 61.4 |
 
 **Pilot geographic-mix diagnostic (capital and cash only, not a price calibration)**
@@ -273,8 +273,8 @@ Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.j
 |---|---|
 | Scope | Fictional pilot-book geographic mix used for portfolio, capital and cash diagnostics only. |
 | Generated pilot firms | 500 |
-| Expected insured hours | 8.32 a worker a year |
-| Expected payout | S$66.6 a worker a year |
+| Expected insured hours | 6.19 a worker a year |
+| Expected payout | S$49.5 a worker a year |
 
 **Pricing**
 
@@ -283,7 +283,7 @@ Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.j
 | Published Standard price | S$128.75 a worker a year, S$2.48 a week before GST (S$140.34 with GST) |
 | Observed 26-year Standard result | S$78.27 expected payout a worker a year, 61% of the cautious published price |
 | Published calibration basis | 9.78 insured hours and S$78.27 per worker; not recalculated from the pilot's station mix |
-| 500-firm geographic-mix diagnostic | S$66.60 a worker a year in this generated mix; capital and cash only, not a price input |
+| 500-firm geographic-mix diagnostic | S$49.50 a worker a year in this generated mix; capital and cash only, not a price input |
 | 20-worker Standard example | S$2,575 before GST, S$2,807 with GST; observed expected payout S$1,565 |
 | Plan split | 65% claims, 20% expenses, 5% reinsurance and 10% profit (plan) |
 | 2015-style haze capital stress | 261% loss ratio (simulation; capital planning only, never a customer payout input) |
@@ -295,7 +295,7 @@ Generated 2026-11-16T09:40 from engine outputs. Source files: data/processed/*.j
 | Item | Value |
 |---|---|
 | Book (demo) | 500 firms, 8,313 outdoor workers |
-| Next settlement | 2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$7,992, P90 S$30,677, P99 S$51,368; buffer S$43,376 |
+| Next settlement | 2026-06-08 for 2026-05 (as of 2026-05-29): P50 S$111,432, P90 S$111,432, P99 S$111,432; buffer S$0 |
 | Cash call for Oct 2025, as of 20 Oct | P50 S$5,872, P90 S$26,497, P99 S$32,365; buffer S$26,493; settles 2025-11-07 |
 | Forecast validation (P90 coverage) | 85% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90% |
 | Forecast validation (P99 coverage) | 97% |
@@ -442,6 +442,8 @@ Version 2 refinement:
 - [x] R9 Labs: Site Match demoted, back-test detail, compliance map
 - [x] R10 UX polish pass at 390 px and 1440 px
 - [x] R11 Pitch mode, demo cuts, numbers frozen, runs offline
+- [x] R12 Pitch-readiness pass: May payment demo, console economics, offline map and deck consistency
+- [x] R13 Final production verification: core pitch handoffs, payment flow and offline preview served without the Next.js dev overlay
 
 ## 14. Open questions
 1. Reachable market. The deck says 3,100 employers reachable first (25% of in-scope). An older build-up assumed Income holds about 12% of small-firm WIC, which is about 1,480 firms on Income's own book. On that view a 500-firm pilot needs a third of Income's small outdoor WIC customers, or association channels from day one. Ask Income for its real share. Until then tag 3,100 as an assumption.
@@ -666,6 +668,27 @@ Version 2 refinement:
 - Tests: `make export`; `make test` (131 passed, one third-party Starlette deprecation warning); `make check-numbers`; `npx tsc --noEmit`; `npm run lint`; and `git diff --check` all passed. Browser checks completed the four-step onboarding, employer handoff, map, compliance log, console, pitch destinations and the 390 px link/mobile audit with no fresh console errors.
 - Next: Keep the existing preview running for the user walkthrough. Before a real pilot, complete native-language review and obtain underwriting and legal approval.
 
+### 2026-11-16 11:11, pitch-readiness consistency pass
+- Done: Rebuilt the demo around Tanjong Greenworks' paid May 2026 receipt and left the zero-payment October replay for questions. The receipt picker now exposes only those two coherent months. Unified the fictional firm UEN and WIC policy number across onboarding, home and receipts. Made receipt AI copy two plain sentences and stated that a payment is due by PayNow rather than already sent.
+- Done: Reframed the landing calculator around hard-year protection, normal-year downtime and the 60-minutes-gets-50 problem. Reordered the Income console around the planned 65/20/5/10 split, three-year plan and market size, labelled its 8,313-worker cash diagnostic separately from the 10,000-worker pilot, and explained that low pre-2010 ratios came from rainfall coverage rather than a climate trend.
+- Done: Completed onboarding handoff and schedule details, clear warranty requirements, deductible meters, compliance-log export, current worker notice, offline station map, compact pitch source tags, and pitch links to the May employer home and deductible step. Updated the pitch deck through `Rehat_pitch_deck_v9.pptx`, including S$1,565, S$544,613, the wet-year and haze-year explanation, fixed benefit, optional break log and legal-review wording.
+- Files changed: `data/seed/product.json`, `engine/rehat/{backtest,explain,export,liquidity}.py`, related engine tests, `web/src/app/{page,LandingQuote,onboard,employer,worker,replay,insurer,pitch}/**`, `web/src/components/rehat/MapInner.tsx`, `web/src/lib/product.ts`, generated `web/public/data/**`, `docs/{backtest,pricing,pitch-script,judge-pack}.md`, `CONTEXT.md`, `.codex-pptx-build/**`, and `deliverables/Rehat_pitch_deck_v9.pptx`.
+- Numbers produced (with source): Main May receipt: 11.5 rain hours, 7.44-hour deductible, 4.06 insured hours and S$650 due by 8 June (engine receipt export). Published Standard remains S$2.48 a worker a week, S$2,575 before GST, S$2,807 with GST, S$1,565 average year and S$9,600 capped hard year for 20 workers (product calibration). The cash diagnostic is 500 firms and 8,313 workers at S$49.50 expected payout a worker, while the separate pilot plan is 500 firms and 10,000 workers (generated back-test and plan). Forecast P90 coverage is 85% of 174 month-forecasts (liquidity validation).
+- Decisions: The investor narrative says loss years are very wet years and severe haze years, not El Niño labels alone. The rainfall back-test uses same-day Changi readings for missing early local rainfall coverage, and discloses the resulting coverage limitation. The deck's legal position is "Designed to be confirmed by Income's legal team."
+- Broken or unverified: The deck validator reports three inherited table-geometry warnings on backup slides 12, 13 and 20; all were visually reviewed and readable. Native-language worker notices remain pending review. A real pilot still needs underwriting and legal confirmation.
+- Tests: `make export`, `make test` (134 passed; one third-party Starlette deprecation warning), `make check-numbers`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, and `git diff --check` passed. Production browser checks confirmed the hard-year landing card, the S$650 May employer home, the two-month receipt picker, current 29.2 worker notice, no map-tile assets, plan carry-through, top-of-step navigation, and both pitch handoffs.
+- Next: Rehearse the paid May cut from `/employer`, then use the October replay only when a reviewer asks how a record day can still have no payment.
+
+### 2026-11-16 11:33, final production pitch pass
+- Done: Completed the remaining UI consistency pass before the pitch. The Income console now leads with the 65 / 20 / 5 / 10 split, three-year plan and market size, and replaces the potentially misleading ENSO tabs with a loss-driver and forecast-validation card. The narrative is explicitly very wet years and severe haze years, with the early rainfall-coverage limitation disclosed. Kept the paid May 2026 story as the main employer journey: S$650 due by 8 June, 11.5 rain hours, 7.44-hour deductible and 4.06 insured hours. The worker notice now always reflects the current 29.2° station reading while translations await review. Standardised remaining customer-facing wording on deductible and covered crews.
+- Done: Verified the landing hard-year framing, plan carry-through, deductible-step pitch handoff, schedule details, receipt picker, compliance PDF export, offline marker map, canonical fictional UEN and cash-diagnostic labelling. Rebuilt and restarted the app as a production server on port 3001, which removes the Next.js dev overlay and stale development cache.
+- Files changed: `web/src/app/{income,insurer,pitch,worker}/**`, plus the prior pitch-readiness UI and engine/export changes listed in the preceding entry; regenerated `web/public/data/**`, pitch/back-test/pricing/judge documentation, and this context file.
+- Numbers produced (with source): No pricing or payout rule changed. May 2026 remains 11.5 rain hours minus a 7.44-hour deductible = 4.06 insured hours and S$650 due on 8 June (engine receipt export). Published Standard remains S$2.48 a worker a week, S$2,575 before GST, S$2,807 with GST, S$1,565 average year and S$9,600 capped hard year for 20 workers (product calibration). Forecast validation remains 85% P90 coverage and 97% P99 coverage across 174 month-forecasts (liquidity validation).
+- Decisions: Keep the fictional `T99DM0001B` UEN throughout rather than presenting a realistic-looking UEN, so no demo company data is ever queried from ACRA. Keep the required footer disclosure only, per the product rule. The 8,313-worker geography mix remains a separately labelled cash diagnostic; the pilot plan remains 10,000 workers.
+- Broken or unverified: Native-language worker notices still await native-speaker review. A real pilot still requires underwriting and legal confirmation.
+- Tests: `make export`; `make test` (134 passed; one third-party Starlette deprecation warning); `make check-numbers`; `npx tsc --noEmit`; `npm run lint`; `npm run build`; and `git diff --check` passed. Production browser checks confirmed the landing protection card, S$650 employer screen, 29.2° worker screen, receipt picker, onboarding handoff, pitch deductible deep link, console business case and absence of the dev overlay.
+- Next: Rehearse the paid-May path from `/employer` and use the October 2025 replay only for follow-up questions.
+
 ---
 
 ## 16. What changed from version 1 (decision log)
@@ -696,7 +719,7 @@ The product had about twelve separate routes. Version 2 makes it feel like one p
 ### Three doors, one demo firm
 A role switcher in the header: Employer, Worker, Income. One fictional firm flows through every screen: Tanjong Greenworks Pte Ltd, landscaping (class A), 20 outdoor workers, Jurong West, Standard plan, owner "Mr Tan". The same firm, numbers and month appear on the landing page, onboarding, home, receipt, replay and console. Never show a second firm unless the user picks one.
 
-One demo date. Offline demo mode pins "today" to 29 May 2026, so the home screen shows May 2026 for the demo firm at its own station. The engine computes that figure. The S$510 worked month in section 5 is a Bishan test fixture, so the demo firm's number can differ, and that is fine as long as home, receipt and console agree. The replay is the record day, 31 Oct 2025, and its "Open the receipt" button opens the October 2025 receipt. Both dates live in `product.json` under `demo_clock`. If the repo already pins another month with a payout, keep the repo's month and update `product.json` and this paragraph.
+One demo date. Offline demo mode pins "today" to 29 May 2026, so the home screen shows May 2026 for the demo firm at its own station. Tanjong Greenworks' engine receipt has 11.5 rain hours against a 7.44-hour deductible and pays S$650 on 8 June. The S$510 worked month in section 5 is a Bishan test fixture, so the demo firm's number can differ. The replay is the record day, 31 Oct 2025, and its "Open the receipt" button opens the October 2025 zero-payment receipt for questions. All dates live in `product.json` under `demo_clock`.
 
 ### Navigation
 | Door | Screens (in order) |
@@ -738,13 +761,13 @@ Ten slides, 700 words, 4 minutes 50 seconds. Full script in `docs/pitch-script.m
 5. How it works: one tick box; read, count, compare, pay; free compliance log; station, not site.
 6. A normal month is part of the job: deductible, co-insurance, limit; yearly reset.
 7. Choose your deductible: S$1.76 to S$3.61; S$2,575, S$1,565, S$9,600.
-8. Profitable from year one inside the 20% expense limit: 65 / 20 / 5 / 10; S$0.54M over three years; 7 years in 10; forfeiture.
+8. Plan economics: 65 / 20 / 5 / 10; S$0.54M over three years; loss years are very wet years and severe haze years; 7 years in 10; forfeiture.
 9. AI sits in the interface: read, explain, warn. Rules decide the payout.
 10. Ask: 500-firm pilot from April 2027; "Would you pilot this? If not, what would have to be true?"
 
 Demo cuts:
-- Cut A, 20 seconds, inside slide 5: replay 31 Oct 2025 for Tanjong Greenworks, meter fills, receipt, PayNow.
-- Cut B, 90 seconds, for questions or a booth: landing calculator -> get cover -> home -> receipt -> Income console.
+- Cut A, 20 seconds, inside slide 5: employer home -> May receipt for Tanjong Greenworks: 11.5 rain hours, 7.44-hour deductible, S$650 paid by 8 June.
+- Cut B, 90 seconds, for questions or a booth: landing calculator -> get cover -> home -> May receipt -> Income console. Keep the 31 Oct 2025 record-day replay and its zero-payment receipt for questions.
 
 ## 19. Mentor feedback digest and the missing evidence
 

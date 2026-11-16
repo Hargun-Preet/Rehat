@@ -10,15 +10,18 @@ import { sgd } from "@/lib/format";
 import type { ProductPlan, ProductSpec } from "@/lib/product";
 import { cn } from "@/lib/utils";
 
-type QuoteProps = Pick<ProductSpec, "plans" | "product" | "demo_firm">;
+type QuoteProps = Pick<ProductSpec, "plans" | "product" | "demo_firm" | "unit_economics_standard_per_worker" | "copy">;
 
-export function LandingQuote({ plans, product, demo_firm: demoFirm }: QuoteProps) {
+export function LandingQuote({ plans, product, demo_firm: demoFirm, unit_economics_standard_per_worker: economics, copy }: QuoteProps) {
   const defaultPlan = plans.find((plan) => plan.default) ?? plans[0];
   const [planId, setPlanId] = useState(defaultPlan?.id ?? "");
   const [workers, setWorkers] = useState(demoFirm.outdoor_workers);
   const plan = plans.find((item) => item.id === planId) ?? defaultPlan;
 
-  const totals = useMemo(() => calculate(plan, workers, product.gst_rate), [plan, product.gst_rate, workers]);
+  const totals = useMemo(
+    () => calculate(plan, workers, product.gst_rate, demoFirm.outdoor_workers, economics.firm_loss_normal_year_20_workers.value),
+    [demoFirm.outdoor_workers, economics.firm_loss_normal_year_20_workers.value, plan, product.gst_rate, workers],
+  );
   if (!plan) return null;
 
   const updateWorkers = (next: number) => setWorkers(Math.min(200, Math.max(1, Math.round(next) || 1)));
@@ -28,7 +31,7 @@ export function LandingQuote({ plans, product, demo_firm: demoFirm }: QuoteProps
       <div className="border-b border-line-soft bg-income-blue-50 px-5 py-4">
         <p className="flex items-center gap-2 text-sm font-semibold text-income-blue">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface text-income-orange-700 shadow-sm"><Calculator className="h-4 w-4" /></span>
-          What Rehat would have paid you
+          What a hard year can cost
         </p>
         <p className="mt-1 text-xs text-muted-foreground">Compare a plan for an outdoor crew like yours.</p>
       </div>
@@ -75,14 +78,17 @@ export function LandingQuote({ plans, product, demo_firm: demoFirm }: QuoteProps
         </div>
 
         <div className="rounded-xl bg-income-orange-100/70 p-4">
-          <p className="text-xs font-medium text-income-orange-700">Expected payout for this crew</p>
-          <p className="num mt-1 font-heading text-3xl font-bold text-ink">{sgd(totals.averagePayout, 0)}</p>
+          <p className="text-xs font-medium text-income-orange-700">Protected in a hard year</p>
+          <p className="num mt-1 font-heading text-3xl font-bold text-ink">{sgd(totals.worstYearPayout, 0)}</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {plan.source === "back-test" ? "Observed in the 26-year back-test." : "Estimated in the product simulation."} It is not guaranteed.
+            The yearly limit for this crew. A normal year can carry about {sgd(totals.normalYearDowntime, 0)} in paid weather downtime.
+            <AssumptionTag label={economics.firm_loss_normal_year_20_workers.source} basis={`Illustrative normal-year downtime for the ${demoFirm.outdoor_workers}-worker Standard example.`} />
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-ink">{copy.hook}</p>
         </div>
 
         <dl className="space-y-2 text-sm">
+          <QuoteRow label="Average year payout, not guaranteed" value={sgd(totals.averagePayout, 0)} source={plan.source} />
           <QuoteRow label="Annual premium before GST" value={sgd(totals.beforeGst, 0)} />
           <QuoteRow label="GST" value={sgd(totals.gst, 0)} />
           <QuoteRow label="Total for the year" value={sgd(totals.total, 0)} strong />
@@ -92,7 +98,7 @@ export function LandingQuote({ plans, product, demo_firm: demoFirm }: QuoteProps
           <AssumptionTag basis={`Illustrative ${plan.source} calibration. Final terms are shown before you submit.`} label={plan.source} />
         </p>
         <Button asChild className="w-full">
-          <Link href="/onboard">See this quote <ArrowRight className="ml-1 h-4 w-4" /></Link>
+          <Link href={`/onboard?plan=${encodeURIComponent(plan.id)}`}>See this quote <ArrowRight className="ml-1 h-4 w-4" /></Link>
         </Button>
         <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground"><Sparkles className="mt-0.5 h-3 w-3 shrink-0 text-income-orange-700" />You can change the deductible before you continue.</p>
       </div>
@@ -100,20 +106,22 @@ export function LandingQuote({ plans, product, demo_firm: demoFirm }: QuoteProps
   );
 }
 
-function calculate(plan: ProductPlan, workers: number, gstRate: number) {
+function calculate(plan: ProductPlan, workers: number, gstRate: number, exampleWorkers: number, normalYearDowntimeExample: number) {
   const beforeGst = plan.per_worker_year * workers;
   return {
     beforeGst,
     gst: beforeGst * gstRate,
     total: beforeGst * (1 + gstRate),
-    averagePayout: (plan.example_20_workers.average_payout_year / 20) * workers,
+    averagePayout: (plan.example_20_workers.average_payout_year / exampleWorkers) * workers,
+    worstYearPayout: (plan.example_20_workers.worst_year_payout / exampleWorkers) * workers,
+    normalYearDowntime: (normalYearDowntimeExample / exampleWorkers) * workers,
   };
 }
 
-function QuoteRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function QuoteRow({ label, value, source, strong = false }: { label: string; value: string; source?: "back-test" | "simulation"; strong?: boolean }) {
   return (
     <div className={cn("flex items-center justify-between gap-3", strong && "border-t border-line pt-2 font-semibold text-ink")}>
-      <dt className={cn("text-muted-foreground", strong && "text-ink")}>{label}</dt>
+      <dt className={cn("text-muted-foreground", strong && "text-ink")}>{label}{source ? <AssumptionTag label={source} basis={source === "back-test" ? "Observed 26-year Standard pricing back-test." : "Product simulation."} /> : null}</dt>
       <dd className="num font-medium text-ink">{value}</dd>
     </div>
   );

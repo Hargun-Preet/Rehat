@@ -36,7 +36,7 @@ def test_product_endpoint_returns_the_canonical_export_shape() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["version"] == "2.0"
-    assert body["demo_firm"]["uen"] == "202012345K"
+    assert body["demo_firm"]["uen"] == "T99DM0001B"
     assert [plan["id"] for plan in body["plans"]] == ["essential", "standard", "plus"]
     assert body["copy"]["footer"].startswith("Concept prototype")
 

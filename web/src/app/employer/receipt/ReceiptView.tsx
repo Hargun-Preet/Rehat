@@ -64,7 +64,7 @@ function ReceiptContent({ index, defaultMonth, firm, benefit, planName, deductib
   return (
     <>
       <PageHeader eyebrow="Monthly receipt" title="What we counted, and why">
-        Every counted hour, the reading, the station, your allowance, the caps and what did not count. No claim form.
+        Every counted hour, the reading, the station, your deductible, the caps and what did not count. No claim form.
       </PageHeader>
       <Section>
         <div className="mb-5 flex flex-wrap items-center gap-3">
@@ -120,7 +120,7 @@ function ReceiptBody({
   const payoutIsPending = pending > 0 && r.payout_sgd === 0;
   const showEnglishSource = lang !== "en";
   const answer = pending
-    ? "Evidence is still pending. The confirmed amount is shown above, but this is not a payment confirmation. We will publish the locked receipt explanation when the outstanding readings are settled."
+    ? "Evidence is still pending. The confirmed amount is shown above, but this is not a payment confirmation. We will publish the locked receipt explanation when the outstanding readings are confirmed."
     : q === "explain"
       ? r.explain.en?.text
       : r.why_not_paid.en || r.explain.en?.text;
@@ -139,7 +139,7 @@ function ReceiptBody({
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">{pending ? "Confirmed amount so far" : "Payout"}</p>
+              <p className="text-sm text-muted-foreground">{pending ? "Confirmed amount so far" : "Payment"}</p>
               {payoutIsPending ? (
                 <StateBadge state="PENDING" className="mt-2" />
               ) : (
@@ -147,7 +147,7 @@ function ReceiptBody({
               )}
               {pending ? (
                 <p className="ml-auto mt-1 max-w-[16rem] text-xs leading-relaxed text-state-pending">
-                  Pending readings are not included. This receipt does not mark a payout as sent until they are settled.
+                  Pending readings are not included. This receipt does not mark a payment as sent until the evidence is confirmed.
                 </p>
               ) : (
                 <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
@@ -156,7 +156,7 @@ function ReceiptBody({
               )}
               {r.payout_sgd > 0 && !pending ? (
                 <p className="mt-1 flex items-center justify-end gap-2 text-xs text-income-orange-700">
-                  <Ellipsis size="sm" variant="loader" /> payout on its way
+                  <Ellipsis size="sm" variant="loader" /> payment on its way
                 </p>
               ) : null}
             </div>
@@ -168,7 +168,7 @@ function ReceiptBody({
             <div className="rounded-xl bg-paper p-4">
               <p className="text-sm font-semibold">Haze</p>
               <p className="num mt-2 text-2xl font-bold">{z.pending_days ? "Pending" : `${num(z.counted_h)} h`}</p>
-              <p className="text-xs text-muted-foreground">No allowance for haze. 20 h a year limit.</p>
+              <p className="text-xs text-muted-foreground">No deductible for haze. 20 h a year limit.</p>
               {z.pending_days ? <StateBadge state="PENDING" className="mt-2" /> : null}
             </div>
           </div>
@@ -177,7 +177,7 @@ function ReceiptBody({
             <tbody>
               <Row k="Insured hours before caps" v={pending ? "Pending" : `${num(r.insured_before_caps_h)} h`} />
               <Row k={`Caps: ${r.monthly_cap_h} h a month, ${r.yearly_cap_h} h a year (${num(r.ytd_insured_before_h)} h used before this month)`} v={pending ? "Pending" : capped ? `cut to ${num(r.insured_after_caps_h)} h` : "not reached"} />
-              <Row k={pending ? "Final benefit" : `${num(r.insured_after_caps_h)} h x S$${benefit} x ${firm.outdoor_workers} workers`} v={payoutIsPending ? "Pending" : sgd(r.payout_sgd)} strong />
+              <Row k={pending ? "Payment" : `${num(r.insured_after_caps_h)} h x S$${benefit} x ${firm.outdoor_workers} workers`} v={payoutIsPending ? "Pending" : sgd(r.payout_sgd)} strong />
             </tbody>
           </table>
           {pending ? (
@@ -186,7 +186,7 @@ function ReceiptBody({
               <p className="mt-1 leading-relaxed">
                 We check the named station first, then its backup station, then the published regional median. If that cannot settle the reading, it goes to human review. Pending is never treated as no event.
               </p>
-              <p className="mt-1 text-xs leading-relaxed">We will issue a later receipt once it is settled. No payout is marked as sent while this receipt has pending evidence.</p>
+              <p className="mt-1 text-xs leading-relaxed">We will issue a later receipt once the evidence is confirmed. No payment is marked as sent while this receipt has pending evidence.</p>
             </div>
           ) : null}
         </div>

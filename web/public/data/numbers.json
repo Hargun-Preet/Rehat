@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-16T09:40",
+ "generated_at": "2026-11-16T11:27",
  "backtest": {
   "scope": "Published Standard pricing calibration. It is not recalculated from the fictional pilot-book geographic mix.",
   "expected_insured_h": 9.78,
@@ -10,28 +10,28 @@
   "worst_year": 2013,
   "worst_payout": 295.0,
   "zero_payout_years_book": 0,
-  "zero_payout_years_avg_firm": 1.1,
+  "zero_payout_years_avg_firm": 0.11,
   "years": 26,
   "first_year": 2000,
   "last_year": 2025,
-  "pct_months_paying": 46.5,
+  "pct_months_paying": 43.5,
   "basis_risk_pct": 3.69,
   "rain_window_share": 0.586,
-  "rain_window_share_basis": "calibrated on 1513 station-days where NEA 5-minute gauges and MSS daily records overlap",
+  "rain_window_share_basis": "calibrated on 1513 station-days where NEA 5-minute gauges and MSS daily records overlap; missing MSS station-days, including before a local station began, use Changi on the same date",
   "changi_rain_days_10mm_mean": 61.4,
   "portfolio_diagnostic": {
    "scope": "Fictional pilot-book geographic mix used for portfolio, capital and cash diagnostics only.",
    "firms": 500,
-   "expected_insured_h": 8.32,
-   "expected_payout_standard": 66.6,
-   "loss_ratio_mean_at_standard_price": 0.517
+   "expected_insured_h": 6.19,
+   "expected_payout_standard": 49.5,
+   "loss_ratio_mean_at_standard_price": 0.385
   }
  },
  "pricing": {
   "Published Standard price": "S$128.75 a worker a year, S$2.48 a week before GST (S$140.34 with GST)",
   "Observed 26-year Standard result": "S$78.27 expected payout a worker a year, 61% of the cautious published price",
   "Published calibration basis": "9.78 insured hours and S$78.27 per worker; not recalculated from the pilot's station mix",
-  "500-firm geographic-mix diagnostic": "S$66.60 a worker a year in this generated mix; capital and cash only, not a price input",
+  "500-firm geographic-mix diagnostic": "S$49.50 a worker a year in this generated mix; capital and cash only, not a price input",
   "20-worker Standard example": "S$2,575 before GST, S$2,807 with GST; observed expected payout S$1,565",
   "Plan split": "65% claims, 20% expenses, 5% reinsurance and 10% profit (plan)",
   "2015-style haze capital stress": "261% loss ratio (simulation; capital planning only, never a customer payout input)",
@@ -40,7 +40,7 @@
  },
  "liquidity": {
   "Book (demo)": "500 firms, 8,313 outdoor workers",
-  "Next settlement": "2026-12-07 for 2026-11 (as of 2026-11-10): P50 S$7,992, P90 S$30,677, P99 S$51,368; buffer S$43,376",
+  "Next settlement": "2026-06-08 for 2026-05 (as of 2026-05-29): P50 S$111,432, P90 S$111,432, P99 S$111,432; buffer S$0",
   "Cash call for Oct 2025, as of 20 Oct": "P50 S$5,872, P90 S$26,497, P99 S$32,365; buffer S$26,493; settles 2025-11-07",
   "Forecast validation (P90 coverage)": "85% of 174 month-forecasts (2022-01 to 2026-10, as of day 1, 10, 20); target about 90%",
   "Forecast validation (P99 coverage)": "97%"

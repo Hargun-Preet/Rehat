@@ -23,6 +23,9 @@ export default async function PitchPage() {
 
   const planPrices = product.plans.map((plan) => sgd(plan.per_worker_week, 2)).join(" to ");
   const premiumSplit = product.premium_split.map((part) => whole(part.share * 100)).join(" / ");
+  const demoReceipt = product.demo_clock.may_receipt;
+  const demoReceiptMonth = new Intl.DateTimeFormat("en-SG", { month: "long", year: "numeric" }).format(new Date(`${demoReceipt.month}-01T00:00:00`));
+  const demoPaymentDate = new Intl.DateTimeFormat("en-SG", { day: "numeric", month: "long" }).format(new Date(`${demoReceipt.payment_date}T00:00:00`));
   const steps: Step[] = [
     {
       at: "0:00", title: "The hook", href: "/",
@@ -54,20 +57,21 @@ export default async function PitchPage() {
     {
       at: "1:25", title: "The opportunity", href: "/insurer",
       points: [
-        point(`${compactMoney(product.market.all_crews.premium)} of premium if all eligible crews were covered.`, "published"),
+        point(`${compactMoney(product.market.all_crews.premium)} of premium if all outdoor crews were covered.`, "published"),
         point(`${compactMoney(product.market.small_firms.premium)} across about ${whole(product.market.small_firms.employers)} small employers.`, "assumption"),
         point(`Start at renewal with ${whole(product.market.reachable_first.employers)} reachable employers.`, "assumption"),
       ],
-      kpi: { v: compactMoney(product.market.all_crews.premium), l: "annual premium across all eligible crews", source: "published" },
+      kpi: { v: compactMoney(product.market.all_crews.premium), l: "annual premium across all outdoor crews", source: "published" },
     },
     {
-      at: "1:50", title: "How Rehat works", href: "/replay?autoplay=1", alt: { label: "Open the receipt", href: "/employer/receipt" },
+      at: "1:50", title: "How Rehat works", href: "/employer", alt: { label: "Replay the record day (questions)", href: "/replay?autoplay=1" },
       points: [
         point(product.copy.one_line, "plan"),
+        point(`${demoReceiptMonth}: ${demoReceipt.rain_hours} hours of rain against a ${demoReceipt.deductible_hours}-hour deductible, then ${sgd(demoReceipt.payment)} paid by ${demoPaymentDate}.`, demoReceipt.source),
         point("Every hour, Rehat reads independent NEA heat, rain and haze data at the named station."),
         point("It counts downtime above the normal month, then pays before payroll. Alerts and the compliance log come with every policy."),
       ],
-      kpi: { v: "One tick box", l: "at WIC renewal, with no claim form", source: "plan" },
+      kpi: { v: sgd(demoReceipt.payment), l: `${demoReceiptMonth} payment for the demo firm`, source: demoReceipt.source },
     },
     {
       at: "2:25", title: "A normal month stays with the firm", href: "/employer/receipt",
@@ -76,10 +80,10 @@ export default async function PitchPage() {
         point(deductible.plain, "plan"),
         point(`The benefit is ${sgd(product.product.benefit_per_worker_hour)} an hour. The yearly limit is ${whole(product.limits.insured_hours_per_year)} insured hours, or ${sgd(product.limits.max_payout_per_worker_year)} a worker.`, "plan"),
       ],
-      kpi: { v: standard.deductible_label, l: "the Standard plan's monthly allowance", source: "plan" },
+      kpi: { v: standard.deductible_label, l: "the Standard plan's monthly deductible", source: "plan" },
     },
     {
-      at: "2:55", title: "Choose your deductible", href: "/onboard",
+      at: "2:55", title: "Choose your deductible", href: "/onboard?step=deductible",
       points: [
         point(`Plans run from ${planPrices} a worker a week, before GST.`, "plan"),
         point(`${standard.name} costs ${sgd(standard.example_20_workers.premium_year)} a year for ${whole(product.demo_firm.outdoor_workers)} workers.`, "back-test"),
@@ -88,10 +92,11 @@ export default async function PitchPage() {
       kpi: { v: sgd(standard.per_worker_week, 2), l: "a worker a week on Standard, before GST", source: "back-test" },
     },
     {
-      at: "3:30", title: "Profitable from year one", href: "/insurer",
+      at: "3:30", title: "The planned split", href: "/insurer",
       points: [
         point(`${premiumSplit} is the planned split between claims, expenses, reinsurance and profit.`, "plan"),
         point(`${sgd(product.three_year_path.total_profit)} of profit across the planned three-year path.`, "plan"),
+        point("Loss years are very wet years and severe haze years, not El Niño labels alone.", "back-test"),
         point(`The ${whole(product.pilot.firms)}-firm pilot is capped at ${sgd(product.pilot.capped_worst_case)}. A MOM heat action forfeits that month's heat payout.`, "plan"),
       ],
       kpi: { v: premiumSplit, l: "claims / expenses / reinsurance / profit", source: "plan" },

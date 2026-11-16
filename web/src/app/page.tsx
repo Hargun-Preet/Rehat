@@ -31,7 +31,7 @@ export default async function Home() {
 
   const stats = [
     { Icon: WalletCards, tone: "orange" as const, label: "Standard cover", value: `${sgd(standard.per_worker_week, 2)} / week`, detail: "per outdoor worker, before GST", source: "back-test" },
-    { Icon: ReceiptText, tone: "blue" as const, label: "Eligible benefit", value: `${sgd(benefit, 0)} / hour`, detail: "per worker for each insured hour", source: null },
+    { Icon: ReceiptText, tone: "blue" as const, label: "Insured benefit", value: `${sgd(benefit, 0)} / hour`, detail: "per worker for each insured hour", source: null },
     { Icon: CalendarClock, tone: "amber" as const, label: "Standard months that pay", value: standard.months_that_pay, detail: "in the product back-test", source: "back-test" },
     { Icon: FileCheck2, tone: "green" as const, label: "Claim forms", value: "0", detail: product.product.payment, source: null },
   ];
@@ -45,7 +45,7 @@ export default async function Home() {
             <p className="eyebrow mb-5 flex items-center gap-2"><Ellipsis size="sm" /> {product.product.descriptor}</p>
             <h1 className="max-w-3xl text-4xl font-bold text-ink sm:text-6xl">{product.copy.tagline}</h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Weather downtime cover helps outdoor teams keep required rest breaks and payroll on track when heat, rain or haze make a normal month hard.
+              {product.copy.hook} When heat, rain or haze make a normal month hard, Rehat protects the payroll cost of downtime.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <HeroTag Icon={HardHat} text="Built around your work injury policy" />
@@ -57,7 +57,7 @@ export default async function Home() {
               <Button asChild size="lg" variant="secondary"><Link href="/employer">Explore the employer workspace</Link></Button>
             </div>
           </div>
-          <LandingQuote plans={product.plans} product={product.product} demo_firm={product.demo_firm} />
+          <LandingQuote plans={product.plans} product={product.product} demo_firm={product.demo_firm} unit_economics_standard_per_worker={product.unit_economics_standard_per_worker} copy={product.copy} />
         </div>
       </section>
 
@@ -76,13 +76,13 @@ export default async function Home() {
 
       <section className="mx-auto max-w-6xl px-6 py-14">
         <div className="max-w-2xl">
-          <p className="eyebrow">Why teams choose Rehat</p>
+          <p className="eyebrow">What the cover protects</p>
           <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Keep the rule, protect the workday.</h2>
           <p className="mt-3 text-muted-foreground">Clear independent readings, a plain monthly deductible and one evidence-led receipt make the cover easy to run.</p>
         </div>
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <ValueCard Icon={Sun} title="Required breaks stay protected" text={product.copy.rule_statement} tone="orange" />
-          <ValueCard Icon={ShieldCheck} title="The rule is visible before you buy" text="You see the named station, the monthly deductible, the allowance and the annual cap before you submit." tone="blue" />
+          <ValueCard Icon={ShieldCheck} title="The rule is visible before you buy" text="You see the named station, the monthly deductible and the annual cap before you submit." tone="blue" />
           <ValueCard Icon={Building2} title="No worker details to price it" text="Price uses the selected plan and declared outdoor headcount. Worker names, NRICs and phone numbers are not needed." tone="green" />
         </div>
       </section>
@@ -93,14 +93,14 @@ export default async function Home() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="eyebrow">A month with Rehat</p>
-            <h2 className="mt-2 text-2xl font-bold sm:text-3xl">One clear operational loop.</h2>
+            <h2 className="mt-2 text-2xl font-bold sm:text-3xl">How a month is handled.</h2>
           </div>
           <Link className="inline-flex items-center gap-1 text-sm font-semibold text-income-blue hover:text-income-blue-600" href="/replay">See a replay <ArrowRight className="h-4 w-4" /></Link>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MonthStep number="01" Icon={BellRing} title="Plan tomorrow" text="An alert names the station and likely heat window so heavy work can move earlier." />
           <MonthStep number="02" Icon={Sun} title="Protect the break" text="Workers receive a plain notice when the reading reaches the heat threshold." />
-          <MonthStep number="03" Icon={ReceiptText} title="Review the receipt" text="Every counted hour, allowance and unresolved reading stays visible." />
+          <MonthStep number="03" Icon={ReceiptText} title="Review the receipt" text="Every counted hour, deductible and unresolved reading stays visible." />
           <MonthStep number="04" Icon={CalendarClock} title="Receive payment" text={product.product.payment} />
         </div>
       </section>

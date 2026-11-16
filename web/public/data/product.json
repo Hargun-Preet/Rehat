@@ -2,7 +2,7 @@
   "_readme": "Machine-readable copy of CONTEXT.md sections 4, 5 and the verbatim copy. The engine and the web app read from this file. No screen or module hard-codes a number or a legal sentence. If this file and CONTEXT.md disagree, fix one of them and note it in the worklog. source values: published, back-test, simulation, assumption, contract, formula, plan.",
   "version": "2.0",
   "frozen_at": "2026-11-15T21:30:00+08:00",
-  "matches_deck": "Rehat_pitch_deck_v6.pptx",
+  "matches_deck": "Rehat_pitch_deck_v9.pptx",
 
   "product": {
     "name": "Rehat",
@@ -232,19 +232,27 @@
     "month": "2026-05",
     "replay_day": "2025-10-31",
     "replay_receipt_month": "2025-10",
-    "note": "Offline demo mode pins one date so every screen agrees. Default is May 2026. The S$510 worked month is a Bishan test fixture; the demo firm's own figure comes from the engine. If the repo already pins another month with a payout, keep the repo's month and write it here and in CONTEXT.md section 17."
+    "may_receipt": {
+      "month": "2026-05",
+      "rain_hours": 11.5,
+      "deductible_hours": 7.44,
+      "payment": 650,
+      "payment_date": "2026-06-08",
+      "source": "simulation"
+    },
+    "note": "Offline demo mode pins one date so every screen agrees. Default is May 2026. Tanjong Greenworks' May receipt has 11.5 rain hours against a 7.44-hour deductible and pays S$650 on 8 June. The S$510 worked month is a Bishan test fixture; the demo firm's own figure comes from the engine. Keep the 31 October 2025 replay and its zero-payment receipt for questions."
   },
 
   "demo_firm": {
     "name": "Tanjong Greenworks Pte Ltd",
-    "uen": "202012345K",
+    "uen": "T99DM0001B",
     "owner_display": "Mr Tan",
     "trade": "Landscaping",
     "work_class": "A",
     "outdoor_workers": 20,
     "site_area": "Jurong West",
     "plan": "standard",
-    "wic_policy_no": "WIC-DEMO-000123",
+    "wic_policy_no": "WIC-DEMO-100001",
     "fictional": true
   },
 

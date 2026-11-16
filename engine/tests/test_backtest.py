@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from rehat import rules
@@ -20,6 +21,34 @@ def test_rain_day_hours() -> None:
     got = rain_day_hours(np.array([0.0, 3.0, 12.0, 30.0, np.nan]), np.array([0.0, 3.0, 12.0, 10.0, 5.0]))
     assert got[:4].tolist() == [0.0, 0.5, 1.0, 1.0 + 1.5]
     assert np.isnan(got[4])
+
+
+def test_rain_station_gap_uses_changi_before_local_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A station introduced later must not turn its earlier history into zero rain."""
+    from rehat import backtest
+
+    dates = pd.date_range("2000-01-01", "2000-01-04", freq="D")
+    source = pd.DataFrame({
+        "station_code": ["S24", "S24", "S24", "S24", "S99"],
+        "date": [*dates, dates[-1]],
+        "rain_mm": [10.0, 0.0, 5.0, 20.0, 1.0],
+        "rain_max60_mm": [10.0, 0.0, 5.0, 10.0, 1.0],
+    })
+
+    monkeypatch.setattr(backtest, "FIRST_YEAR", 2000)
+    monkeypatch.setattr(backtest, "LAST_YEAR", 2000)
+    monkeypatch.setattr(backtest, "calibrate_rain_share", lambda: (1.0, "test"))
+    monkeypatch.setattr(backtest, "mss_daily", lambda: source.copy())
+    backtest.rain_monthly_by_mss.cache_clear()
+    try:
+        by_station, _, _ = backtest.rain_monthly_by_mss()
+
+        # S99 only starts on 4 Jan. Its first two working days must follow
+        # Changi, while its own observed day remains its own (0 h for 1 mm).
+        assert by_station["S99"][0, 0] == 1.5
+        assert by_station["S24"][0, 0] == 3.5
+    finally:
+        backtest.rain_monthly_by_mss.cache_clear()
 
 
 def test_simulate_allowance_and_caps() -> None:
