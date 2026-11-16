@@ -7,13 +7,15 @@ import { loadJSON } from "@/lib/data";
 import { monthName, sgd } from "@/lib/format";
 import { loadProduct } from "@/lib/product.server";
 
+import { LiveWeatherStatus } from "./LiveWeatherStatus";
+
 type ReceiptIndex = { uen: string; firm: string; month: string; payout: number; insured_h: number; pending: number };
 type Receipt = {
   month: string;
   payout_sgd: number;
   settlement_date: string;
   firm: { name: string; outdoor_workers: number };
-  stations: { primary: { name: string }; backup: { name: string }; rain_gauge: { name: string }; psi_region: string };
+  stations: { primary: { station_id: string; name: string }; backup: { name: string }; rain_gauge: { name: string }; psi_region: string };
   perils: {
     heat: { counted_h: number; allowance_h: number; insured_h: number; pending_hours: number };
     rain: { counted_h: number; allowance_h: number; insured_h: number; pending_hours: number };
@@ -48,10 +50,15 @@ export default async function EmployerDashboard() {
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="space-y-5">
             <section className="overflow-hidden rounded-2xl border border-income-blue-100 bg-surface shadow-[var(--shadow-card)]">
-              <div className="flex flex-col gap-5 bg-income-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-3"><IconTile icon={Sun} tone="blue" size="lg" /><div><p className="text-sm font-semibold text-income-blue">Today&apos;s heat reading</p><h2 className="mt-1 text-xl font-bold text-ink">{todayHeat?.state === "TRIGGERED" ? "Heat breaks are due now" : "No heat break is due right now"}</h2><p className="mt-1 text-sm text-muted-foreground">{receipt?.stations.primary.name ?? "Named heat station"} · {formatDemoDate(product.demo_clock.today)}</p></div></div>
-                <div className="rounded-xl border border-income-blue-100 bg-surface px-4 py-3 text-left sm:text-right"><p className="text-xs text-muted-foreground">Latest scheduled hour</p><p className="num mt-1 font-heading text-3xl font-bold text-ink">{todayHeat?.reading == null ? "Pending" : `${todayHeat.reading.toFixed(1)}°`}</p><p className="text-xs text-muted-foreground">WBGT at the named station</p></div>
-              </div>
+              <LiveWeatherStatus
+                fallback={{
+                  stationId: receipt?.stations.primary.station_id ?? "",
+                  stationName: receipt?.stations.primary.name ?? "Named heat station",
+                  date: product.demo_clock.today,
+                  reading: todayHeat?.reading ?? null,
+                  state: todayHeat?.state ?? "PENDING",
+                }}
+              />
               <div className="grid gap-3 p-5 sm:grid-cols-3">
                 <StatusTile icon={MapPinned} label="Named heat station" value={receipt?.stations.primary.name ?? "Not set"} note="Independent NEA reading" />
                 <StatusTile icon={CloudRain} label="Rain gauge" value={receipt?.stations.rain_gauge.name ?? "Not set"} note="Clock-hour rainfall" />
@@ -106,10 +113,6 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function PolicyLine({ label, value }: { label: string; value: string }) {
   return <div className="flex items-start justify-between gap-4 border-b border-line-soft pb-3 last:border-0 last:pb-0"><dt className="text-muted-foreground">{label}</dt><dd className="max-w-[60%] text-right font-medium text-ink">{value}</dd></div>;
-}
-
-function formatDemoDate(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-SG", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
 
 function formatShortDate(date: string) {

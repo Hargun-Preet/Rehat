@@ -251,7 +251,7 @@ Heat counted 1.69 h vs allowance 1.25 -> 0.44 h. Rain 9.0 h vs allowance 6.25 ->
 
 <!-- BEGIN GENERATED NUMBERS (python -m rehat.numbers; do not edit by hand) -->
 
-Generated 2026-11-16T11:27 from engine outputs. Source files: data/processed/*.json.
+Generated 2026-11-16T14:20 from engine outputs. Source files: data/processed/*.json.
 
 **Published Standard calibration (2000 to 2025, 1 worker)**
 
@@ -444,6 +444,7 @@ Version 2 refinement:
 - [x] R11 Pitch mode, demo cuts, numbers frozen, runs offline
 - [x] R12 Pitch-readiness pass: May payment demo, console economics, offline map and deck consistency
 - [x] R13 Final production verification: core pitch handoffs, payment flow and offline preview served without the Next.js dev overlay
+- [x] R14 Live employer weather status: current Singapore-date NEA feed, safe pending states and explicit offline fallback
 
 ## 14. Open questions
 1. Reachable market. The deck says 3,100 employers reachable first (25% of in-scope). An older build-up assumed Income holds about 12% of small-firm WIC, which is about 1,480 firms on Income's own book. On that view a 500-firm pilot needs a third of Income's small outdoor WIC customers, or association channels from day one. Ask Income for its real share. Until then tag 3,100 as an assumption.
@@ -688,6 +689,15 @@ Version 2 refinement:
 - Broken or unverified: Native-language worker notices still await native-speaker review. A real pilot still requires underwriting and legal confirmation.
 - Tests: `make export`; `make test` (134 passed; one third-party Starlette deprecation warning); `make check-numbers`; `npx tsc --noEmit`; `npm run lint`; `npm run build`; and `git diff --check` passed. Production browser checks confirmed the landing protection card, S$650 employer screen, 29.2° worker screen, receipt picker, onboarding handoff, pitch deductible deep link, console business case and absence of the dev overlay.
 - Next: Rehearse the paid-May path from `/employer` and use the October 2025 replay only for follow-up questions.
+
+### 2026-11-16 14:22, live employer weather status
+- Done: Replaced the Employer home’s fixed 29 May weather card with a live NEA reading for the current Singapore date, plus refresh and an explicit offline demo fallback. The May receipt and S$650 payment remain separate, complete demo evidence. Hardened `GET /live` to use Asia/Singapore time, cache each NEA request for five minutes with audit metadata, calculate the hourly WBGT state from at least three quarter-hour readings, and return `PENDING` rather than a false no-event result. Updated the live map to consume that state safely.
+- Files changed: `engine/rehat/api.py`, `engine/tests/test_live.py`, `web/src/app/{employer/page,employer/LiveWeatherStatus,live/Live}.tsx`, `README.md`, `CONTEXT.md`; `make export` refreshed generated timestamps in `docs/judge-pack.md`, `web/public/data/meta.json`, `numbers.json`, and the two surfaced demo receipts.
+- Numbers produced (with source): No price, deductible, insured-hour or payout number changed. At verification, NEA returned one 14:00 quarter-hour WBGT sample for Jurong West Stadium on 16 Nov 2026, so the safe displayed state was `PENDING` rather than a calculated hourly value (data.gov.sg live endpoint).
+- Decisions: The live safety card defaults to live mode and shows Singapore’s current date. If the named station has fewer than three quarter-hour readings it stays pending; if the engine is unavailable, its May reading is labelled separately as offline demo data. Live safety data never changes the completed monthly receipt, insured hours or payment.
+- Broken or unverified: The source can legitimately be pending during an incomplete hour. A real deployment still needs the engine reachable from the browser; the README now makes this requirement explicit.
+- Tests: `make export`; `make test` (139 passed, one existing Starlette deprecation warning); `make check-numbers`; `npx tsc --noEmit`; `npm run lint`; `npm run build`; `git diff --check`; production browser checks of Employer live, offline fallback, restored live mode and live-map pending state; HTTP 200 for `/employer` and `/live`.
+- Next: Keep the engine running for a live demo and let the card refresh after the next NEA quarter-hour readings publish.
 
 ---
 
